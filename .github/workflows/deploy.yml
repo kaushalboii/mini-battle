@@ -1,4 +1,4 @@
-name: Automatic Release
+name: Deploy Reef Rivals to GitHub Pages & Release
 
 on:
   push:
@@ -8,10 +8,49 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  # Create GitHub Release on every push
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   create-release:
+    needs: build-and-deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,21 +68,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - Mini-Battle: Reef Rivals"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Reef Rivals: Treasure Tide"
           body: |
-            ## 🌴 Mini-Battle: Reef Rivals (${{ steps.tagger.outputs.tag }})
+            ## 🌴 Reef Rivals: Treasure Tide (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🚀 Highlights in this release:
-            - **3D Tropical Lagoon**: Animated low-poly water with dynamic wave displacement & raft buoyancy
-            - **Turn-Based Projectile Combat**: 3 escalating pirate rounds with AI targeting
-            - **Ballistics Trajectory Preview**: 3D parabolic arc preview with gravity and crosswind
-            - **Multi-Ammo Arsenal**: Coconuts, Explosive Pineapples, and Watermelon Cluster Bombs
-            - **Cinematic Follow Cam**: Dynamic camera tracking projectile flight
-            - **Web Audio API**: 100% procedural sound effects (cannon, splash, hit, fanfare)
-            - **CLAUDE.md Guide**: Integrated development guide for Claude and AI coding agents
+            ### 🚀 Exact Mint Playground Reef Rivals Experience:
+            - **Original 3D Characters**: Kai Tide, Nia Tide, Brinebeard, Patch, Pearl, and Tiki
+            - **Animated 3D GLTF Rigging**: Idle, throw, hit reaction, fall, and victory cheer animations
+            - **Tropical Lagoon Arena**: Beach dunes, sand islet, volcanic islet, drifting clouds, and reef cover
+            - **Complete Arcade HUD & Sound**: Audio tracks, sound fx, upgrades, shells, and ammo selector
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
