@@ -1,4 +1,4 @@
-name: Build, Deploy & Release
+name: Automatic Release
 
 on:
   push:
@@ -10,22 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  # 1. Deploy to GitHub Pages via gh-pages branch
-  deploy-pages:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-          publish_branch: gh-pages
-          exclude_assets: '.git,.github,node_modules'
-
-  # 2. Create GitHub Release on every push
+  # Create GitHub Release on every push
   create-release:
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create Release Tag
+      - name: Determine Release Tag
         id: tagger
         run: |
           VERSION="v1.0.${{ github.run_number }}"
@@ -48,13 +33,13 @@ jobs:
           body: |
             ## 🌴 Mini-Battle: Reef Rivals (${{ steps.tagger.outputs.tag }})
 
-            🎮 **Play Live Game**:
+            🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🚀 Updates in this release:
-            - **3D Tropical Lagoon**: Low-poly water with dynamic wave displacement & raft buoyancy
+            ### 🚀 Highlights in this release:
+            - **3D Tropical Lagoon**: Animated low-poly water with dynamic wave displacement & raft buoyancy
             - **Turn-Based Projectile Combat**: 3 escalating pirate rounds with AI targeting
-            - **Ballistics Trajectory Preview**: 3D parabolic arc with gravity and crosswind
+            - **Ballistics Trajectory Preview**: 3D parabolic arc preview with gravity and crosswind
             - **Multi-Ammo Arsenal**: Coconuts, Explosive Pineapples, and Watermelon Cluster Bombs
             - **Cinematic Follow Cam**: Dynamic camera tracking projectile flight
             - **Web Audio API**: 100% procedural sound effects (cannon, splash, hit, fanfare)
