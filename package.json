@@ -1,0 +1,28 @@
+{
+  "name": "mini-battle",
+  "version": "1.0.0",
+  "description": "Mini-Battle: Reef Rivals - 3D Tropical Projectile Battler",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaushalboii/mini-battle.git"
+  },
+  "keywords": [
+    "threejs",
+    "game",
+    "projectile-battler",
+    "reef-rivals",
+    "webgl",
+    "3d"
+  ],
+  "author": "kaushalboii",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.187.0"
+  }
+}
