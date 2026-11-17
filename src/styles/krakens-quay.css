@@ -52,7 +52,6 @@ button { touch-action: manipulation; }
   height: 74px;
   object-fit: contain;
   object-position: left center;
-  clip-path: inset(5% round 9%);
   filter: drop-shadow(0 4px 0 rgba(16, 64, 79, 0.18));
 }
 
@@ -208,7 +207,6 @@ button { touch-action: manipulation; }
   height: min(38vh, 380px);
   max-width: 76vw;
   object-fit: contain;
-  clip-path: inset(3% round 9%);
   filter: drop-shadow(0 10px 0 rgba(13, 67, 79, 0.18));
 }
 .kq-menu p, .reef-menu p {
@@ -492,3 +490,4 @@ button { touch-action: manipulation; }
     transition-duration: 0.01ms !important;
   }
 }
+

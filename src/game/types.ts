@@ -59,3 +59,4 @@ export interface AmmoConfig {
   damage: number;
   model: string;
 }
+

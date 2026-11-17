@@ -89,7 +89,8 @@ export const KRAKENS_QUAY_ASSETS = {
     },
   },
   images: {
-    title: `${CDN}/images/xn73f0yesvgh4d440fhswxxee98ajm2r/reef-rivals-teal-plaque-title-bf84f2-e7e54c875489dcff.png`,
+    title: "./assets/images/krakens-quay-title.svg",
+    logo: "./assets/images/krakens-quay-logo.svg",
     hud: `${CDN}/images/xn78wenjjmhpt604eekscrq94s8aj468/reef-rivals-cream-badge-hud-110ea1-a0c787ef8d4d5e2f.png`,
     upgradePower: `${CDN}/images/xn78zffc6ybb2agzettxc7zwe98akgdx/hot-coconuts-float-upgrade-badge-aa6b51-4d86f795b63622f9.png`,
     upgradePatch: `${CDN}/images/xn73feg84mdw6jqy46dn4c56vh8aje4c/heart-patch-float-upgrade-badge-17afc1-d287a28bab76d523.png`,
@@ -109,3 +110,4 @@ export const KRAKENS_QUAY_ASSETS = {
 export const REEF_RIVALS_MINT_ASSETS = KRAKENS_QUAY_ASSETS;
 export type KrakensCharacterKey = keyof typeof KRAKENS_QUAY_ASSETS.characters;
 export type ReefCharacterKey = KrakensCharacterKey;
+

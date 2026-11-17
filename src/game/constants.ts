@@ -44,3 +44,4 @@ export const AMMO_INFO: Record<
   pineapple: { label: "Pineapple", damage: 39, model: "pineapple" },
   volley: { label: "Pebble Volley", damage: 29, model: "volley" },
 };
+

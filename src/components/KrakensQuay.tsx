@@ -964,7 +964,7 @@ export default function KrakensQuay() {
 
       <header className="kq-topbar reef-topbar">
         <img
-          src={ASSETS.images.title}
+          src={ASSETS.images.logo}
           alt="Kraken's Quay: Splash & Shot"
           className="kq-mini-logo reef-mini-logo"
         />
@@ -1154,3 +1154,4 @@ export default function KrakensQuay() {
     </main>
   );
 }
+

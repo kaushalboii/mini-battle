@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 130" width="100%" height="100%">
+  <defs>
+    <linearGradient id="logoRim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#268a9c" />
+      <stop offset="50%" stop-color="#0f4b59" />
+      <stop offset="100%" stop-color="#072b34" />
+    </linearGradient>
+    <linearGradient id="logoInner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#146073" />
+      <stop offset="100%" stop-color="#05252e" />
+    </linearGradient>
+    <linearGradient id="logoGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="25%" stop-color="#fff9a6" />
+      <stop offset="60%" stop-color="#ffb703" />
+      <stop offset="100%" stop-color="#fb8500" />
+    </linearGradient>
+    <linearGradient id="logoAqua" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e0ffff" />
+      <stop offset="50%" stop-color="#26e8e8" />
+      <stop offset="100%" stop-color="#00a896" />
+    </linearGradient>
+    <linearGradient id="logoRope" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a46d33" />
+      <stop offset="50%" stop-color="#e8bf7a" />
+      <stop offset="100%" stop-color="#8a531e" />
+    </linearGradient>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="6" y="6" width="308" height="118" rx="22" ry="22" fill="url(#logoRim)" stroke="#39b0c7" stroke-width="4" />
+  <rect x="12" y="12" width="296" height="106" rx="18" ry="18" fill="none" stroke="url(#logoRope)" stroke-width="4" stroke-dasharray="8 4" />
+  <rect x="18" y="18" width="284" height="94" rx="14" ry="14" fill="url(#logoInner)" />
+
+  <!-- Mini Squid Icon -->
+  <text x="42" y="72" font-size="34" text-anchor="middle">🦑</text>
+
+  <!-- Title: KRAKEN'S -->
+  <g style="font-family: 'Arial Rounded MT Bold', 'Fredoka', 'Lilita One', system-ui, sans-serif; font-weight: 1000; text-anchor: middle;">
+    <!-- Main Text: KRAKEN'S QUAY -->
+    <text x="180" y="58" font-size="30" letter-spacing="1.5" fill="#7a1a28" stroke="#7a1a28" stroke-width="8" stroke-linejoin="round">
+      KRAKEN'S QUAY
+    </text>
+    <text x="180" y="55" font-size="30" letter-spacing="1.5" fill="#fffbe6" stroke="#fffbe6" stroke-width="5" stroke-linejoin="round">
+      KRAKEN'S QUAY
+    </text>
+    <text x="180" y="55" font-size="30" letter-spacing="1.5" fill="url(#logoGold)">
+      KRAKEN'S QUAY
+    </text>
+
+    <!-- Subtitle: SPLASH & SHOT -->
+    <text x="180" y="93" font-size="16" letter-spacing="3" fill="#00353f" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">
+      SPLASH &amp; SHOT
+    </text>
+    <text x="180" y="93" font-size="16" letter-spacing="3" fill="url(#logoAqua)">
+      SPLASH &amp; SHOT
+    </text>
+  </g>
+</svg>
