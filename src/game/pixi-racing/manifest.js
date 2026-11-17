@@ -1,5 +1,9 @@
-// The files this example loads, by their names in pixi-3d's examples/assets/manifest.ts
-const urls = {
+/**
+ * Apex Drift 3D - Asset Manifest
+ * Defines the glTF 3D track tiles, competition vehicles, audio buffers, and FX textures.
+ */
+
+const ASSET_REGISTRY = {
   'racing.decoration-empty':
     'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/decoration-empty.glb',
   'racing.decoration-forest':
@@ -31,31 +35,23 @@ const urls = {
   'racing.vehicle-truck-yellow':
     'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/vehicle-truck-yellow.glb',
 };
-const url = (name) => urls[name];
-const models = {
+
+export const getAssetUrl = (name) => ASSET_REGISTRY[name];
+
+export const models = {
   racing: {
-    'decoration-empty':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/decoration-empty.glb',
-    'decoration-forest':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/decoration-forest.glb',
-    'decoration-tents':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/decoration-tents.glb',
-    'track-bump':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/track-bump.glb',
-    'track-corner':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/track-corner.glb',
-    'track-finish':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/track-finish.glb',
-    'track-straight':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/track-straight.glb',
-    'vehicle-truck-green':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/vehicle-truck-green.glb',
-    'vehicle-truck-purple':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/vehicle-truck-purple.glb',
-    'vehicle-truck-red':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/vehicle-truck-red.glb',
-    'vehicle-truck-yellow':
-      'https://cdn.jsdelivr.net/gh/pixijs/pixi-asset-storage@e73783699c4953aee0453b5ca12506f6fa515f8d/kenney/starter-kit-racing/vehicle-truck-yellow.glb',
+    'decoration-empty': ASSET_REGISTRY['racing.decoration-empty'],
+    'decoration-forest': ASSET_REGISTRY['racing.decoration-forest'],
+    'decoration-tents': ASSET_REGISTRY['racing.decoration-tents'],
+    'track-bump': ASSET_REGISTRY['racing.track-bump'],
+    'track-corner': ASSET_REGISTRY['racing.track-corner'],
+    'track-finish': ASSET_REGISTRY['racing.track-finish'],
+    'track-straight': ASSET_REGISTRY['racing.track-straight'],
+    'vehicle-truck-green': ASSET_REGISTRY['racing.vehicle-truck-green'],
+    'vehicle-truck-purple': ASSET_REGISTRY['racing.vehicle-truck-purple'],
+    'vehicle-truck-red': ASSET_REGISTRY['racing.vehicle-truck-red'],
+    'vehicle-truck-yellow': ASSET_REGISTRY['racing.vehicle-truck-yellow'],
   },
 };
-export { url as model, url as texture, url as sound, models };
+
+export { getAssetUrl as model, getAssetUrl as texture, getAssetUrl as sound };

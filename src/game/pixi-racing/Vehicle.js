@@ -1,6 +1,10 @@
+/**
+ * Apex Drift 3D - Vehicle Dynamics & Physics Controller
+ * Handles arcade chassis dynamics, steering grip, nitrous injection, wheel rotation, and suspension roll.
+ */
+
 import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';
 import { rigidBody } from 'crashcat';
-
 import { clamp, lerp } from './MathUtils';
 
 const LINEAR_DAMP = 0.1;
@@ -21,10 +25,8 @@ const _qBodyTmp = new Quaternion();
 
 function lerpAngle(a, b, t) {
   let diff = b - a;
-
   while (diff > Math.PI) diff -= Math.PI * 2;
   while (diff < -Math.PI) diff += Math.PI * 2;
-
   return a + diff * t;
 }
 
@@ -49,6 +51,13 @@ export class Vehicle {
   acceleration = 0;
   yaw = 0;
 
+  // Nitro System & Drift Points
+  nitroAmount = 100;
+  isBoosting = false;
+  driftScore = 0;
+  currentDriftPoints = 0;
+  lastBankedDrift = 0;
+
   spherePos = new Vector3(SPAWN[0], SPAWN[1], SPAWN[2]);
   sphereVel = new Vector3();
   modelVelocity = new Vector3();
@@ -62,16 +71,13 @@ export class Vehicle {
 
   constructor(source, physics) {
     this.physics = physics;
-
     this.container = new Container3D();
 
     const root = new Model3D(source);
-
     root.scale.set(0.5, 0.5, 0.5);
     this.container.addChild(root);
 
     this.bodyNode = root.getChildByLabel('body', true);
-
     if (this.bodyNode) this.bodyNode.quaternion.copyTo(this._bodyInitQuat);
 
     const wheelFL = root.getChildByLabel('wheel-front-left', true);
@@ -104,6 +110,7 @@ export class Vehicle {
     this.angularSpeed = 0;
     this.acceleration = 0;
     this.yaw = 0;
+    this.isBoosting = false;
     this.container.position.set(SPAWN[0], SPAWN[1] - 0.5, SPAWN[2]);
     this._prevModelPos.set(SPAWN[0], 0, SPAWN[2]);
   }
@@ -111,6 +118,15 @@ export class Vehicle {
   update(dt, input) {
     this.inputX = input.x;
     this.inputZ = input.z;
+
+    const wantsNitro = Boolean(input.nitro) && this.nitroAmount > 5 && this.inputZ > 0;
+    this.isBoosting = wantsNitro;
+
+    if (wantsNitro) {
+      this.nitroAmount = Math.max(0, this.nitroAmount - dt * 26);
+    } else {
+      this.nitroAmount = Math.min(100, this.nitroAmount + dt * 10);
+    }
 
     if (input.touchActive && (this.inputX !== 0 || this.inputZ !== 0)) {
       const targetAngle = Math.atan2(this.inputX, this.inputZ);
@@ -122,10 +138,10 @@ export class Vehicle {
       const cross = _forward.x * this.inputZ - _forward.z * this.inputX;
 
       this.inputX = clamp(-cross * 2, -1, 1);
-      this.linearSpeed = lerp(this.linearSpeed, MAX_SPEED, dt * 1.5);
+      const topSpeed = wantsNitro ? MAX_SPEED * 1.55 : MAX_SPEED;
+      this.linearSpeed = lerp(this.linearSpeed, topSpeed, dt * (wantsNitro ? 3.0 : 1.5));
     } else {
       let direction = Math.sign(this.linearSpeed);
-
       if (direction === 0)
         direction = Math.abs(this.inputZ) > 0.1 ? Math.sign(this.inputZ) : 1;
 
@@ -142,21 +158,19 @@ export class Vehicle {
       } else if (targetSpeed < 0) {
         this.linearSpeed = lerp(this.linearSpeed, targetSpeed / 2, dt * 2);
       } else {
-        this.linearSpeed = lerp(
-          this.linearSpeed,
-          targetSpeed * MAX_SPEED,
-          dt * 1.5,
-        );
+        const topSpeed = wantsNitro ? MAX_SPEED * 1.55 : MAX_SPEED;
+        const accelRate = wantsNitro ? dt * 3.5 : dt * 1.5;
+        this.linearSpeed = lerp(this.linearSpeed, targetSpeed * topSpeed, accelRate);
       }
     }
 
     this.linearSpeed *= Math.max(0, 1 - LINEAR_DAMP * dt);
 
-    // Drive: spin the rolling sphere about the truck's right vector (world X
-    // turned by yaw), as the three.js port does.
+    // Drive rolling sphere
     const rightX = Math.cos(this.yaw);
     const rightZ = -Math.sin(this.yaw);
-    const drive = this.linearSpeed * 100 * dt;
+    const drivePower = wantsNitro ? 140 : 100;
+    const drive = this.linearSpeed * drivePower * dt;
     const body = this.physics.sphereBody;
     const angvel = body.motionProperties.angularVelocity;
 
@@ -167,9 +181,7 @@ export class Vehicle {
     ]);
 
     this.spherePos.set(body.position[0], body.position[1], body.position[2]);
-
     const linvel = body.motionProperties.linearVelocity;
-
     this.sphereVel.set(linvel[0], linvel[1], linvel[2]);
 
     this.acceleration = lerp(
@@ -210,6 +222,18 @@ export class Vehicle {
     this.driftIntensity =
       Math.abs(this.linearSpeed - this.acceleration) +
       Math.abs(this._bodyRoll) * 2;
+
+    // Drift scoring & Nitro bonus
+    if (this.driftIntensity > 0.65 && Math.abs(this.linearSpeed) > 0.2) {
+      this.nitroAmount = Math.min(100, this.nitroAmount + dt * 22);
+      this.currentDriftPoints += Math.round(dt * 380 * this.driftIntensity);
+    } else {
+      if (this.currentDriftPoints > 30) {
+        this.driftScore += this.currentDriftPoints;
+        this.lastBankedDrift = this.currentDriftPoints;
+      }
+      this.currentDriftPoints = 0;
+    }
   }
 
   _updateBody(dt) {
@@ -218,65 +242,61 @@ export class Vehicle {
     this._bodyPitch = lerpAngle(
       this._bodyPitch,
       -(this.linearSpeed - this.acceleration) / 6,
-      dt * 10,
+      dt * 12,
     );
-    this._bodyRoll = lerpAngle(
-      this._bodyRoll,
-      -(this.inputX / 5) * this.linearSpeed,
-      dt * 5,
-    );
+
+    const rollT = clamp(Math.abs(this.linearSpeed) / 0.5, 0, 1);
+    const targetRoll = this.angularSpeed * 0.05 * rollT;
+
+    this._bodyRoll = lerpAngle(this._bodyRoll, targetRoll, dt * 12);
 
     _qPitch.setFromAxisAngle(_xAxis, this._bodyPitch);
     _qRoll.setFromAxisAngle(_zAxis, this._bodyRoll);
-    _qBodyTmp.copyFrom(this._bodyInitQuat).multiply(_qPitch).multiply(_qRoll);
-    this.bodyNode.quaternion.copyFrom(_qBodyTmp);
-
-    this.bodyNode.position.y = lerp(this.bodyNode.position.y, 0.3, dt * 5);
+    _qBodyTmp.multiply(_qPitch, _qRoll);
+    this.bodyNode.quaternion.multiply(this._bodyInitQuat, _qBodyTmp);
   }
 
   _updateWheels(dt) {
-    for (let i = 0; i < this.wheels.length; i++) {
-      this._wheelSpinAngle[i] += this.acceleration;
+    const wheelRotSpeed = this.linearSpeed / 0.5;
+
+    for (let i = 0; i < 4; i++) {
+      this._wheelSpinAngle[i] += wheelRotSpeed * dt * 20;
     }
 
-    const targetSteer = -this.inputX / 1.5;
+    const steerTarget = -this.inputX * 0.45;
 
-    if (this.wheelFL) {
-      this._wheelSteerAngle.fl = lerpAngle(
-        this._wheelSteerAngle.fl,
-        targetSteer,
-        dt * 10,
-      );
-      this._applyWheelTransform(
-        this.wheelFL,
-        this._wheelSpinAngle[0],
-        this._wheelSteerAngle.fl,
-      );
-    }
-    if (this.wheelFR) {
-      this._wheelSteerAngle.fr = lerpAngle(
-        this._wheelSteerAngle.fr,
-        targetSteer,
-        dt * 10,
-      );
-      this._applyWheelTransform(
-        this.wheelFR,
-        this._wheelSpinAngle[1],
-        this._wheelSteerAngle.fr,
-      );
-    }
-    if (this.wheelBL) {
-      this._applyWheelTransform(this.wheelBL, this._wheelSpinAngle[2], 0);
-    }
-    if (this.wheelBR) {
-      this._applyWheelTransform(this.wheelBR, this._wheelSpinAngle[3], 0);
-    }
-  }
+    this._wheelSteerAngle.fl = lerp(
+      this._wheelSteerAngle.fl,
+      steerTarget,
+      dt * 15,
+    );
+    this._wheelSteerAngle.fr = lerp(
+      this._wheelSteerAngle.fr,
+      steerTarget,
+      dt * 15,
+    );
 
-  _applyWheelTransform(wheel, spin, steer) {
-    _qSteer.setFromAxisAngle(_up, steer);
-    _qSpin.setFromAxisAngle(_xAxis, spin);
-    _qSteer.multiply(_qSpin);
-    wheel.quaternion.copyFrom(_qSteer);
+    const frontWheels = [
+      [this.wheelFL, this._wheelSpinAngle[0], this._wheelSteerAngle.fl],
+      [this.wheelFR, this._wheelSpinAngle[1], this._wheelSteerAngle.fr],
+    ];
+
+    for (const [wheel, spin, steer] of frontWheels) {
+      if (!wheel) continue;
+      _qSteer.setFromAxisAngle(_up, steer);
+      _qSpin.setFromAxisAngle(_xAxis, spin);
+      wheel.quaternion.multiply(_qSteer, _qSpin);
+    }
+
+    const rearWheels = [
+      [this.wheelBL, this._wheelSpinAngle[2]],
+      [this.wheelBR, this._wheelSpinAngle[3]],
+    ];
+
+    for (const [wheel, spin] of rearWheels) {
+      if (!wheel) continue;
+      _qSpin.setFromAxisAngle(_xAxis, spin);
+      wheel.quaternion.copyFrom(_qSpin);
+    }
   }
 }

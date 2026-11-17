@@ -1,3 +1,8 @@
+/**
+ * Apex Drift 3D - Virtual Touch Joystick
+ * Touchscreen steering and acceleration interface with dynamic analog deadzones.
+ */
+
 import { Container, Graphics } from 'pixi.js';
 
 const STEER_RANGE = 40;

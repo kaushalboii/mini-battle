@@ -1,3 +1,8 @@
+/**
+ * Apex Drift 3D - Modular Circuit & Environmental Grid
+ * Instantiates the circuit segments, environmental forest canopy, trackside paddock, and rigid physics colliders.
+ */
+
 import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';
 
 const ORIENT_DEG = { 0: 0, 10: 180, 16: 90, 22: 270 };

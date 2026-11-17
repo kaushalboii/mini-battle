@@ -1,12 +1,22 @@
+/**
+ * Apex Drift 3D - Multi-Input Controller
+ * Handles keyboard (WASD/Arrows/Shift/Space), HTML5 Gamepad API, and Touch Joystick.
+ */
+
 export class Controls {
   _keys = Object.create(null);
   _joystick;
+  _nitroExternal = false;
 
   constructor(joystick = null) {
     this._joystick = joystick;
 
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
+  }
+
+  setNitro(active) {
+    this._nitroExternal = Boolean(active);
   }
 
   destroy() {
@@ -23,19 +33,26 @@ export class Controls {
     if (this._keys.KeyW || this._keys.ArrowUp) z += 1;
     if (this._keys.KeyS || this._keys.ArrowDown) z -= 1;
 
+    let nitro =
+      Boolean(this._nitroExternal) ||
+      Boolean(this._keys.ShiftLeft) ||
+      Boolean(this._keys.ShiftRight) ||
+      Boolean(this._keys.Space);
+
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
 
     for (const gp of pads) {
       if (!gp) continue;
 
       const stickX = gp.axes[0];
-
       if (Math.abs(stickX) > 0.15) x = stickX;
 
       const rt = gp.buttons[7]?.value ?? 0;
       const lt = gp.buttons[6]?.value ?? 0;
 
       if (rt > 0.1 || lt > 0.1) z = rt - lt;
+
+      if (gp.buttons[0]?.pressed || gp.buttons[5]?.pressed) nitro = true;
 
       break;
     }
@@ -54,7 +71,7 @@ export class Controls {
       }
     }
 
-    return { x, z, touchActive };
+    return { x, z, touchActive, nitro };
   }
 
   _onKeyDown = (e) => {

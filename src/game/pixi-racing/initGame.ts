@@ -1,3 +1,9 @@
+/**
+ * Apex Drift 3D - Scene Graph & Engine Coordinator
+ * Orchestrates PixiJS 3D rendering, crashcat physics, nitrous particle emitters,
+ * multi-angle follow cameras, audio, and high-performance telemetry.
+ */
+
 import {
   DirectionalLight,
   Material3D,
@@ -15,11 +21,22 @@ import { FollowCamera } from './Camera';
 import { Controls } from './Controls';
 import { DriftMarks } from './DriftMarks';
 import { LapTimer } from './LapTimer';
-import { SmokeTrails } from './Particles';
+import { SmokeTrails, NitroTrails } from './Particles';
 import { PhysicsWorld } from './Physics';
 import { TouchJoystick } from './TouchJoystick';
 import { buildTrack } from './Track';
 import { MAX_SPEED, Vehicle } from './Vehicle';
+
+export interface TelemetryData {
+  speedKmh: number;
+  gear: number;
+  rpm: number;
+  nitro: number;
+  isBoosting: boolean;
+  driftIntensity: number;
+  currentDriftPoints: number;
+  totalDriftScore: number;
+}
 
 export interface GameInstance {
   app: Application;
@@ -29,13 +46,17 @@ export interface GameInstance {
   setVehicleColor: (colorKey: string) => void;
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
+  setLightingTheme: (theme: 'day' | 'sunset' | 'night') => void;
+  setNitro: (active: boolean) => void;
+  setMuted: (muted: boolean) => void;
   resetPosition: () => void;
   destroy: () => void;
 }
 
 export async function initRacingGame(
   canvas: HTMLCanvasElement,
-  onProgress?: (progress: number, label: string) => void
+  onProgress?: (progress: number, label: string) => void,
+  onTelemetry?: (data: TelemetryData) => void
 ): Promise<GameInstance> {
   const app = new Application();
 
@@ -57,7 +78,7 @@ export async function initRacingGame(
 
   const smokePromise = Assets.load(texture('racing.smoke')).then((res) => {
     loadedCount++;
-    onProgress?.(0.1 + (loadedCount / totalAssets) * 0.7, 'Loading Kenney textures...');
+    onProgress?.(0.1 + (loadedCount / totalAssets) * 0.7, 'Loading textures...');
     return res;
   });
 
@@ -96,7 +117,7 @@ export async function initRacingGame(
   const camera = view3d.camera;
   const followCamera = new FollowCamera(camera);
 
-  // Lights
+  // Directional Sun Light
   const sun = new DirectionalLight({
     color: 0xfff4e0,
     intensity: 2,
@@ -130,10 +151,10 @@ export async function initRacingGame(
   ground.position.set(0, -0.13, 0);
   view3d.root.addChild(ground);
 
-  // Track
+  // Track & Walls
   const track = buildTrack(view3d.root, sources);
 
-  // Physics
+  // Physics World
   const physics = new PhysicsWorld(new Vector3(3.5, 0.5, 5));
   physics.addStaticGround([0, -0.125, 0], [50, 0.01, 50]);
 
@@ -141,9 +162,11 @@ export async function initRacingGame(
     physics.addStaticBox(wall);
   }
 
-  // Audio
+  // Audio Engine
   const audio = new GameAudio();
   void audio.load();
+
+  let isAudioMuted = false;
 
   const unlockAudio = () => {
     audio.unlock();
@@ -168,11 +191,13 @@ export async function initRacingGame(
       const mv = vehicle.modelVelocity;
       const impactVelocity = Math.abs(mv.x * fx + mv.z * fz);
 
-      audio.playImpact(impactVelocity);
+      if (!isAudioMuted) {
+        audio.playImpact(impactVelocity);
+      }
     },
   };
 
-  // HUD
+  // Pixi 2D HUD Layer
   const hudLayer = new Container();
   app.stage.addChild(hudLayer);
 
@@ -184,9 +209,12 @@ export async function initRacingGame(
 
   const controls = new Controls(joystick as any);
 
-  // FX
+  // Visual Effects
   const driftMarks = new DriftMarks(view3d.root);
-  const particles = new SmokeTrails(view3d.root, smokeTexture);
+  const smokeParticles = new SmokeTrails(view3d.root, smokeTexture);
+  const nitroParticles = new NitroTrails(view3d.root, smokeTexture);
+
+  let telemetryTimer = 0;
 
   const tickerFn = () => {
     joystick.resize(app.screen.width, app.screen.height);
@@ -209,18 +237,42 @@ export async function initRacingGame(
     );
 
     driftMarks.update(dt, vehicle);
-    particles.update(app.ticker, vehicle);
-    audio.update(
-      dt,
-      vehicle.linearSpeed / MAX_SPEED,
-      input.z,
-      vehicle.driftIntensity,
-    );
+    smokeParticles.update(app.ticker, vehicle);
+    nitroParticles.update(app.ticker, vehicle);
+
+    if (!isAudioMuted) {
+      audio.update(
+        dt,
+        vehicle.linearSpeed / MAX_SPEED,
+        input.z,
+        vehicle.driftIntensity,
+      );
+    }
 
     const hasInput =
       input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
 
     lapTimer.update(dt, vehicle.container.position, hasInput);
+
+    // Telemetry dispatch at ~30Hz
+    telemetryTimer += dt;
+    if (telemetryTimer >= 0.033 && onTelemetry) {
+      telemetryTimer = 0;
+      const speedKmh = Math.round(Math.abs(vehicle.linearSpeed) * 85);
+      const gear = (audio as any)._gear + 1;
+      const rpm = (audio as any)._rpm;
+
+      onTelemetry({
+        speedKmh,
+        gear: vehicle.isBoosting ? 4 : gear,
+        rpm,
+        nitro: Math.round(vehicle.nitroAmount),
+        isBoosting: vehicle.isBoosting,
+        driftIntensity: vehicle.driftIntensity,
+        currentDriftPoints: vehicle.currentDriftPoints,
+        totalDriftScore: vehicle.driftScore,
+      });
+    }
   };
 
   app.ticker.add(tickerFn);
@@ -246,6 +298,39 @@ export async function initRacingGame(
     },
     cycleCameraMode() {
       return followCamera.cycleMode();
+    },
+    setLightingTheme(theme: 'day' | 'sunset' | 'night') {
+      if (theme === 'sunset') {
+        sun.color = 0xff9e54;
+        sun.intensity = 2.6;
+        view3d.background = 0x8b5cf6;
+        view3d.fog = { type: 'linear', color: 0xc2410c, near: 35, far: 65 };
+        view3d.environment = { skyColor: 0xfb923c, groundColor: 0x4c1d95, intensity: 1.2 };
+      } else if (theme === 'night') {
+        sun.color = 0x38bdf8;
+        sun.intensity = 0.8;
+        view3d.background = 0x0f172a;
+        view3d.fog = { type: 'linear', color: 0x0f172a, near: 25, far: 50 };
+        view3d.environment = { skyColor: 0x1e1b4b, groundColor: 0x0f172a, intensity: 0.6 };
+      } else {
+        // Day
+        sun.color = 0xfff4e0;
+        sun.intensity = 2.0;
+        view3d.background = 0xadb2ba;
+        view3d.fog = { type: 'linear', color: 0xadb2ba, near: 30, far: 55 };
+        view3d.environment = { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1.0 };
+      }
+    },
+    setNitro(active: boolean) {
+      controls.setNitro(active);
+    },
+    setMuted(muted: boolean) {
+      isAudioMuted = muted;
+      if (muted && (audio as any)._ctx?.state === 'running') {
+        (audio as any)._ctx.suspend().catch(() => {});
+      } else if (!muted && (audio as any)._ctx?.state === 'suspended') {
+        (audio as any)._ctx.resume().catch(() => {});
+      }
     },
     resetPosition() {
       vehicle.reset();

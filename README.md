@@ -1,9 +1,8 @@
-# 🦑 Kraken's Quay: Splash & Shot
+# 🏎️ Apex Drift 3D • Grand Prix Circuit
 
-> A rich 3D tropical turn-based projectile battle game built with **Three.js**, **React 19**, and WebGL.
+> A high-octane 3D arcade racer built with **PixiJS 3D**, **WebGPU/WebGL**, and real-time rigid body physics.
 
 [![Play Live](https://img.shields.io/badge/Play-Live-brightgreen?style=for-the-badge&logo=github)](https://kaushalboii.github.io/mini-battle/)
-[![Release](https://img.shields.io/github/v/release/kaushalboii/mini-battle?style=for-the-badge)](https://github.com/kaushalboii/mini-battle/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
@@ -14,62 +13,62 @@
 
 ---
 
-## 🌴 Overview
+## 🚀 Key Features
 
-Take command of the Tide Guard on a tropical inner-tube and wooden raft! Across the turquoise lagoon, Captain Brinebeard's armada is encroaching on Kraken's Quay. Aim your trajectory, set your power, account for drift, and blast the pirate crew overboard across 3 escalating rounds!
-
----
-
-## ✨ Features
-
-* 🎯 **Dynamic Ballistics & 3D Aiming**: Adjust elevation angle ($15^\circ$ to $76^\circ$) and launch velocity ($35\%$ to $100\%$) with real-time aim marker tracking.
-* 🍍 **Specialized Tropical Arsenal**:
-  * 🥥 **Coconut Cannonball**: High velocity, steady direct hit damage (infinite ammo).
-  * 🍍 **Explosive Pineapple**: High blast radius, destructive damage (bonus per round).
-  * 🪨 **Pebble Volley**: Triple spread volley for multi-target hits.
-* 🏴‍☠️ **Rigged Animated 3D Characters**:
-  * **Kai Tide** & **Nia Tide** (Player team)
-  * **Captain Brinebeard**, **Patch Deckhand**, **Pearl Poacher**, & **Tiki Tom** (Kraken crew)
-  * Real skeletal animations for `idle`, `throw`, `hit`, `fall` overboard, and `victory` cheer!
-* 🏝️ **3D Tropical Lagoon Environment**:
-  * PBR water with dynamic ripple animation and wave displacement.
-  * Dune beach horizon, drifting puffy clouds, volcanic islets, and coral cover.
-* 🔊 **Arcade Audio**:
-  * Caribbean pirate battle loop, launch thumps, ocean splashes, and victory fanfare.
+* 🏎️ **Dynamic Behind-the-Car Follow Cam**: Fluid third-person chase camera that dynamically rotates with your steering yaw, delivering intuitive driving and cornering.
+* ⚡ **Nitrous Boost (NOS)**: Tap or hold <kbd>Shift</kbd> / <kbd>Space</kbd> or click the on-screen **NOS** button for a 1.55x speed surge, speed streak warp lines, and electric-cyan exhaust flames!
+* 💨 **Dynamic Tire Smoke & Rubber Skid Ribbons**: Real-time continuous GPU vertex buffer ribbons left on the asphalt, with world-space drift smoke puffs.
+* 🔥 **Drift Score & Combo Multiplier**: Real-time drift point accumulation (`+350 DRIFT!`, `COMBO x2.5`) that rewards skillful power slides.
+* 📷 **5 Multi-Perspective Cameras**:
+  * **Chase View** (Default third-person follow cam)
+  * **Close Follow** (Bumper cam for precision apex clips)
+  * **Hood Cam** (First-person immersive cockpit bonnet view)
+  * **Isometric** (High-angle tactical overview)
+  * **Aerial** (Overhead GPS bird's-eye tracker)
+* 🌅 **Dynamic Atmosphere & Lighting**: Switch in real-time between **Daylight ☀️**, **Golden Sunset 🌅**, and **Neon Night 🌙** environments.
+* 🔊 **Multi-Gear WebAudio Sound Engine**: Synthesized engine RPM curves, 3-speed transmission shifts, throttle lowpass filters, and tire screech audio.
+* 📊 **High-Tech Digital Dashboard**: Real-time speedometer (KM/H), gear/NOS state, and dynamic nitrous tank charge meter.
+* 🎨 **Paddock Vehicle Palette**: Switch instantly between Golden Fury, Crimson Blaze, Viper Green, and Neon Phantom trucks.
 
 ---
 
-## 📁 Clean Architecture
+## 🎮 Controls
 
-```text
-src/
-├── assets/
-│   └── krakensQuayAssets.ts  # Central 3D GLTF models, audio, textures & images
-├── components/
-│   └── KrakensQuay.tsx       # Main 3D Game Canvas & controller component
-├── game/
-│   ├── types.ts              # TypeScript interfaces (Phase, Ammo, Upgrade, UiState)
-│   └── constants.ts          # Round configs, weapon damage balance & initial state
-├── styles/
-│   └── krakens-quay.css      # Responsive arcade HUD, modals & health styling
-├── main.tsx                  # React entry point
-└── vite-env.d.ts
-```
+| Action | Keyboard | Touch / Gamepad |
+| :--- | :--- | :--- |
+| **Accelerate** | <kbd>W</kbd> or <kbd>↑</kbd> | Joystick Up / RT Trigger |
+| **Reverse / Brake** | <kbd>S</kbd> or <kbd>↓</kbd> | Joystick Down / LT Trigger |
+| **Steer** | <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> | Joystick Left/Right / Left Stick |
+| **Nitro Boost (NOS)** | <kbd>Shift</kbd> or <kbd>Space</kbd> | On-screen NOS Button / Gamepad A / RB |
+| **Switch Camera** | <kbd>C</kbd> | Camera Button |
+| **Toggle Atmosphere** | <kbd>T</kbd> | Atmosphere Button |
+| **Mute / Unmute Audio** | <kbd>M</kbd> | Sound Button |
+| **Respawn Vehicle** | <kbd>R</kbd> | Respawn Button |
 
 ---
 
-## ⚡ Development
+## 🛠️ Tech Stack
+
+* **Rendering Engine**: [PixiJS v8](https://pixijs.com/) + `@pixi/3d` (WebGPU with WebGL2 fallback)
+* **Physics Engine**: `crashcat` (Continuous rigid body sphere and box collider simulation)
+* **UI Framework**: React 19 + TypeScript + Vite
+* **Deployment**: GitHub Pages CI/CD workflow with automatic asset optimization
+
+---
+
+## 🏁 Local Development
 
 ```bash
+# Clone the repository
+git clone https://github.com/kaushalboii/mini-battle.git
+cd mini-battle
+
 # Install dependencies
 npm install
 
-# Start local development server
+# Start Vite local development server
 npm run dev
 
-# Build production bundle into /dist
+# Build for production
 npm run build
-
-# Preview production build locally
-npm run preview
 ```

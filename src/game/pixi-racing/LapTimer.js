@@ -1,3 +1,8 @@
+/**
+ * Apex Drift 3D - 2D Vector HUD & Sector Timing
+ * Ultra-crisp bitmap font rasterizer for lap counters, sector tracking, and record storage.
+ */
+
 import { BitmapFont, BitmapText, Container, Graphics } from 'pixi.js';
 
 const STORAGE_PREFIX = 'racing.bestLap.';

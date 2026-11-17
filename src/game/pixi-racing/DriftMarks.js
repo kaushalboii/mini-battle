@@ -24,14 +24,8 @@ const INV_INTENSITY_RANGE = 1 / (INTENSITY_MAX - INTENSITY_MIN);
 const _wheelPos = new Vector3();
 
 /**
- * One streaming drift ribbon. Owns a {@link Geometry3D} with a fixed-size
- * positions buffer and a custom `aColor` (RGBA) attribute, plus partial
- * GPU uploads via {@link Buffer.update} per emitted segment.
- *
- * Ported from the three.js `BufferGeometry` + `vertexColors` approach in
- * the Starter-Kit-Racing reference. Unwritten segment slots stay at zero
- * (degenerate triangles) so the rasterizer skips them — no `drawCount`
- * management required.
+ * Dynamic streamed tire mark mesh generator utilizing continuous GPU vertex buffers
+ * and alpha gradient deposition for realistic asphalt rubber burn marks.
  */
 class DriftTrail {
   mesh;

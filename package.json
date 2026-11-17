@@ -1,6 +1,6 @@
 {
-  "name": "starter-kit-racing-3d",
-  "version": "3.0.0",
+  "name": "apex-drift-3d",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,17 +24,17 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "Starter Kit Racing 3D - Kenney Starter Kit Racing with vehicle physics, dynamic drift marks, particle smoke, multi-gear audio and 2D lap timer",
+  "description": "Apex Drift 3D - High-octane arcade racing with dynamic vehicle physics, nitro boost, tire smoke, streamed skid marks, and immersive chase camera",
   "author": "kaushalboii",
   "license": "MIT",
   "keywords": [
     "racing",
-    "game",
-    "threejs",
-    "pixi3d",
     "drift",
-    "kenney",
+    "game",
+    "nitro",
+    "pixijs",
+    "webgpu",
     "physics",
-    "webgl"
+    "3d"
   ]
 }
