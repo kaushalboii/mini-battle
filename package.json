@@ -1,14 +1,12 @@
 {
-  "name": "krakens-quay-splash-shot",
-  "version": "2.0.0",
+  "name": "reef-rivals-treasure-tide",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext ts,tsx",
-    "format": "prettier --write src/**/*.{ts,tsx,css,json}"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.4",
@@ -23,15 +21,16 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "Kraken's Quay: Splash & Shot - A premium 4K tropical projectile battle game",
+  "description": "Reef Rivals: Treasure Tide - Rich 3D turn-based projectile battle with rigged characters",
   "author": "kaushalboii",
   "license": "MIT",
   "keywords": [
     "game",
     "threejs",
     "webgl",
-    "4k",
-    "premium",
+    "gltf",
+    "animation",
+    "reef-rivals",
     "tropical",
     "projectile",
     "turn-based"

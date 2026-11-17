@@ -58,22 +58,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - Kraken's Quay: Splash & Shot"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Reef Rivals: Treasure Tide"
           body: |
-            ## 🦑 Kraken's Quay: Splash & Shot (${{ steps.tagger.outputs.tag }})
+            ## 🌴 Reef Rivals: Treasure Tide (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🚀 Premium 4K Tropical Turn-Based Projectile Battle:
-            - **Three Unique Weapons**: Coconut (∞ basic), Pineapple Bomb (3× explosive), Watermelon Split (2× cluster)
-            - **Dynamic Wind System**: Crosswind affects every shot trajectory
-            - **Power Charging Mechanic**: Hold FIRE to charge, release to shoot with precision
-            - **Drag-to-Aim Controls**: Intuitive 3D canvas drag + slider fine-tuning
-            - **3 Escalating Rounds**: Scout Skiff → Twin Corsair → Dread Boss
-            - **Procedural Audio**: Web Audio API synthesis (no external files)
-            - **Premium Visuals**: PBR materials, dynamic water, particles, camera shake
-            - **Responsive Design**: Mobile-friendly, landscape & portrait support
+            ### 🚀 Rich 3D Turn-Based Battle Experience:
+            - **Animated 3D Characters**: Rigged GLTF models with Skeletal Animation (Kai Tide, Nia Tide, Brinebeard, Patch, Pearl, Tiki)
+            - **Motion Clips**: Smooth transitions between `idle`, `throw`, `hit`, `fall`, and `victory`
+            - **3D Tropical Ocean Arena**: Sand islets, dune beach horizon, puffy clouds, coral cover, and dynamic water
+            - **Arcade Arsenal & Upgrades**: Coconut, Pineapple Bomb, Pebble Volley, Shell collection, and power-ups
+            - **Rich Audio**: Original soundtrack and sound fx
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

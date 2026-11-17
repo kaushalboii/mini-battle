@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import KrakenQuay from "./KrakenQuay";
+import ReefRivals from "./ReefRivals";
 import "./styles.css";
 
-createRoot(document.getElementById("root")!).render(<KrakenQuay />);
+createRoot(document.getElementById("root")!).render(<ReefRivals />);
