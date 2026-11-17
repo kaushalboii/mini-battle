@@ -1,14 +1,14 @@
 /* ==========================================================================
-   Apex Circuit 3D • Design System & UI Specification
-   Crafted following unslop principles: strict 4px grid, graphite neutral ramp,
-   restrained motorsport telemetry accents, zero glowing slop, authentic touch controls.
+   Apex Circuit 3D • Design System & Layout Specification
+   Engineered for Mobile Landscape First + Precision Desktop Experience.
+   Follows unslop rules: 4px grid, graphite neutral ramp, zero slop glow.
    ========================================================================== */
 
 :root {
   /* Neutral Ramp (Graphite / Motorsport Carbon) */
   --bg-deep: #090a0d;
   --bg-canvas: #0d0e12;
-  --surface-panel: rgba(18, 20, 26, 0.85);
+  --surface-panel: rgba(18, 20, 26, 0.88);
   --surface-card: #14161d;
   --surface-raised: #1c1f28;
   --surface-raised-hover: #252936;
@@ -81,7 +81,7 @@ html, body {
   background-color: var(--bg-canvas);
 }
 
-/* 3D PixiJS Canvas */
+/* 3D WebGPU/WebGL Canvas */
 .racing-canvas {
   position: absolute;
   top: 0;
@@ -93,7 +93,7 @@ html, body {
   z-index: 1;
 }
 
-/* Subtle Speed Tunnel Focus (Zero cartoon lines) */
+/* Subtle Speed Tunnel Focus */
 .racing-focus-vignette {
   position: absolute;
   inset: 0;
@@ -108,13 +108,73 @@ html, body {
 }
 
 /* ==========================================================================
-   Top Chrome Bar
+   Mobile Portrait Orientation Banner
+   ========================================================================== */
+.racing-rotate-banner {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--surface-panel);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-btn);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-panel);
+  z-index: 30;
+  animation: racing-slide-down 200ms ease-out;
+}
+
+@keyframes racing-slide-down {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.racing-rotate-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.racing-rotate-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.racing-rotate-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+.racing-rotate-dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Top Navigation Bar
    ========================================================================== */
 .racing-top-bar {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
   height: 48px;
   display: flex;
   align-items: center;
@@ -215,7 +275,7 @@ html, body {
   display: block;
 }
 
-/* Clean Unslapped Buttons */
+/* Buttons */
 .racing-btn {
   display: inline-flex;
   align-items: center;
@@ -294,12 +354,12 @@ html, body {
 }
 
 /* ==========================================================================
-   Motorsport Cockpit Telemetry HUD (Bottom-Left)
+   Motorsport Cockpit Telemetry HUD (Desktop: Bottom-Left)
    ========================================================================== */
 .racing-telemetry-panel {
   position: absolute;
-  bottom: 24px;
-  left: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: max(24px, env(safe-area-inset-left));
   width: 220px;
   display: flex;
   flex-direction: column;
@@ -469,7 +529,7 @@ html, body {
   border-top: 1px solid var(--border-subtle);
 }
 
-/* Drift Telemetry Banner (Zero shouting emoji) */
+/* Drift Telemetry Banner */
 .racing-drift-toast {
   position: absolute;
   top: 76px;
@@ -506,17 +566,17 @@ html, body {
 }
 
 /* ==========================================================================
-   Motorsport Touch Cluster (Mobile & Desktop Accessible)
+   Motorsport Touch Cluster
    ========================================================================== */
 .racing-touch-cluster {
   position: absolute;
-  bottom: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom));
   left: 0;
   right: 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 24px;
+  padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left));
   pointer-events: none;
   z-index: 15;
 }
@@ -529,6 +589,7 @@ html, body {
 }
 
 .racing-steer-paddle {
+  position: relative;
   width: 76px;
   height: 64px;
   display: flex;
@@ -570,6 +631,21 @@ html, body {
   border-radius: 1px;
 }
 
+/* Desktop Keycap on Pedals */
+.racing-pedal-keycap {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  background: var(--surface-depressed);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 3px;
+  line-height: 1;
+}
+
 /* Right Wing: Drive / Brake Pedals + Nitrous */
 .racing-pedal-wing {
   display: flex;
@@ -580,6 +656,7 @@ html, body {
 
 /* Nitrous Trigger Button */
 .racing-nos-trigger {
+  position: relative;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -608,6 +685,11 @@ html, body {
   background-color: rgba(6, 182, 212, 0.25);
   border-color: var(--boost-cyan);
   transform: scale(0.95);
+}
+
+.racing-nos-trigger .racing-pedal-keycap {
+  top: -4px;
+  right: -4px;
 }
 
 /* Authentic Vehicle Pedals */
@@ -653,7 +735,7 @@ html, body {
   border-radius: 1px;
 }
 
-/* Brake Pedal (Slightly wider) */
+/* Brake Pedal */
 .racing-pedal-brake {
   width: 68px;
   height: 84px;
@@ -671,7 +753,7 @@ html, body {
   color: var(--semantic-error);
 }
 
-/* Gas / Accelerator Pedal (Tall and sleek) */
+/* Gas / Accelerator Pedal */
 .racing-pedal-gas {
   width: 58px;
   height: 104px;
@@ -779,7 +861,7 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Notification Toast */
+/* Toast */
 .racing-toast {
   position: absolute;
   top: 76px;
@@ -798,9 +880,11 @@ html, body {
   pointer-events: none;
 }
 
-/* Modal Content & Key Table */
+/* Modal Content */
 .racing-modal-card {
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .racing-modal-header {
@@ -879,38 +963,210 @@ html, body {
 }
 
 /* ==========================================================================
-   Responsive Adaptations (Mobile & Small Tablets)
+   MOBILE LANDSCAPE FIRST ARCHITECTURE
+   Triggered on phones & small tablets rotated horizontally
+   (height <= 520px) or (width <= 950px in landscape)
    ========================================================================== */
-@media (max-width: 768px) {
+@media (max-height: 520px) and (orientation: landscape),
+       (max-width: 950px) and (orientation: landscape) {
+
+  /* Ultra-Compact Top Bar in Landscape */
   .racing-top-bar {
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    height: 44px;
+    top: max(6px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    height: 36px;
     padding: 0 10px;
+    border-radius: 8px;
   }
 
   .racing-brand-sub,
   .racing-btn-text,
   .racing-keycap,
-  .racing-footer-hint {
-    display: none;
+  .racing-footer-hint,
+  .racing-pedal-keycap {
+    display: none !important;
+  }
+
+  .racing-brand {
+    gap: 6px;
+  }
+
+  .racing-brand-name {
+    font-size: 11px;
+  }
+
+  .racing-toolbar {
+    gap: 6px;
+  }
+
+  .racing-palette-group {
+    padding: 1px 3px;
+    gap: 4px;
+  }
+
+  .racing-palette-dot {
+    width: 18px;
+    height: 18px;
+  }
+
+  .racing-dot-core {
+    width: 10px;
+    height: 10px;
   }
 
   .racing-btn {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 6px;
+  }
+
+  .racing-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Telemetry Panel (Top-Left, Clear of Centered LapTimer) */
+  .racing-telemetry-panel {
+    bottom: auto;
+    top: 48px;
+    left: max(10px, env(safe-area-inset-left));
+    width: 130px;
+    padding: 8px 10px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+
+  .racing-rpm-gauge {
+    display: none;
+  }
+
+  .racing-speed-num {
+    font-size: 26px;
+  }
+
+  .racing-speed-unit {
+    font-size: 9px;
+  }
+
+  .racing-gear-box {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+
+  .racing-boost-section {
+    gap: 2px;
+  }
+
+  .racing-boost-track {
+    height: 3px;
+  }
+
+  .racing-drift-summary {
+    padding-top: 4px;
+  }
+
+  /* Touch Controls Wing (Bottom-Left & Bottom-Right) */
+  .racing-touch-cluster {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  }
+
+  /* Left Thumb: Steering Paddles */
+  .racing-steer-wing {
+    gap: 8px;
+  }
+
+  .racing-steer-paddle {
+    width: 70px;
+    height: 58px;
+    border-radius: 8px;
+  }
+
+  .racing-paddle-ridges span {
+    width: 3px;
+    height: 12px;
+  }
+
+  /* Right Thumb: Gas, Brake & NOS */
+  .racing-pedal-wing {
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .racing-nos-trigger {
+    width: 44px;
+    height: 44px;
+    font-size: 9px;
+    margin-right: 2px;
+  }
+
+  .racing-pedal-brake {
+    width: 58px;
+    height: 72px;
+    border-radius: 8px;
+    padding: 6px 4px;
+  }
+
+  .racing-pedal-gas {
+    width: 50px;
+    height: 88px;
+    border-radius: 8px;
+    padding: 6px 4px;
+  }
+
+  .racing-toast {
+    top: 46px;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+}
+
+/* ==========================================================================
+   MOBILE PORTRAIT FALLBACK
+   Ensures zero overlap even if user holds phone upright
+   ========================================================================== */
+@media (max-width: 600px) and (orientation: portrait) {
+  .racing-top-bar {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    height: 40px;
+    padding: 0 8px;
+  }
+
+  .racing-brand-sub,
+  .racing-btn-text,
+  .racing-keycap,
+  .racing-footer-hint,
+  .racing-pedal-keycap {
+    display: none !important;
+  }
+
+  .racing-btn {
+    width: 28px;
+    height: 28px;
     padding: 0;
     justify-content: center;
   }
 
+  /* Telemetry Panel moves to LOWER-LEFT, well below Lap Timer! */
   .racing-telemetry-panel {
-    bottom: auto;
-    top: 64px;
-    left: 10px;
-    width: 150px;
-    padding: 10px 12px;
-    gap: 8px;
+    top: auto;
+    bottom: 92px;
+    left: max(10px, env(safe-area-inset-left));
+    width: 140px;
+    padding: 8px 10px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+
+  .racing-rpm-gauge {
+    display: none;
   }
 
   .racing-speed-num {
@@ -920,62 +1176,33 @@ html, body {
   .racing-gear-box {
     width: 24px;
     height: 24px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
-  .racing-rpm-segments {
-    gap: 2px;
-    height: 4px;
-  }
-
+  /* Touch controls for Portrait */
   .racing-touch-cluster {
-    bottom: 16px;
-    padding: 0 16px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    padding: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
   }
 
   .racing-steer-paddle {
-    width: 64px;
-    height: 56px;
+    width: 58px;
+    height: 54px;
   }
 
   .racing-pedal-brake {
-    width: 56px;
-    height: 72px;
+    width: 50px;
+    height: 68px;
   }
 
   .racing-pedal-gas {
-    width: 48px;
-    height: 88px;
+    width: 44px;
+    height: 80px;
   }
 
   .racing-nos-trigger {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 480px) {
-  .racing-telemetry-panel {
-    width: 130px;
-    padding: 8px 10px;
-  }
-
-  .racing-rpm-gauge {
-    display: none;
-  }
-
-  .racing-steer-paddle {
-    width: 54px;
-    height: 52px;
-  }
-
-  .racing-pedal-brake {
-    width: 48px;
-    height: 64px;
-  }
-
-  .racing-pedal-gas {
-    width: 42px;
-    height: 76px;
+    width: 40px;
+    height: 40px;
+    font-size: 9px;
   }
 }

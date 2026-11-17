@@ -92,7 +92,8 @@ export class LapTimer {
 
     this._bg = new Graphics()
       .roundRect(0, 0, 220, 110, 12)
-      .fill({ color: 0x000000, alpha: 0.5 });
+      .fill({ color: 0x090a0d, alpha: 0.82 })
+      .stroke({ color: 0xffffff, alpha: 0.1, width: 1 });
     this.container.addChild(this._bg);
 
     const labelLap = new BitmapText({
@@ -155,14 +156,27 @@ export class LapTimer {
   }
 
   resize(width, height) {
-    if (width < 640) {
-      this.container.x = 12;
-      this.container.y = 70;
-      this.container.scale.set(0.78);
+    const isLandscapeMobile = height < 520 && width > height;
+    const isPortraitMobile = width < 600 && height >= width;
+
+    if (isLandscapeMobile) {
+      // Mobile Landscape: Centered top timing banner, compact scale
+      const scale = 0.58;
+      this.container.scale.set(scale);
+      this.container.x = Math.round((width - 220 * scale) / 2);
+      this.container.y = 44;
+    } else if (isPortraitMobile) {
+      // Mobile Portrait: Centered top timing banner
+      const scale = 0.65;
+      this.container.scale.set(scale);
+      this.container.x = Math.round((width - 220 * scale) / 2);
+      this.container.y = 56;
     } else {
-      this.container.x = 20;
-      this.container.y = 76;
-      this.container.scale.set(1.0);
+      // Desktop / Tablet Landscape
+      const scale = 0.85;
+      this.container.scale.set(scale);
+      this.container.x = Math.round((width - 220 * scale) / 2);
+      this.container.y = 74;
     }
   }
 

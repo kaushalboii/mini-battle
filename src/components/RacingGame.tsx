@@ -31,6 +31,10 @@ export default function RacingGame() {
   const [showHelp, setShowHelp] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Orientation state
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [isPortraitHintDismissed, setIsPortraitHintDismissed] = useState(false);
+
   // Multi-touch pedals state
   const [activeSteer, setActiveSteer] = useState<-1 | 0 | 1>(0);
   const [activeThrottle, setActiveThrottle] = useState<-1 | 0 | 1>(0);
@@ -47,6 +51,23 @@ export default function RacingGame() {
     currentDriftPoints: 0,
     totalDriftScore: 0,
   });
+
+  // Track viewport orientation
+  useEffect(() => {
+    const handleViewportChange = () => {
+      const isMobile = window.innerWidth < 850 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isPortrait = window.innerHeight > window.innerWidth;
+      setIsMobilePortrait(isMobile && isPortrait);
+    };
+
+    handleViewportChange();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("orientationchange", handleViewportChange);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("orientationchange", handleViewportChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -195,6 +216,24 @@ export default function RacingGame() {
       {/* Subtle Speed Tunnel Focus (Zero cartoon lines) */}
       <div className={`racing-focus-vignette ${telemetry.isBoosting ? "active" : ""}`} />
 
+      {/* Mobile Portrait Orientation Banner */}
+      {!isLoading && isMobilePortrait && !isPortraitHintDismissed && (
+        <div className="racing-rotate-banner">
+          <svg className="racing-rotate-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <rect x="5" y="2" width="14" height="20" rx="3" />
+            <path d="M12 18h.01M20 7l-2-2-2 2M18 5v5" />
+          </svg>
+          <span className="racing-rotate-text">Rotate device to landscape for full circuit view</span>
+          <button
+            className="racing-rotate-dismiss"
+            onClick={() => setIsPortraitHintDismissed(true)}
+            aria-label="Dismiss orientation banner"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Loading Overlay */}
       {isLoading && (
         <div className="racing-modal-backdrop">
@@ -240,7 +279,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Minimalist Top Chrome Bar */}
+      {/* Top Navigation Bar */}
       {!isLoading && (
         <header className="racing-top-bar">
           {/* Brand Mark */}
@@ -255,9 +294,9 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Action Tools */}
+          {/* Action Toolbar */}
           <div className="racing-toolbar">
-            {/* Vehicle Palette */}
+            {/* Vehicle Palette Group */}
             <div className="racing-palette-group" title="Select Vehicle Team">
               {VEHICLE_OPTIONS.map((opt) => (
                 <button
@@ -364,7 +403,7 @@ export default function RacingGame() {
         </header>
       )}
 
-      {/* Calm Drift Telemetry Banner (Zero shouting emoji) */}
+      {/* Calm Drift Telemetry Banner */}
       {!isLoading && telemetry.currentDriftPoints > 0 && (
         <div className="racing-drift-toast">
           <span className="racing-drift-label">Drift</span>
@@ -372,7 +411,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Professional Motorsport Cockpit Telemetry (Bottom-Left) */}
+      {/* Cockpit Telemetry HUD */}
       {!isLoading && (
         <aside className="racing-telemetry-panel">
           {/* RPM LED Bar */}
@@ -438,10 +477,10 @@ export default function RacingGame() {
         </aside>
       )}
 
-      {/* Authentic Motorsport Touch Controls (Mobile & Web) */}
+      {/* On-Screen Touch Controls (Mobile Landscape Optimized & Desktop Usable) */}
       {!isLoading && (
-        <nav className="racing-touch-cluster" aria-label="Touch Controls">
-          {/* Left Hand: Steering Paddles */}
+        <nav className="racing-touch-cluster" aria-label="Racing Controls">
+          {/* Left Wing: Steering Paddles */}
           <div className="racing-steer-wing">
             <button
               className={`racing-steer-paddle ${activeSteer === -1 ? "active" : ""}`}
@@ -459,6 +498,7 @@ export default function RacingGame() {
               <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
+              <kbd className="racing-pedal-keycap">A</kbd>
             </button>
 
             <button
@@ -469,6 +509,7 @@ export default function RacingGame() {
               onPointerLeave={handleSteerEnd}
               aria-label="Steer Right"
             >
+              <kbd className="racing-pedal-keycap">D</kbd>
               <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 18l6-6-6-6" />
               </svg>
@@ -480,7 +521,7 @@ export default function RacingGame() {
             </button>
           </div>
 
-          {/* Right Hand: Drive Pedal, Brake Pedal & Nitrous */}
+          {/* Right Wing: Drive Pedal, Brake Pedal & Nitrous */}
           <div className="racing-pedal-wing">
             {/* Nitrous Ignition Button */}
             <button
@@ -495,6 +536,7 @@ export default function RacingGame() {
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
               <span>NOS</span>
+              <kbd className="racing-pedal-keycap">Shift</kbd>
             </button>
 
             {/* Brake & Reverse Pedal */}
@@ -513,6 +555,7 @@ export default function RacingGame() {
                 <span />
               </div>
               <span className="racing-pedal-tag">Brake</span>
+              <kbd className="racing-pedal-keycap">S</kbd>
             </button>
 
             {/* Accelerator Gas Pedal */}
@@ -533,6 +576,7 @@ export default function RacingGame() {
                 <span />
               </div>
               <span className="racing-pedal-tag">Drive</span>
+              <kbd className="racing-pedal-keycap">W</kbd>
             </button>
           </div>
         </nav>
@@ -623,7 +667,7 @@ export default function RacingGame() {
               <section className="racing-modal-section">
                 <h4>Mobile Device Support</h4>
                 <p className="racing-modal-desc">
-                  Play with dual thumbs: left thumb operates steering paddles, right thumb operates throttle pedal and nitrous trigger simultaneously.
+                  Designed for <strong>Landscape Mode</strong> on mobile. Left thumb steers with dual paddles; right thumb modulates throttle, brake, and hits nitrous simultaneously with full multi-touch.
                 </p>
               </section>
             </div>
@@ -631,7 +675,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Subtle Desktop Shortcut Footer */}
+      {/* Desktop Shortcut Footer */}
       {!isLoading && (
         <footer className="racing-footer-hint">
           <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • Touch paddles active</span>
