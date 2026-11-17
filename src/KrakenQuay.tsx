@@ -5,7 +5,7 @@ import { Player } from "./entities/player";
 import { EnemyFleet } from "./entities/enemy";
 import { Projectile } from "./entities/projectile";
 import { ParticleSystem } from "./fx/particles";
-import { sound } from "./audio.js";
+import { sound } from "./audio";
 import "./styles.css";
 
 type GameState =

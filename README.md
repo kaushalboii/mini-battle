@@ -1,82 +1,157 @@
-# 🥥 Reef Rivals: Mini-Battle
+# 🦑 Kraken's Quay: Splash & Shot
 
-> A vibrant 3D tropical turn-based projectile battler built with **Three.js** and WebGL, inspired by [Reef Rivals: Treasure Tide](https://github.com/mintdotgg/mint-playground/tree/main/experiences/reef-rivals) from `mintdotgg/mint-playground`.
+**Premium 4K Tropical Turn-Based Projectile Battle Game**
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Three.js](https://img.shields.io/badge/Three.js-v0.187.0-brightgreen.svg)
-![Zero Assets Required](https://img.shields.io/badge/Assets-100%25%20Procedural-orange.svg)
-
----
-
-## 🌊 Overview
-
-Take command of a tube-riding hero on a tropical wooden raft! Across the coral lagoon, a pirate armada is encroaching on your peaceful waters. Aim your swivel cannon, charge up your launch power, account for tropical crosswinds, and blast the pirate rafts into the ocean across 3 escalating rounds!
+[![Play Live](https://img.shields.io/badge/Play-Live-brightgreen?style=for-the-badge&logo=github)](https://kaushalboii.github.io/mini-battle/)
+[![Release](https://img.shields.io/github/v/release/kaushalboii/mini-battle?style=for-the-badge)](https://github.com/kaushalboii/mini-battle/releases)
+[![License](https://img.shields.io/github/license/kaushalboii/mini-battle?style=for-the-badge)](LICENSE)
 
 ---
 
-## ✨ Features & Improvements
+## 🎮 Play Now
 
-* 🎯 **Dynamic Ballistics & 3D Trajectory**: Real-time parabolic arc preview that updates as you adjust elevation, yaw, power, and crosswinds.
-* 🍍 **Specialized Tropical Arsenal**:
-  * 🥥 **Coconut Cannonball**: High velocity, steady direct hit damage (infinite ammo).
-  * 🍍 **Explosive Pineapple**: High blast radius, destructive splash damage (3 uses).
-  * 🍉 **Watermelon Cluster**: Splits mid-air into 3 sub-munitions for multi-target hits (2 uses).
-* 🏴‍☠️ **3 Escalating Enemy Rounds**:
-  * **Round 1 (Scout Skiff)**: *Pegleg Pete* on a light raft with basic cannon.
-  * **Round 2 (Corsair Catamaran)**: *Barnaby & Bones* on a dual-hull raft with shields.
-  * **Round 3 (Boss Flagship)**: *Captain Dread-Beard* on a heavily armored war-raft with skull flag and twin cannons.
-* 🎥 **Cinematic Action Camera**:
-  * Seamlessly transitions from player aiming perspective to dynamic chase cam tracking projectiles in flight.
-  * Screen shake and slow-motion impacts on hits.
-* 🔊 **Procedural Web Audio Engine**:
-  * 100% generated with the Web Audio API — cannon thumps, flying whooshes, water splashes, explosive wood crunches, and victory fanfare without needing external `.mp3` or `.wav` files.
-* 🌴 **Procedural 3D Environment**:
-  * Animated low-poly vertex ocean waves, sand atolls, palm trees, reef rocks, and drifting clouds.
-  * Realistic raft buoyancy and tilt physics synchronized with the water waves.
+**[▶️ https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)**
 
 ---
 
-## 🕹️ Controls & How to Play
+## 🌊 Game Overview
 
-| Action | Control |
-| :--- | :--- |
-| **Aim Yaw & Elevation** | Drag on the 3D scene **OR** use the Elevation & Yaw sliders |
-| **Charge Power & Fire** | **Hold** the `HOLD TO FIRE` button to charge up power, then **release** to shoot |
-| **Quick Fire** | Click `HOLD TO FIRE` directly to fire at the current power level |
-| **Switch Weapon** | Click on 🥥 Coconut, 🍍 Pineapple, or 🍉 Watermelon |
-| **Sound Toggle** | Click the 🔊 button in the top-right corner |
-| **Restart Game** | Click the 🔄 button in the top-right corner |
+Command your raft in a tactical turn-based cannon duel against the Kraken's pirate fleet. Set your angle, charge your shot, account for wind, and sink enemy vessels across 3 escalating rounds.
+
+### ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **Three Weapons** | 🥥 Coconut (∞ basic) · 🍍 Pineapple Bomb (3× explosive) · 🍉 Watermelon Split (2× cluster) |
+| **Power Charging** | Hold FIRE to charge power meter, release for precise velocity |
+| **Drag-to-Aim** | Intuitive 3D canvas drag + slider fine-tuning |
+| **Dynamic Wind** | Crosswind affects every projectile trajectory |
+| **3 Rounds** | Scout Skiff → Twin Corsair → Dread Boss |
+| **Procedural Audio** | Web Audio API synthesis (zero external files) |
+| **Premium Visuals** | PBR materials, Gerstner waves, particles, camera shake |
+| **Responsive** | Mobile-friendly, landscape & portrait support |
 
 ---
 
-## 🚀 Getting Started
+## 🎯 Controls
+
+| Input | Action |
+|-------|--------|
+| **Drag on 3D view** | Aim cannon |
+| **Elevation / Yaw sliders** | Fine-tune aim |
+| **1 / 2 / 3 keys** | Select weapon |
+| **Hold SPACE / FIRE** | Charge power |
+| **Release SPACE / FIRE** | Shoot |
+
+---
+
+## 🛠️ Development
 
 ### Prerequisites
-* [Node.js](https://nodejs.org/) (v16 or higher)
+- Node.js 20+
+- npm 10+
 
-### Run Locally
+### Install
 ```bash
-# Clone the repository
-git clone https://github.com/kaushalboii/mini-battle.git
-cd mini-battle
-
-# Install dependencies
 npm install
-
-# Start local server
-npm start
 ```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser to play!
+
+### Commands
+```bash
+npm run dev      # Start dev server (http://localhost:5173)
+npm run build    # Production build to ./dist
+npm run preview  # Preview production build
+npm run lint     # ESLint check
+npm run format   # Prettier format
+```
 
 ---
 
-## 🤖 Linking with Claude & AI Coding Agents
+## 📁 Project Structure
 
-This project contains a comprehensive [CLAUDE.md](file:///Users/kaushal/Downloads/mini-battle/CLAUDE.md) file in the root directory. Claude Code, Cursor, or any coding agent can immediately understand the architecture, physics constants, entity models, and extension patterns.
+```
+mini-battle/
+├── .github/workflows/deploy.yml   # GitHub Pages + Release workflow
+├── index.html                      # HTML entry point
+├── package.json                    # Dependencies & scripts
+├── package-lock.json               # Locked dependencies
+├── tsconfig.json                   # TypeScript config
+├── vite.config.ts                  # Vite config (base: "./")
+├── CLAUDE.md                       # AI agent instructions
+├── LICENSE                         # MIT License
+├── README.md                       # This file
+└── src/
+    ├── main.tsx                    # React DOM entry (renders KrakenQuay)
+    ├── KrakenQuay.tsx              # Main game component (React + Three.js)
+    ├── styles.css                  # Complete game styling
+    ├── vite-env.d.ts               # Vite type declarations
+    ├── audio.d.ts                  # Audio engine types
+    ├── scene.d.ts                  # WorldScene types
+    ├── scene.js                    # Three.js scene, water, lighting, environment
+    ├── entities/
+    │   ├── player.js               # Player raft, cannon, trajectory, health
+    │   ├── player.d.ts
+    │   ├── enemy.js                # Enemy fleet (3 rounds), AI targeting
+    │   ├── enemy.d.ts
+    │   ├── projectile.js           # Physics projectiles, split logic
+    │   └── projectile.d.ts
+    ├── fx/
+    │   ├── particles.js            # Splash, explosion, muzzle flash
+    │   └── particles.d.ts
+    ├── audio/
+    │   ├── AudioEngine.ts          # Procedural Web Audio synthesis
+    │   └── index.ts
+    ├── rendering/
+    │   ├── PremiumRenderer.ts      # HDR, Bloom, SSAO, FXAA, Color Grading
+    │   ├── WaterShader.ts          # Gerstner waves, caustics, foam, Fresnel
+    │   ├── ParticleSystem.ts       # GPU InstancedMesh particles
+    │   └── index.ts
+    └── assets/
+        └── krakensQuayAssets.ts    # Local asset manifest (self-hosted)
+```
 
 ---
 
-## 📜 License
+## 🚀 Deployment
 
-MIT License. Built for fun and learning!
+### Automatic (GitHub Pages)
+Push to `main` branch → GitHub Actions builds & deploys:
+1. `npm ci` → `npm run build`
+2. Upload `./dist` to GitHub Pages
+3. Create Release `v2.0.<run_number>`
 
+**Live URL**: https://kaushalboii.github.io/mini-battle/
+
+### Manual
+```bash
+npm run build
+# Deploy ./dist to any static host (Netlify, Vercel, Cloudflare Pages, etc.)
+```
+
+---
+
+## 🔧 Tech Stack
+
+- **React 19** + **TypeScript** + **Vite**
+- **Three.js r185** (WebGL 3D)
+- **Web Audio API** (procedural synthesis)
+- **Custom Shaders** (GLSL water, post-processing)
+- **GitHub Actions** (CI/CD)
+
+---
+
+## 📝 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+## 🤝 Credits
+
+- Built with [Claude Code](https://claude.com/claude-code)
+- Inspired by [Mint Playground](https://mint.gg) Reef Rivals
+- Three.js by [mrdoob](https://github.com/mrdoob/three.js)
+
+---
+
+**Enjoy the battle!** 🦑💥
