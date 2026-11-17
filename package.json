@@ -1,6 +1,6 @@
 {
-  "name": "apex-drift-3d",
-  "version": "3.1.0",
+  "name": "apex-velocity-3d",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,17 +24,17 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "Apex Drift 3D - High-octane arcade racing with dynamic vehicle physics, nitro boost, tire smoke, streamed skid marks, and immersive chase camera",
-  "author": "kaushalboii",
+  "description": "Apex Velocity 3D — Custom 3D arcade circuit racing engine created by Kaushal with dynamic vehicle physics, nitrous injection, active tire smoke, and realtime telemetry.",
+  "author": "Kaushal <kaushalboii>",
   "license": "MIT",
   "keywords": [
     "racing",
-    "drift",
-    "game",
-    "nitro",
-    "pixijs",
+    "arcade-game",
     "webgpu",
-    "physics",
-    "3d"
+    "webgl",
+    "3d-game",
+    "telemetry",
+    "drift",
+    "kaushal"
   ]
 }

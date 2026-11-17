@@ -1,8 +1,9 @@
-# 🏎️ Apex Drift 3D • Grand Prix Circuit
+# 🏎️ Apex Velocity 3D • Grand Prix Racing
 
-> A high-octane 3D arcade racer built with **PixiJS 3D**, **WebGPU/WebGL**, and real-time rigid body physics.
+> A custom real-time 3D arcade racing simulator engineered by **Kaushal** with modern WebGPU & WebGL hardware acceleration, rigid body physics, nitrous injection, active tire smoke, and sector telemetry.
 
 [![Play Live](https://img.shields.io/badge/Play-Live-brightgreen?style=for-the-badge&logo=github)](https://kaushalboii.github.io/mini-battle/)
+[![Developer](https://img.shields.io/badge/Developer-Kaushal-amber?style=for-the-badge)](https://github.com/kaushalboii)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
@@ -15,60 +16,60 @@
 
 ## 🚀 Key Features
 
-* 🏎️ **Dynamic Behind-the-Car Follow Cam**: Fluid third-person chase camera that dynamically rotates with your steering yaw, delivering intuitive driving and cornering.
-* ⚡ **Nitrous Boost (NOS)**: Tap or hold <kbd>Shift</kbd> / <kbd>Space</kbd> or click the on-screen **NOS** button for a 1.55x speed surge, speed streak warp lines, and electric-cyan exhaust flames!
-* 💨 **Dynamic Tire Smoke & Rubber Skid Ribbons**: Real-time continuous GPU vertex buffer ribbons left on the asphalt, with world-space drift smoke puffs.
-* 🔥 **Drift Score & Combo Multiplier**: Real-time drift point accumulation (`+350 DRIFT!`, `COMBO x2.5`) that rewards skillful power slides.
-* 📷 **5 Multi-Perspective Cameras**:
-  * **Chase View** (Default third-person follow cam)
-  * **Close Follow** (Bumper cam for precision apex clips)
-  * **Hood Cam** (First-person immersive cockpit bonnet view)
-  * **Isometric** (High-angle tactical overview)
-  * **Aerial** (Overhead GPS bird's-eye tracker)
-* 🌅 **Dynamic Atmosphere & Lighting**: Switch in real-time between **Daylight ☀️**, **Golden Sunset 🌅**, and **Neon Night 🌙** environments.
-* 🔊 **Multi-Gear WebAudio Sound Engine**: Synthesized engine RPM curves, 3-speed transmission shifts, throttle lowpass filters, and tire screech audio.
-* 📊 **High-Tech Digital Dashboard**: Real-time speedometer (KM/H), gear/NOS state, and dynamic nitrous tank charge meter.
-* 🎨 **Paddock Vehicle Palette**: Switch instantly between Golden Fury, Crimson Blaze, Viper Green, and Neon Phantom trucks.
+* 🏎️ **Dynamic Chase & Cockpit Cameras**: Multi-perspective 3D camera system (Chase, Close Bumper, Hood Cockpit, Isometric, and Aerial GPS tracker).
+* ⚡ **Nitrous Boost (NOS)**: Tap or hold <kbd>Shift</kbd> / <kbd>Space</kbd> or touch the on-screen **NOS** core for a 1.55x speed surge with radial focus compression and cyan exhaust trails.
+* 💨 **Dynamic Tire Smoke & Asphalt Skid Marks**: Real-time continuous GPU vertex buffer ribbons left on the asphalt, with world-space drift smoke simulation.
+* 📊 **Unified Digital Telemetry & Sector Timing**:
+  * Precision digital lap stopwatch with lap counter (`LAP 1`), previous lap, and all-time record persistence.
+  * 12-segment RPM LED gauge with authentic green/amber/redline shift indicators.
+  * Digital speedometer in km/h with tabular numerals and gear indicator.
+  * Nitrous reservoir fuel gauge.
+* 📱 **Mobile Landscape First Architecture**:
+  * Handheld console ergonomics with dedicated left thumb steering paddles (`◀`, `▶`).
+  * Right thumb drive accelerator pedal, brake pedal, and circular NOS booster.
+  * Full multi-touch support for simultaneous steering and acceleration.
+  * Safe-area inset aware (`env(safe-area-inset-*)`) for phone notches and edge gestures.
+* 🌅 **Real-Time Atmospheric Lighting**: Switch dynamically between **Daylight**, **Dusk**, and **Neon Night** lighting models.
+* 🔊 **Procedural WebAudio Synthesis**: Dynamic engine RPM curves, 3-speed transmission shifts, throttle lowpass filtering, and tire screech sound synthesis.
+* 🎨 **Paddock Team Selection**: Switch between Amber Team, Crimson Team, Emerald Team, and Cobalt Team.
 
 ---
 
 ## 🎮 Controls
 
-| Action | Keyboard | Touch / Gamepad |
+| Action | Keyboard | Touch / Mobile Landscape |
 | :--- | :--- | :--- |
-| **Accelerate** | <kbd>W</kbd> or <kbd>↑</kbd> | Joystick Up / RT Trigger |
-| **Reverse / Brake** | <kbd>S</kbd> or <kbd>↓</kbd> | Joystick Down / LT Trigger |
-| **Steer** | <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> | Joystick Left/Right / Left Stick |
-| **Nitro Boost (NOS)** | <kbd>Shift</kbd> or <kbd>Space</kbd> | On-screen NOS Button / Gamepad A / RB |
+| **Accelerate** | <kbd>W</kbd> or <kbd>↑</kbd> | Drive Pedal |
+| **Brake / Reverse** | <kbd>S</kbd> or <kbd>↓</kbd> | Brake Pedal |
+| **Steer Left / Right** | <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> | Left / Right Steering Paddles |
+| **Nitrous Boost** | <kbd>Shift</kbd> or <kbd>Space</kbd> | On-screen NOS Button |
 | **Switch Camera** | <kbd>C</kbd> | Camera Button |
-| **Toggle Atmosphere** | <kbd>T</kbd> | Atmosphere Button |
-| **Mute / Unmute Audio** | <kbd>M</kbd> | Sound Button |
-| **Respawn Vehicle** | <kbd>R</kbd> | Respawn Button |
+| **Cycle Atmosphere** | <kbd>T</kbd> | Atmosphere Button |
+| **Toggle Audio** | <kbd>M</kbd> | Audio Button |
+| **Reset Vehicle** | <kbd>R</kbd> | Reset Button |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Engine Architecture
 
-* **Rendering Engine**: [PixiJS v8](https://pixijs.com/) + `@pixi/3d` (WebGPU with WebGL2 fallback)
-* **Physics Engine**: `crashcat` (Continuous rigid body sphere and box collider simulation)
+* **Engine**: Custom WebGPU / WebGL2 Real-Time 3D Rendering Pipeline
+* **Author / Developer**: Kaushal
+* **Physics Simulator**: Continuous rigid body sphere and box collider dynamics
 * **UI Framework**: React 19 + TypeScript + Vite
-* **Deployment**: GitHub Pages CI/CD workflow with automatic asset optimization
+* **Design Philosophy**: Engineered following `unslop` principles — 4px grid, graphite neutral ramp, zero slop glow, authentic motorsport telemetry.
 
 ---
 
 ## 🏁 Local Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/kaushalboii/mini-battle.git
 cd mini-battle
-
-# Install dependencies
 npm install
-
-# Start Vite local development server
 npm run dev
+```
 
-# Build for production
+Build for production:
+```bash
 npm run build
 ```

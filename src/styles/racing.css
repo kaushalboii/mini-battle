@@ -529,6 +529,114 @@ html, body {
   border-top: 1px solid var(--border-subtle);
 }
 
+/* ==========================================================================
+   Unified Motorsport Lap Timing Console (Top-Center)
+   ========================================================================== */
+.racing-timing-console {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+  z-index: 12;
+  transition: border-color 200ms ease-out, background-color 200ms ease-out;
+}
+
+.racing-timing-console.new-best {
+  border-color: var(--semantic-success);
+  background-color: rgba(16, 185, 129, 0.15);
+}
+
+.racing-timing-console.lap-flash {
+  border-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.racing-timing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.racing-lap-badge {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--surface-depressed);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.racing-timing-state {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.racing-timing-main {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.racing-timing-current {
+  font-size: 26px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.racing-timing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.racing-time-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.racing-stat-tag {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.racing-stat-val {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.racing-stat-val.highlight {
+  color: var(--semantic-success);
+}
+
 /* Drift Telemetry Banner */
 .racing-drift-toast {
   position: absolute;
@@ -1028,6 +1136,28 @@ html, body {
     height: 14px;
   }
 
+  /* Compact Timing Console in Landscape */
+  .racing-timing-console {
+    top: 44px;
+    width: 170px;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 8px;
+  }
+
+  .racing-timing-current {
+    font-size: 18px;
+  }
+
+  .racing-lap-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .racing-stat-val {
+    font-size: 10px;
+  }
+
   /* Telemetry Panel (Top-Left, Clear of Centered LapTimer) */
   .racing-telemetry-panel {
     bottom: auto;
@@ -1152,6 +1282,19 @@ html, body {
     height: 28px;
     padding: 0;
     justify-content: center;
+  }
+
+  /* Compact Timing Console in Portrait */
+  .racing-timing-console {
+    top: 50px;
+    width: 180px;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 8px;
+  }
+
+  .racing-timing-current {
+    font-size: 20px;
   }
 
   /* Telemetry Panel moves to LOWER-LEFT, well below Lap Timer! */

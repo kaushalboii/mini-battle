@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Asset Manifest
- * Defines the glTF 3D track tiles, competition vehicles, audio buffers, and FX textures.
+ * Apex Velocity 3D - Asset Registry & Binary Loader
+ * Resolves 3D track components, vehicle meshes, procedural audio buffers, and FX textures.
+ * Developed by Kaushal.
  */
 
 const ASSET_REGISTRY = {

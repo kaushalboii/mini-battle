@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { initRacingGame, type GameInstance, type TelemetryData } from "../game/pixi-racing/initGame";
-import { CAMERA_MODES } from "../game/pixi-racing/Camera";
+import { initRacingGame, type GameInstance, type TelemetryData } from "../game/racing-engine/initGame";
+import { CAMERA_MODES } from "../game/racing-engine/Camera";
 import "../styles/racing.css";
 
 const VEHICLE_OPTIONS = [
@@ -16,13 +16,20 @@ const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string }>
   { key: 'night', label: 'Night' },
 ];
 
+function formatLapTime(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || isNaN(seconds)) return "--:--.--";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds - mins * 60;
+  return `${mins}:${secs.toFixed(2).padStart(5, "0")}`;
+}
+
 export default function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameInstance | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [loadLabel, setLoadLabel] = useState("Loading circuit assets");
+  const [loadLabel, setLoadLabel] = useState("Initializing custom 3D engine");
   const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
@@ -40,7 +47,7 @@ export default function RacingGame() {
   const [activeThrottle, setActiveThrottle] = useState<-1 | 0 | 1>(0);
   const [isNosActive, setIsNosActive] = useState(false);
 
-  // Telemetry stream
+  // Unified telemetry & sector timing stream
   const [telemetry, setTelemetry] = useState<TelemetryData>({
     speedKmh: 0,
     gear: 1,
@@ -50,6 +57,12 @@ export default function RacingGame() {
     driftIntensity: 0,
     currentDriftPoints: 0,
     totalDriftScore: 0,
+    lap: 1,
+    currentLapTime: 0,
+    lastLapTime: null,
+    bestLapTime: null,
+    isFlash: false,
+    isNewBest: false,
   });
 
   // Track viewport orientation
@@ -94,7 +107,7 @@ export default function RacingGame() {
         setIsLoading(false);
       })
       .catch((err) => {
-        console.error("Renderer initialization failed:", err);
+        console.error("Custom 3D Engine ignition failed:", err);
         setErrorMsg(err?.message || "Failed to initialize 3D canvas");
         setIsLoading(false);
       });
@@ -210,13 +223,13 @@ export default function RacingGame() {
 
   return (
     <div className={`racing-root ${telemetry.isBoosting ? "boosting" : ""}`}>
-      {/* 3D WebGPU / WebGL Viewport */}
+      {/* Real-Time 3D Viewport */}
       <canvas ref={canvasRef} className="racing-canvas" />
 
-      {/* Subtle Speed Tunnel Focus (Zero cartoon lines) */}
+      {/* Subtle Speed Vignette Focus */}
       <div className={`racing-focus-vignette ${telemetry.isBoosting ? "active" : ""}`} />
 
-      {/* Mobile Portrait Orientation Banner */}
+      {/* Mobile Orientation Hint */}
       {!isLoading && isMobilePortrait && !isPortraitHintDismissed && (
         <div className="racing-rotate-banner">
           <svg className="racing-rotate-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -239,8 +252,8 @@ export default function RacingGame() {
         <div className="racing-modal-backdrop">
           <div className="racing-card racing-load-card">
             <div className="racing-ring-loader" />
-            <h1 className="racing-load-title">Apex Circuit 3D</h1>
-            <p className="racing-load-sub">Grand Prix Physics Simulator</p>
+            <h1 className="racing-load-title">Apex Velocity 3D</h1>
+            <p className="racing-load-sub">Custom Physics Engine by Kaushal</p>
             <div className="racing-progress-track">
               <div
                 className="racing-progress-bar"
@@ -255,7 +268,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Subtle Status Notification Toast */}
+      {/* Notification Toast */}
       {toastMessage && (
         <div className="racing-toast">
           <span>{toastMessage}</span>
@@ -273,7 +286,7 @@ export default function RacingGame() {
               onClick={() => window.location.reload()}
               style={{ marginTop: "16px" }}
             >
-              Restart Session
+              Restart Engine
             </button>
           </div>
         </div>
@@ -282,15 +295,15 @@ export default function RacingGame() {
       {/* Top Navigation Bar */}
       {!isLoading && (
         <header className="racing-top-bar">
-          {/* Brand Mark */}
+          {/* Bespoke Brand Identifier */}
           <div className="racing-brand">
             <svg className="racing-brand-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M4 19 L11 5 L14 5 L7 19 Z" fill="var(--accent)" />
-              <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.8" />
+              <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.85" />
             </svg>
             <div className="racing-brand-text">
-              <span className="racing-brand-name">Apex Circuit</span>
-              <span className="racing-brand-sub">Grand Prix 3D</span>
+              <span className="racing-brand-name">Apex Velocity 3D</span>
+              <span className="racing-brand-sub">By Kaushal • Grand Prix</span>
             </div>
           </div>
 
@@ -403,7 +416,30 @@ export default function RacingGame() {
         </header>
       )}
 
-      {/* Calm Drift Telemetry Banner */}
+      {/* UNIFIED MOTORSPORT LAP TIMING CONSOLE (Top-Center) */}
+      {!isLoading && (
+        <section className={`racing-timing-console ${telemetry.isFlash ? (telemetry.isNewBest ? "new-best" : "lap-flash") : ""}`}>
+          <div className="racing-timing-header">
+            <span className="racing-lap-badge">LAP {telemetry.lap}</span>
+            <span className="racing-timing-state">{telemetry.isFlash && telemetry.isNewBest ? "NEW RECORD" : "SECTOR 1"}</span>
+          </div>
+          <div className="racing-timing-main">
+            <span className="racing-timing-current">{formatLapTime(telemetry.currentLapTime)}</span>
+          </div>
+          <div className="racing-timing-footer">
+            <div className="racing-time-stat">
+              <span className="racing-stat-tag">LAST</span>
+              <span className="racing-stat-val">{formatLapTime(telemetry.lastLapTime)}</span>
+            </div>
+            <div className="racing-time-stat">
+              <span className="racing-stat-tag">BEST</span>
+              <span className="racing-stat-val highlight">{formatLapTime(telemetry.bestLapTime)}</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Drift Score Banner */}
       {!isLoading && telemetry.currentDriftPoints > 0 && (
         <div className="racing-drift-toast">
           <span className="racing-drift-label">Drift</span>
@@ -411,10 +447,10 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Cockpit Telemetry HUD */}
+      {/* COCKPIT TELEMETRY INSTRUMENT PANEL */}
       {!isLoading && (
         <aside className="racing-telemetry-panel">
-          {/* RPM LED Bar */}
+          {/* 12-Segment RPM LED Gauge */}
           <div className="racing-rpm-gauge">
             <div className="racing-rpm-segments">
               {Array.from({ length: rpmSegments }).map((_, i) => (
@@ -477,7 +513,7 @@ export default function RacingGame() {
         </aside>
       )}
 
-      {/* On-Screen Touch Controls (Mobile Landscape Optimized & Desktop Usable) */}
+      {/* ON-SCREEN RACING TOUCH CONTROLS (Mobile Landscape First + Web Keycaps) */}
       {!isLoading && (
         <nav className="racing-touch-cluster" aria-label="Racing Controls">
           {/* Left Wing: Steering Paddles */}
@@ -592,7 +628,7 @@ export default function RacingGame() {
                   <path d="M4 19 L11 5 L14 5 L7 19 Z" fill="var(--accent)" />
                   <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.8" />
                 </svg>
-                <h3 className="racing-modal-title">Controls & Specification</h3>
+                <h3 className="racing-modal-title">Apex Velocity 3D • Controls & Specs</h3>
               </div>
               <button
                 className="racing-btn racing-btn-icon"
@@ -665,9 +701,16 @@ export default function RacingGame() {
               </section>
 
               <section className="racing-modal-section">
-                <h4>Mobile Device Support</h4>
+                <h4>Mobile Device Optimization</h4>
                 <p className="racing-modal-desc">
-                  Designed for <strong>Landscape Mode</strong> on mobile. Left thumb steers with dual paddles; right thumb modulates throttle, brake, and hits nitrous simultaneously with full multi-touch.
+                  Engineered for <strong>Mobile Landscape Mode</strong>. Left thumb steers with dual paddles; right thumb modulates throttle, brake, and activates nitrous with full multi-touch.
+                </p>
+              </section>
+
+              <section className="racing-modal-section">
+                <h4>Engine Architecture</h4>
+                <p className="racing-modal-desc">
+                  Apex Velocity 3D is a custom real-time WebGPU/WebGL 3D engine built by <strong>Kaushal</strong> with rigid body sphere-raycast dynamics, dynamic particle smoke, and procedural audio synthesis.
                 </p>
               </section>
             </div>
@@ -678,7 +721,7 @@ export default function RacingGame() {
       {/* Desktop Shortcut Footer */}
       {!isLoading && (
         <footer className="racing-footer-hint">
-          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • Touch paddles active</span>
+          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • Engine by Kaushal</span>
         </footer>
       )}
     </div>

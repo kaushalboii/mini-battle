@@ -1,7 +1,8 @@
 /**
- * Apex Drift 3D - Scene Graph & Engine Coordinator
- * Orchestrates PixiJS 3D rendering, crashcat physics, nitrous particle emitters,
- * multi-angle follow cameras, audio, and high-performance telemetry.
+ * Apex Velocity 3D - Scene Graph & Real-Time Engine Coordinator
+ * Custom WebGPU/WebGL 3D engine with rigid body dynamics, tire smoke particles,
+ * multi-angle follow cameras, procedural audio, and high-performance telemetry.
+ * Developed by Kaushal.
  */
 
 import {
@@ -29,13 +30,19 @@ import { MAX_SPEED, Vehicle } from './Vehicle';
 
 export interface TelemetryData {
   speedKmh: number;
-  gear: number;
+  gear: number | string;
   rpm: number;
   nitro: number;
   isBoosting: boolean;
   driftIntensity: number;
   currentDriftPoints: number;
   totalDriftScore: number;
+  lap: number;
+  currentLapTime: number;
+  lastLapTime: number | null;
+  bestLapTime: number | null;
+  isFlash: boolean;
+  isNewBest: boolean;
 }
 
 export interface GameInstance {
@@ -257,6 +264,8 @@ export async function initRacingGame(
     lapTimer.resize(app.screen.width, app.screen.height);
     lapTimer.update(dt, vehicle.container.position, hasInput);
 
+    const lapState = lapTimer.getState();
+
     // Telemetry dispatch at ~30Hz
     telemetryTimer += dt;
     if (telemetryTimer >= 0.033 && onTelemetry) {
@@ -267,13 +276,19 @@ export async function initRacingGame(
 
       onTelemetry({
         speedKmh,
-        gear: vehicle.isBoosting ? 4 : gear,
+        gear: vehicle.isBoosting ? 'NOS' : gear,
         rpm,
         nitro: Math.round(vehicle.nitroAmount),
         isBoosting: vehicle.isBoosting,
         driftIntensity: vehicle.driftIntensity,
         currentDriftPoints: vehicle.currentDriftPoints,
         totalDriftScore: vehicle.driftScore,
+        lap: lapState.lap,
+        currentLapTime: lapState.currentLapTime,
+        lastLapTime: lapState.lastLapTime,
+        bestLapTime: lapState.bestLapTime,
+        isFlash: lapState.isFlash,
+        isNewBest: lapState.isNewBest,
       });
     }
   };

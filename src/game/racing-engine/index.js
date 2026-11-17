@@ -157,7 +157,7 @@ physics.listener = {
   },
 };
 
-// -- HUD (PixiJS 2D over the 3D view) --
+// -- Real-Time Racing HUD --
 
 const hudLayer = new Container();
 
