@@ -1,959 +1,981 @@
 /* ==========================================================================
-   Apex Drift 3D - Arcade Motorsport UI & Responsive Controls
+   Apex Circuit 3D • Design System & UI Specification
+   Crafted following unslop principles: strict 4px grid, graphite neutral ramp,
+   restrained motorsport telemetry accents, zero glowing slop, authentic touch controls.
    ========================================================================== */
 
 :root {
-  --primary-gold: #facc15;
-  --primary-amber: #f59e0b;
-  --primary-cyan: #38bdf8;
-  --primary-blue: #0284c7;
-  --primary-red: #ef4444;
-  --primary-green: #22c55e;
-  --carbon-dark: #0b0f17;
-  --carbon-surface: #141a24;
-  --carbon-border: rgba(255, 255, 255, 0.15);
+  /* Neutral Ramp (Graphite / Motorsport Carbon) */
+  --bg-deep: #090a0d;
+  --bg-canvas: #0d0e12;
+  --surface-panel: rgba(18, 20, 26, 0.85);
+  --surface-card: #14161d;
+  --surface-raised: #1c1f28;
+  --surface-raised-hover: #252936;
+  --surface-depressed: #111318;
+  
+  /* Hairline Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.14);
+  --border-focus: rgba(245, 158, 11, 0.5);
+
+  /* Text Roles */
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  /* Restrained Accents */
+  --accent: #f59e0b;
+  --accent-rgb: 245, 158, 11;
+  --accent-active: #d97706;
+  --boost-cyan: #06b6d4;
+  --boost-cyan-rgb: 6, 182, 212;
+
+  /* Semantic Feedback */
+  --semantic-success: #10b981;
+  --semantic-error: #ef4444;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", Menlo, Consolas, Monaco, "Liberation Mono", monospace;
+
+  /* Radii */
+  --radius-panel: 12px;
+  --radius-card: 10px;
+  --radius-btn: 8px;
+  --radius-sm: 4px;
+
+  /* Depth */
+  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-pedal: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* Base Viewport Reset */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Root Container */
 .racing-root {
   position: relative;
   width: 100vw;
-  height: 100dvh;
+  height: 100vh;
   overflow: hidden;
-  background: var(--carbon-dark);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
+  background-color: var(--bg-canvas);
 }
 
+/* 3D PixiJS Canvas */
 .racing-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ==========================================================================
-   1. Nitro Speed Streaks & Tunnel Warp Effect
-   ========================================================================== */
-.racing-nitro-speed-lines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 15;
-  background: radial-gradient(
-    circle at center,
-    transparent 45%,
-    rgba(56, 189, 248, 0.16) 80%,
-    rgba(2, 132, 199, 0.45) 100%
-  );
-  box-shadow: inset 0 0 100px rgba(56, 189, 248, 0.45);
-  animation: warpPulse 0.1s ease-in-out infinite alternate;
-}
-
-@keyframes warpPulse {
-  0% {
-    opacity: 0.75;
-    filter: blur(0px);
-  }
-  100% {
-    opacity: 1;
-    filter: blur(1.5px);
-  }
-}
-
-/* ==========================================================================
-   2. Top Arcade Navigation Bar
-   ========================================================================== */
-.arcade-header-bar {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  z-index: 50;
-  padding: max(10px, env(safe-area-inset-top)) 16px 14px;
-  background: linear-gradient(180deg, rgba(11, 15, 23, 0.92) 0%, rgba(11, 15, 23, 0.5) 75%, transparent 100%);
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  z-index: 1;
+}
+
+/* Subtle Speed Tunnel Focus (Zero cartoon lines) */
+.racing-focus-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  background: radial-gradient(circle at center, transparent 40%, rgba(6, 182, 212, 0.08) 100%);
+  transition: opacity 250ms ease-out;
+}
+.racing-focus-vignette.active {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Top Chrome Bar
+   ========================================================================== */
+.racing-top-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  height: 48px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  padding: 0 16px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+  z-index: 10;
 }
 
-/* Brand Logo Crest */
-.arcade-logo-badge {
+/* Brand Identifier */
+.racing-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #1e2433 0%, #0d1117 100%);
-  border: 1px solid rgba(250, 204, 21, 0.5);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  padding: 6px 18px 6px 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  gap: 10px;
 }
 
-.arcade-logo-flag {
-  font-size: 18px;
-  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.6));
+.racing-brand-glyph {
+  flex-shrink: 0;
 }
 
-.arcade-logo-text {
+.racing-brand-text {
   display: flex;
   flex-direction: column;
+  line-height: 1.15;
 }
 
-.arcade-logo-title {
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  line-height: 1;
-  background: linear-gradient(90deg, #fef08a, #facc15, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-style: italic;
+.racing-brand-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
 }
 
-.arcade-logo-sub {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: #38bdf8;
-  line-height: 1.2;
+.racing-brand-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* Navigation Actions Group */
-.arcade-nav-actions {
+/* Toolbar & Action Items */
+.racing-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
 }
 
-/* Vehicle Color Wheel Selector */
-.arcade-wheel-selector {
+.racing-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-subtle);
+  margin: 0 4px;
+}
+
+/* Vehicle Palette Picker */
+.racing-palette-group {
   display: flex;
-  background: rgba(20, 26, 36, 0.85);
-  border: 1px solid var(--carbon-border);
-  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  padding: 4px 10px;
+  align-items: center;
   gap: 6px;
-  backdrop-filter: blur(8px);
+  padding: 2px 4px;
+  background-color: var(--surface-depressed);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
 }
 
-.arcade-wheel-dot {
-  position: relative;
-  width: 26px;
-  height: 26px;
+.racing-palette-dot {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: #0f172a;
-  padding: 0;
-  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s, border-color 0.15s;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 150ms ease-out, transform 150ms ease-out;
 }
 
-.arcade-wheel-dot:hover {
-  transform: scale(1.15);
+.racing-palette-dot:hover {
+  transform: scale(1.08);
 }
 
-.arcade-wheel-inner {
-  width: 14px;
-  height: 14px;
+.racing-palette-dot.selected {
+  border-color: var(--text-primary);
+}
+
+.racing-dot-core {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   display: block;
 }
 
-.arcade-wheel-dot.active {
-  border-color: var(--dot-color);
-  box-shadow: 0 0 10px var(--dot-color);
-  transform: scale(1.12);
+/* Clean Unslapped Buttons */
+.racing-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-bevel);
+  transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 80ms ease-out;
+  outline: none;
 }
 
-/* ==========================================================================
-   3. Unique Arcade Chamfered Speed Buttons (.arcade-btn)
-   ========================================================================== */
-.arcade-btn {
+.racing-btn:hover {
+  background-color: var(--surface-raised-hover);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+.racing-btn:active {
+  background-color: var(--surface-depressed);
+  transform: translateY(1px);
+}
+
+.racing-btn:focus-visible {
+  border-color: var(--accent);
+}
+
+.racing-btn-icon {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.racing-btn-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.racing-btn-primary {
+  background-color: var(--text-primary);
+  color: var(--bg-deep);
+  border-color: var(--text-primary);
+  font-weight: 500;
+}
+
+.racing-btn-primary:hover {
+  background-color: #ffffff;
+  color: var(--bg-deep);
+}
+
+.racing-btn.muted svg {
+  color: var(--text-muted);
+}
+
+.racing-keycap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(30, 38, 52, 0.9) 0%, rgba(18, 24, 34, 0.9) 100%);
-  border: 1px solid var(--carbon-border);
-  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  color: #ffffff;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition: all 0.15s ease-out;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  white-space: nowrap;
-}
-
-.arcade-btn:hover {
-  background: linear-gradient(135deg, rgba(45, 58, 80, 0.95) 0%, rgba(28, 38, 54, 0.95) 100%);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-  transform: translateY(-1px);
-}
-
-.arcade-btn:active {
-  transform: translateY(1px) scale(0.97);
-}
-
-.arcade-btn-icon {
-  width: 15px;
-  height: 15px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
-.arcade-btn-emoji {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.arcade-btn-cam {
-  border-color: rgba(250, 204, 21, 0.45);
-  color: #fef08a;
-}
-.arcade-btn-cam:hover {
-  border-color: #facc15;
-  box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
-}
-
-.arcade-btn-theme {
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #bae6fd;
-}
-.arcade-btn-theme:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
-}
-
-.arcade-btn-amber {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(18, 24, 34, 0.9) 100%);
-  color: #fef3c7;
-}
-
-.arcade-btn-icon-only {
-  width: 36px;
-  height: 34px;
-  padding: 0;
-}
-
-.arcade-btn-icon-only.muted {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.6);
-}
-
-.arcade-icon-txt {
-  font-size: 15px;
-  font-weight: 900;
-  color: #38bdf8;
-}
-
-.arcade-kbd {
-  font-size: 9px;
-  font-weight: 800;
-  padding: 1px 4px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 3px;
-  color: #ffffff;
-  font-family: inherit;
-  margin-left: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background-color: var(--surface-depressed);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* ==========================================================================
-   4. High-Tech Dashboard Cluster (.arcade-dashboard)
+   Motorsport Cockpit Telemetry HUD (Bottom-Left)
    ========================================================================== */
-.arcade-dashboard {
+.racing-telemetry-panel {
   position: absolute;
   bottom: 24px;
-  right: 24px;
-  z-index: 45;
-  background: linear-gradient(135deg, rgba(14, 19, 28, 0.88) 0%, rgba(8, 12, 18, 0.92) 100%);
-  border: 1px solid var(--carbon-border);
-  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  backdrop-filter: blur(12px);
-  padding: 14px 18px;
-  min-width: 175px;
+  left: 24px;
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  color: #ffffff;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+  z-index: 10;
 }
 
-.arcade-dash-header {
+/* RPM Segmented LED Bar */
+.racing-rpm-gauge {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.racing-rpm-segments {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  height: 6px;
+}
+
+.racing-rpm-bar {
+  background-color: var(--surface-depressed);
+  border-radius: 1px;
+  transition: background-color 60ms linear;
+}
+
+.racing-rpm-bar.green {
+  background-color: var(--semantic-success);
+}
+
+.racing-rpm-bar.amber {
+  background-color: var(--accent);
+}
+
+.racing-rpm-bar.redline {
+  background-color: var(--semantic-error);
+}
+
+.racing-rpm-meta {
+  display: flex;
   align-items: center;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.arcade-dash-tele {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.arcade-dash-nos-state {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 9px;
-  font-weight: 900;
-}
-
-.arcade-dash-nos-state.active {
-  color: var(--primary-cyan);
-  text-shadow: 0 0 8px var(--primary-cyan);
-  animation: nosFlash 0.15s infinite alternate;
-}
-
-.arcade-dash-main {
-  display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 6px;
 }
 
-.arcade-speedo-box {
+.racing-meta-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.racing-meta-val {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* Speed & Gear Cluster */
+.racing-speed-cluster {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 2px;
+}
+
+.racing-speed-readout {
   display: flex;
   align-items: baseline;
+  gap: 4px;
+}
+
+.racing-speed-num {
+  font-size: 42px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.racing-speed-unit {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.racing-gear-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 3px;
 }
 
-.arcade-speedo-val {
-  font-size: 40px;
-  font-weight: 900;
-  line-height: 1;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  letter-spacing: -1.5px;
-  color: #ffffff;
-}
-
-.arcade-speedo-unit {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.arcade-gear-box {
+.racing-gear-box {
+  width: 32px;
+  height: 32px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-depressed);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  color: var(--accent);
 }
 
-.arcade-gear-lbl {
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.45);
+.racing-gear-box.nos {
+  background-color: rgba(6, 182, 212, 0.15);
+  border-color: var(--boost-cyan);
+  color: var(--boost-cyan);
 }
 
-.arcade-gear-num {
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--primary-gold);
-}
-
-.arcade-gear-num.gear-nos {
-  color: var(--primary-cyan);
-  text-shadow: 0 0 10px var(--primary-cyan);
-}
-
-.arcade-nitro-tray {
+/* Boost Reserve Meter */
+.racing-boost-section {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.arcade-nitro-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  color: var(--primary-cyan);
-}
-
-.arcade-nitro-track {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.arcade-nitro-glow-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #0284c7, #38bdf8);
-  border-radius: 999px;
-  transition: width 0.08s linear;
-}
-
-.arcade-nitro-glow-fill.boosting {
-  background: linear-gradient(90deg, #38bdf8, #ffffff);
-  box-shadow: 0 0 14px #38bdf8;
-}
-
-.arcade-drift-bank {
+.racing-boost-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
-  color: #fb923c;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.arcade-drift-pts {
-  font-size: 12px;
-  font-weight: 900;
-  font-family: "SFMono-Regular", Consolas, monospace;
+.racing-boost-track {
+  width: 100%;
+  height: 5px;
+  background-color: var(--surface-depressed);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-/* ==========================================================================
-   5. RESPONSIVE ON-SCREEN ARCADE TOUCH PEDALS (Mobile & Web Playable)
-   ========================================================================== */
-.arcade-touch-hud {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
-  padding: 0 20px max(18px, env(safe-area-inset-bottom));
+.racing-boost-fill {
+  height: 100%;
+  background-color: var(--boost-cyan);
+  border-radius: 3px;
+  transition: width 100ms linear;
+}
+
+.racing-boost-fill.depleting {
+  background-color: #38bdf8;
+}
+
+/* Drift Score Readout */
+.racing-drift-summary {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Drift Telemetry Banner (Zero shouting emoji) */
+.racing-drift-toast {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 14px;
+  background-color: var(--surface-panel);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-btn);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-panel);
+  z-index: 10;
   pointer-events: none;
 }
 
-.arcade-pedal-cluster {
+.racing-drift-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.racing-drift-score {
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Motorsport Touch Cluster (Mobile & Desktop Accessible)
+   ========================================================================== */
+.racing-touch-cluster {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 24px;
+  pointer-events: none;
+  z-index: 15;
+}
+
+/* Left Wing: Steering Paddles */
+.racing-steer-wing {
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.racing-steer-paddle {
+  width: 76px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-pedal);
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-secondary);
+  touch-action: none;
+  outline: none;
+  transition: background-color 100ms ease-out, border-color 100ms ease-out, color 100ms ease-out, transform 80ms ease-out;
+}
+
+.racing-steer-paddle:active,
+.racing-steer-paddle.active {
+  background-color: var(--surface-raised-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(2px);
+}
+
+.racing-paddle-ridges {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.racing-paddle-ridges span {
+  width: 4px;
+  height: 14px;
+  background-color: var(--border-subtle);
+  border-radius: 1px;
+}
+
+/* Right Wing: Drive / Brake Pedals + Nitrous */
+.racing-pedal-wing {
   display: flex;
   align-items: flex-end;
   gap: 12px;
   pointer-events: auto;
 }
 
-/* Steering Paddles (Left Side) */
-.arcade-steer-paddle {
-  width: 72px;
-  height: 68px;
-  background: linear-gradient(145deg, #242c3b 0%, #10151f 100%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  transition: transform 0.08s, border-color 0.08s, box-shadow 0.08s;
-  touch-action: none;
-}
-
-.arcade-steer-paddle:active,
-.arcade-steer-paddle.paddle-active {
-  border-color: var(--primary-cyan);
-  box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
-  background: linear-gradient(145deg, #1b384f 0%, #0d1e2c 100%);
-  transform: translateY(3px) scale(0.96);
-}
-
-.paddle-chevron {
-  width: 28px;
-  height: 28px;
-  fill: currentColor;
-}
-
-.paddle-txt {
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-/* Right Side Pedals: Drive, Brake & Nitro Core */
-.arcade-drive-pedal {
-  position: relative;
-  background: linear-gradient(180deg, #2a3446 0%, #121824 100%);
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 12px;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 10px 8px;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  transition: transform 0.08s, border-color 0.08s, box-shadow 0.08s;
-  touch-action: none;
-}
-
-/* Gas / Drive Pedal (Tall Accelerator) */
-.pedal-gas {
-  width: 70px;
-  height: 94px;
-  border-color: rgba(34, 197, 94, 0.4);
-}
-
-.pedal-gas:active,
-.pedal-gas.pedal-depressed {
-  border-color: #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
-  background: linear-gradient(180deg, #166534 0%, #0f3d20 100%);
-  transform: translateY(4px) scale(0.96);
-}
-
-/* Brake Pedal */
-.pedal-brake {
-  width: 66px;
-  height: 74px;
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.pedal-brake:active,
-.pedal-brake.pedal-depressed {
-  border-color: #ef4444;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-  background: linear-gradient(180deg, #991b1b 0%, #450a0a 100%);
-  transform: translateY(4px) scale(0.96);
-}
-
-.pedal-lbl {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-.pedal-sub {
-  font-size: 9px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.pedal-ribs {
-  position: absolute;
-  top: 12px;
-  width: 60%;
-  height: 24px;
-  background: repeating-linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0px,
-    rgba(255, 255, 255, 0.2) 2px,
-    transparent 2px,
-    transparent 6px
-  );
-  border-radius: 4px;
-}
-
-/* Nitrous Core Booster */
-.arcade-nos-core {
-  width: 72px;
-  height: 72px;
+/* Nitrous Trigger Button */
+.racing-nos-trigger {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  border: 3px solid rgba(56, 189, 248, 0.5);
-  background: radial-gradient(circle at 35% 35%, #0284c7 0%, #08111d 100%);
-  color: #ffffff;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.5);
-  transition: transform 0.08s, box-shadow 0.08s;
-  touch-action: none;
-}
-
-.nos-core-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+  background-color: var(--surface-panel);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-pedal);
+  cursor: pointer;
+  color: var(--boost-cyan);
+  touch-action: none;
+  outline: none;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  transition: background-color 100ms ease-out, border-color 100ms ease-out, transform 80ms ease-out;
 }
 
-.nos-core-bolt {
-  font-size: 18px;
-  line-height: 1;
+.racing-nos-trigger:active,
+.racing-nos-trigger.firing {
+  background-color: rgba(6, 182, 212, 0.25);
+  border-color: var(--boost-cyan);
+  transform: scale(0.95);
 }
 
-.nos-core-txt {
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: #ffffff;
+/* Authentic Vehicle Pedals */
+.racing-pedal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-pedal);
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  transition: background-color 100ms ease-out, border-color 100ms ease-out, transform 80ms ease-out;
 }
 
-.arcade-nos-core:active,
-.arcade-nos-core.nos-core-firing {
-  transform: scale(0.94);
-  border-color: #38bdf8;
-  background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0284c7 100%);
-  box-shadow: 0 0 28px rgba(56, 189, 248, 0.95);
+.racing-pedal-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.racing-pedal-tread {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: center;
+}
+
+.racing-pedal-tread span {
+  width: 70%;
+  height: 2px;
+  background-color: var(--border-subtle);
+  border-radius: 1px;
+}
+
+/* Brake Pedal (Slightly wider) */
+.racing-pedal-brake {
+  width: 68px;
+  height: 84px;
+  border-radius: var(--radius-card);
+}
+
+.racing-pedal-brake:active,
+.racing-pedal-brake.depressed {
+  background-color: var(--surface-raised-hover);
+  border-color: var(--semantic-error);
+  transform: translateY(3px);
+}
+.racing-pedal-brake:active .racing-pedal-tag,
+.racing-pedal-brake.depressed .racing-pedal-tag {
+  color: var(--semantic-error);
+}
+
+/* Gas / Accelerator Pedal (Tall and sleek) */
+.racing-pedal-gas {
+  width: 58px;
+  height: 104px;
+  border-radius: var(--radius-card);
+}
+
+.racing-pedal-gas:active,
+.racing-pedal-gas.depressed {
+  background-color: var(--surface-raised-hover);
+  border-color: var(--accent);
+  transform: translateY(3px);
+}
+.racing-pedal-gas:active .racing-pedal-tag,
+.racing-pedal-gas.depressed .racing-pedal-tag {
+  color: var(--accent);
 }
 
 /* ==========================================================================
-   6. Drift Meter & Toasts
+   Modals & Overlays
    ========================================================================== */
-.racing-drift-meter {
+.racing-modal-backdrop {
   position: absolute;
-  top: 130px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 45;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(245, 158, 11, 0.9));
-  border: 2px solid #fef08a;
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  padding: 6px 22px;
-  color: #ffffff;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.6);
-  animation: driftPulse 0.25s ease-out;
-  pointer-events: none;
+  justify-content: center;
+  background-color: rgba(9, 10, 13, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+  padding: 16px;
 }
 
-@keyframes driftPulse {
-  0% { transform: translate(-50%, -8px) scale(0.9); }
-  50% { transform: translate(-50%, 0) scale(1.08); }
-  100% { transform: translate(-50%, 0) scale(1); }
+.racing-card {
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+  padding: 24px;
+  max-width: 440px;
+  width: 100%;
 }
 
-.racing-drift-flame {
-  font-size: 20px;
+.racing-load-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 340px;
 }
 
-.racing-drift-val {
-  font-size: 20px;
-  font-weight: 900;
-  font-family: "SFMono-Regular", Consolas, monospace;
+.racing-ring-loader {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: racing-spin 800ms linear infinite;
+  margin-bottom: 16px;
 }
 
-.racing-drift-sub {
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: #fef08a;
+@keyframes racing-spin {
+  to { transform: rotate(360deg); }
 }
 
-.racing-camera-toast {
+.racing-load-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.racing-load-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.racing-progress-track {
+  width: 100%;
+  height: 4px;
+  background-color: var(--surface-depressed);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.racing-progress-bar {
+  height: 100%;
+  background-color: var(--accent);
+  border-radius: 2px;
+  transition: width 150ms ease-out;
+}
+
+.racing-load-meta {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.racing-num-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notification Toast */
+.racing-toast {
   position: absolute;
   top: 76px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
-  background: rgba(14, 19, 28, 0.95);
-  border: 1px solid rgba(250, 204, 21, 0.6);
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  backdrop-filter: blur(10px);
-  padding: 8px 26px;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  padding: 6px 14px;
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-btn);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-panel);
+  font-size: 12px;
+  color: var(--text-primary);
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Modal Content & Key Table */
+.racing-modal-card {
+  max-width: 480px;
+}
+
+.racing-modal-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-@keyframes popIn {
-  from { opacity: 0; transform: translate(-50%, -10px) scale(0.95); }
-  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.racing-modal-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
-/* Desktop Helper Pill */
-.arcade-desktop-hint {
+.racing-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.racing-modal-section h4 {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.racing-key-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.racing-key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background-color: var(--surface-depressed);
+  border-radius: var(--radius-btn);
+  font-size: 12px;
+}
+
+.racing-key-cell {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.racing-action-cell {
+  color: var(--text-secondary);
+}
+
+.racing-modal-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Desktop Hint Footer */
+.racing-footer-hint {
   position: absolute;
-  bottom: 12px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 35;
-  background: rgba(14, 19, 28, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  padding: 4px 18px;
   font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-muted);
   pointer-events: none;
+  z-index: 5;
   white-space: nowrap;
 }
 
 /* ==========================================================================
-   7. Loading Overlay & Manual Modal
+   Responsive Adaptations (Mobile & Small Tablets)
    ========================================================================== */
-.racing-loading-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 100;
-  background: rgba(11, 15, 23, 0.95);
-  backdrop-filter: blur(16px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-}
+@media (max-width: 768px) {
+  .racing-top-bar {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    height: 44px;
+    padding: 0 10px;
+  }
 
-.racing-loading-card {
-  background: rgba(20, 26, 38, 0.95);
-  border: 1px solid rgba(250, 204, 21, 0.4);
-  border-radius: 20px;
-  padding: 36px 44px;
-  width: min(90vw, 420px);
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+  .racing-brand-sub,
+  .racing-btn-text,
+  .racing-keycap,
+  .racing-footer-hint {
+    display: none;
+  }
 
-.racing-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #facc15;
-  border-right-color: #38bdf8;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin-bottom: 22px;
-}
+  .racing-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+  }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.racing-loading-title {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  margin: 0 0 6px;
-  background: linear-gradient(90deg, #fef08a, #facc15, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.racing-loading-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  margin: 0 0 22px;
-}
-
-.racing-progress-bar-bg {
-  width: 100%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.racing-progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #facc15, #38bdf8);
-  border-radius: 999px;
-  transition: width 0.15s ease-out;
-}
-
-.racing-progress-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0;
-}
-
-/* Help Modal */
-.racing-help-modal {
-  position: absolute;
-  inset: 0;
-  z-index: 120;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.racing-help-card {
-  background: #141a24;
-  border: 1px solid rgba(250, 204, 21, 0.4);
-  border-radius: 18px;
-  padding: 26px;
-  max-width: 480px;
-  width: 100%;
-  color: #ffffff;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
-}
-
-.racing-help-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.racing-help-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #facc15;
-}
-
-.racing-help-header button {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.racing-help-body p {
-  font-size: 13px;
-  line-height: 1.6;
-  margin: 6px 0;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.racing-help-body hr {
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  margin: 14px 0;
-}
-
-.racing-help-body h4 {
-  margin: 12px 0 8px;
-  font-size: 14px;
-}
-
-.racing-help-body ul {
-  padding-left: 20px;
-  margin: 6px 0;
-}
-
-.racing-help-body li {
-  font-size: 12px;
-  line-height: 1.9;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-kbd {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-family: inherit;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.arcade-hint-pill {
-  display: inline-block;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 4px;
-  background: rgba(56, 189, 248, 0.2);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #bae6fd;
-}
-
-/* ==========================================================================
-   8. Responsive Media Queries (Mobile vs Desktop Optimization)
-   ========================================================================== */
-@media (max-width: 860px) {
-  .arcade-header-bar {
-    padding: max(8px, env(safe-area-inset-top)) 10px 10px;
+  .racing-telemetry-panel {
+    bottom: auto;
+    top: 64px;
+    left: 10px;
+    width: 150px;
+    padding: 10px 12px;
     gap: 8px;
   }
-  .arcade-btn .arcade-btn-label,
-  .arcade-btn .arcade-kbd {
-    display: none;
+
+  .racing-speed-num {
+    font-size: 28px;
   }
-  .arcade-btn {
-    padding: 7px 10px;
+
+  .racing-gear-box {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
   }
-  .arcade-desktop-hint {
-    display: none;
+
+  .racing-rpm-segments {
+    gap: 2px;
+    height: 4px;
   }
-  .arcade-dashboard {
-    bottom: 120px;
-    right: 14px;
-    min-width: 140px;
-    padding: 10px 14px;
+
+  .racing-touch-cluster {
+    bottom: 16px;
+    padding: 0 16px;
   }
-  .arcade-speedo-val {
-    font-size: 32px;
+
+  .racing-steer-paddle {
+    width: 64px;
+    height: 56px;
+  }
+
+  .racing-pedal-brake {
+    width: 56px;
+    height: 72px;
+  }
+
+  .racing-pedal-gas {
+    width: 48px;
+    height: 88px;
+  }
+
+  .racing-nos-trigger {
+    width: 44px;
+    height: 44px;
   }
 }
 
-@media (max-width: 600px) {
-  .arcade-logo-badge {
-    padding: 4px 10px;
-  }
-  .arcade-logo-title {
-    font-size: 12px;
-  }
-  .arcade-logo-sub {
-    display: none;
-  }
-  .arcade-wheel-selector {
-    padding: 3px 6px;
-    gap: 4px;
-  }
-  .arcade-wheel-dot {
-    width: 22px;
-    height: 22px;
-  }
-  .arcade-wheel-inner {
-    width: 10px;
-    height: 10px;
+@media (max-width: 480px) {
+  .racing-telemetry-panel {
+    width: 130px;
+    padding: 8px 10px;
   }
 
-  /* Responsive Pedals for Phone Screens */
-  .arcade-steer-paddle {
-    width: 62px;
-    height: 60px;
+  .racing-rpm-gauge {
+    display: none;
   }
-  .paddle-chevron {
-    width: 24px;
-    height: 24px;
+
+  .racing-steer-paddle {
+    width: 54px;
+    height: 52px;
   }
-  .paddle-txt {
-    font-size: 9px;
-  }
-  .pedal-gas {
-    width: 62px;
-    height: 82px;
-  }
-  .pedal-brake {
-    width: 58px;
-    height: 68px;
-  }
-  .arcade-nos-core {
-    width: 64px;
+
+  .racing-pedal-brake {
+    width: 48px;
     height: 64px;
   }
-  .arcade-touch-hud {
-    padding: 0 12px max(14px, env(safe-area-inset-bottom));
+
+  .racing-pedal-gas {
+    width: 42px;
+    height: 76px;
   }
 }
