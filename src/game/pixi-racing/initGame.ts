@@ -25,7 +25,10 @@ export interface GameInstance {
   app: Application;
   audio: GameAudio;
   vehicle: Vehicle;
+  camera: FollowCamera;
   setVehicleColor: (colorKey: string) => void;
+  setCameraMode: (mode: string) => void;
+  cycleCameraMode: () => string;
   resetPosition: () => void;
   destroy: () => void;
 }
@@ -197,7 +200,13 @@ export async function initRacingGame(
     sun.position.set(vehicle.spherePos.x + 11.4, 15, vehicle.spherePos.z - 5.3);
     sun.lookAt({ x: vehicle.spherePos.x, y: 0, z: vehicle.spherePos.z });
 
-    followCamera.update(dt, vehicle.container.position, vehicle.modelVelocity);
+    followCamera.update(
+      dt,
+      vehicle.container.position,
+      vehicle.modelVelocity,
+      vehicle.yaw,
+      vehicle.linearSpeed
+    );
 
     driftMarks.update(dt, vehicle);
     particles.update(app.ticker, vehicle);
@@ -222,6 +231,7 @@ export async function initRacingGame(
     app,
     audio,
     vehicle,
+    camera: followCamera,
     setVehicleColor(newKey: string) {
       if (!sources[newKey] || newKey === currentKey) return;
       currentKey = newKey;
@@ -230,6 +240,12 @@ export async function initRacingGame(
       vehicle = new Vehicle(sources[newKey], physics);
       vehicle.yaw = oldYaw;
       view3d.root.addChild(vehicle.container);
+    },
+    setCameraMode(mode: string) {
+      followCamera.setMode(mode);
+    },
+    cycleCameraMode() {
+      return followCamera.cycleMode();
     },
     resetPosition() {
       vehicle.reset();

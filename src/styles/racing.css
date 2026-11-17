@@ -160,6 +160,66 @@
   transform: scale(0.96);
 }
 
+/* Camera Switcher Button */
+.racing-cam-btn {
+  background: rgba(250, 204, 21, 0.22);
+  border-color: rgba(250, 204, 21, 0.55);
+  color: #fef08a;
+}
+
+.racing-cam-btn:hover {
+  background: rgba(250, 204, 21, 0.35);
+}
+
+.racing-kbd-inline {
+  margin-left: 4px;
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Camera Toast Notification */
+.racing-camera-toast {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(250, 204, 21, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 8px 22px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.racing-toast-icon {
+  font-size: 16px;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 /* Bottom Hint Bar */
 .racing-hint-bar {
   position: absolute;

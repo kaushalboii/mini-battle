@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { initRacingGame, type GameInstance } from "../game/pixi-racing/initGame";
+import { CAMERA_MODES } from "../game/pixi-racing/Camera";
 import "../styles/racing.css";
 
 const VEHICLE_OPTIONS = [
@@ -17,6 +18,8 @@ export default function RacingGame() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadLabel, setLoadLabel] = useState("Initializing PixiJS 3D...");
   const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
+  const [cameraMode, setCameraMode] = useState("chase");
+  const [camToast, setCamToast] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -61,6 +64,33 @@ export default function RacingGame() {
     gameRef.current?.setVehicleColor(key);
   };
 
+  const handleCycleCamera = () => {
+    if (!gameRef.current) return;
+    const nextMode = gameRef.current.cycleCameraMode();
+    setCameraMode(nextMode);
+    const info = CAMERA_MODES.find((m) => m.key === nextMode);
+    setCamToast(info ? `${info.label} (${info.desc})` : nextMode);
+    setTimeout(() => {
+      setCamToast((cur) => (cur?.includes(info?.label || "") ? null : cur));
+    }, 1800);
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.code === "KeyC") {
+        handleCycleCamera();
+      } else if (e.code === "KeyR") {
+        handleReset();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -68,6 +98,8 @@ export default function RacingGame() {
       document.exitFullscreen().catch(() => {});
     }
   };
+
+  const currentCamInfo = CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
 
   return (
     <div className="racing-root">
@@ -94,6 +126,14 @@ export default function RacingGame() {
         </div>
       )}
 
+      {/* Camera Mode Toast Notification */}
+      {camToast && (
+        <div className="racing-camera-toast">
+          <span className="racing-toast-icon">📷</span>
+          <span>{camToast}</span>
+        </div>
+      )}
+
       {/* Error Overlay */}
       {errorMsg && (
         <div className="racing-loading-overlay">
@@ -111,7 +151,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Top Right Controls & Color Picker */}
+      {/* Top Right Controls & Camera Switcher */}
       {!isLoading && (
         <div className="racing-controls-panel">
           <div className="racing-truck-palette">
@@ -128,12 +168,21 @@ export default function RacingGame() {
           </div>
 
           <button
+            className="racing-icon-btn racing-cam-btn"
+            onClick={handleCycleCamera}
+            title="Switch Camera (Press C)"
+            aria-label="Switch Camera"
+          >
+            📷 {currentCamInfo.label} <kbd className="racing-kbd-inline">C</kbd>
+          </button>
+
+          <button
             className="racing-icon-btn"
             onClick={handleReset}
-            title="Reset Truck (R)"
+            title="Reset Truck (Press R)"
             aria-label="Reset Truck"
           >
-            ↺ Respawn
+            ↺ Respawn <kbd className="racing-kbd-inline">R</kbd>
           </button>
 
           <button
@@ -172,7 +221,7 @@ export default function RacingGame() {
                 <strong>Physics:</strong> <code>crashcat</code> rigid body sphere & box colliders
               </p>
               <p>
-                <strong>Visuals:</strong> Cascaded directional shadows, ACES tone mapping, dynamic drift ribbons, particle smoke puffs.
+                <strong>Cameras:</strong> 5 selectable camera angles with dynamic speed FOV.
               </p>
               <hr />
               <h4>Controls</h4>
@@ -184,13 +233,19 @@ export default function RacingGame() {
                   <kbd>S</kbd> / <kbd>↓</kbd> : Reverse / Brake
                 </li>
                 <li>
-                  <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> : Steer / Drift
+                  <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> : Steer left / right
+                </li>
+                <li>
+                  <kbd>C</kbd> : Switch Camera (Chase View, Close Follow, Hood View, Isometric, Aerial)
+                </li>
+                <li>
+                  <kbd>R</kbd> : Respawn truck at starting line
                 </li>
                 <li>
                   <strong>Touch Screen:</strong> Floating touch joystick anywhere on screen
                 </li>
                 <li>
-                  <strong>Gamepad:</strong> Left stick steering, Right trigger (RT) throttle, Left trigger (LT) brake
+                  <strong>Gamepad:</strong> Left stick steering, RT throttle, LT brake
                 </li>
               </ul>
             </div>
@@ -201,7 +256,7 @@ export default function RacingGame() {
       {/* Bottom Hint Pill */}
       {!isLoading && (
         <div className="racing-hint-bar">
-          <span>WASD / Arrow Keys / Gamepad to Drive • Click to Unlock Audio</span>
+          <span>WASD to Drive • <kbd className="racing-kbd-inline">C</kbd> Switch Camera • <kbd className="racing-kbd-inline">R</kbd> Respawn • Click to Unlock Sound</span>
         </div>
       )}
     </div>
