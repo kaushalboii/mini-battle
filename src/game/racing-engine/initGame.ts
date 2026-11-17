@@ -205,6 +205,7 @@ export async function initRacingGame(
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   };
   window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
 
   // Camera Settings
   let currentCameraMode: string = 'chase';
@@ -520,6 +521,7 @@ export async function initRacingGame(
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('pointerdown', unlockAudioOnTouch);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
       audio.destroy();
       crashFX.destroy();
       rivalManager.destroy();

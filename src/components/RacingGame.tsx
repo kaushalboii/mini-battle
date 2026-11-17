@@ -304,7 +304,7 @@ export default function RacingGame() {
   const selectedVehicleOption = VEHICLE_OPTIONS.find((v) => v.key === selectedColor) || VEHICLE_OPTIONS[0];
 
   return (
-    <div className="racing-viewport">
+    <div className="racing-root racing-viewport">
       {/* 3D WebGPU / WebGL Engine Canvas */}
       <canvas ref={canvasRef} className="racing-canvas" />
 
