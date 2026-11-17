@@ -1,16 +1,18 @@
 /**
  * RevSector 3D - Scene Graph & Real-Time Engine Coordinator
- * Custom WebGPU/WebGL 3D engine with rigid body dynamics, tire smoke particles,
- * multi-angle follow cameras, procedural audio, and high-performance telemetry.
+ * Custom WebGPU/WebGL 3D engine with rigid body dynamics, multi-circuit grid generation,
+ * active rival racecar AI, zero-connect live multiplayer mesh, and sector telemetry.
  * Developed by Kaushal.
  */
 
 import {
+  AmbientLight,
   CubeGeometry,
   DirectionalLight,
   Material3D,
   Mesh3D,
   PlaneGeometry,
+  PointLight,
   SpotLight,
   Vector3,
   View3D,
@@ -27,7 +29,8 @@ import { LapTimer } from './LapTimer';
 import { SmokeTrails, NitroTrails } from './Particles';
 import { PhysicsWorld } from './Physics';
 import { TouchJoystick } from './TouchJoystick';
-import { buildTrack } from './Track';
+import { buildTrack, CIRCUITS, type CircuitDefinition } from './Track';
+import { RivalGrid, type GridStanding } from './RivalGrid';
 import { MAX_SPEED, Vehicle } from './Vehicle';
 
 export interface TelemetryData {
@@ -47,6 +50,9 @@ export interface TelemetryData {
   isNewBest: boolean;
   sector: number;
   trackProgress: number;
+  standings?: GridStanding[];
+  circuitId?: string;
+  circuit?: CircuitDefinition;
 }
 
 export interface GameInstance {
@@ -54,7 +60,10 @@ export interface GameInstance {
   audio: GameAudio;
   vehicle: Vehicle;
   camera: FollowCamera;
+  rivalGrid: RivalGrid;
   setVehicleColor: (colorKey: string) => void;
+  setDriverName: (name: string) => void;
+  setCircuit: (circuitId: string) => void;
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
   setLightingTheme: (theme: 'day' | 'sunset' | 'night') => void;
@@ -69,7 +78,9 @@ export interface GameInstance {
 export async function initRacingGame(
   canvas: HTMLCanvasElement,
   onProgress?: (progress: number, label: string) => void,
-  onTelemetry?: (data: TelemetryData) => void
+  onTelemetry?: (data: TelemetryData) => void,
+  initialCircuitId: string = 'monza',
+  initialPlayerName: string = 'Kaushal'
 ): Promise<GameInstance> {
   const app = new Application();
 
@@ -118,55 +129,34 @@ export async function initRacingGame(
   const view3d = new View3D({
     autoResize: true,
     shadowQuality: 'high',
-    toneMapping: 'aces',
-    exposure: 1.05,
-    environment: { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 },
-    background: 0x60a5fa,
-    fog: { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 },
   });
-
+  view3d.background = 0x60a5fa;
+  view3d.fog = {
+    type: 'linear',
+    color: 0x7cb5ec,
+    near: 45,
+    far: 105,
+  };
   app.stage.addChild(view3d);
 
-  const camera = view3d.camera;
-  const followCamera = new FollowCamera(camera);
+  const ambientLight = new AmbientLight({
+    color: 0xffffff,
+    intensity: 0.75,
+  });
+  view3d.root.addChild(ambientLight);
 
-  // Directional Sun Light
   const sun = new DirectionalLight({
     color: 0xfffaed,
     intensity: 2.4,
     castShadow: true,
-    shadow: {
-      bias: 0.0008,
-      normalBias: 0.05,
-      maxDistance: 85,
-      cascades: 3,
-      lambda: 0.6,
-    },
   });
-
-  sun.position.set(11.4, 15, -5.3);
-  sun.lookAt({ x: 0, y: 0, z: 0 });
   view3d.root.addChild(sun);
 
-  // High-Contrast Grand Prix Circuit Grass
-  const ground = new Mesh3D({
-    geometry: new PlaneGeometry({ width: 350, height: 350 }),
-    material: new Material3D({
-      baseColor: 0x183317, // Deep Monza circuit turf
-      metallic: 0.04,
-      roughness: 0.88,
-    }),
-    castShadow: false,
-    receiveShadow: true,
-  });
+  const followCamera = new FollowCamera(view3d.camera);
 
-  ground.rotation.set(-Math.PI / 2, 0, 0);
-  ground.position.set(0, -0.13, 0);
-  view3d.root.addChild(ground);
-
-  // Formula 1 Track PBR Material Calibration (asphalt & grip)
-  for (const source of Object.values(sources)) {
-    const s = source as any;
+  // Calibrate PBR material responses
+  for (const key of MODEL_KEYS) {
+    const s = sources[key];
     if (s?.materials) {
       for (const mat of s.materials) {
         if (mat.roughness !== undefined) {
@@ -177,7 +167,7 @@ export async function initRacingGame(
     }
   }
 
-  // F1 Starting Grid Boxes (P1 - P6 alternating slots on main straight)
+  // F1 Starting Grid Slots (P1 - P6 alternating slots on main straight)
   const gridGeo = new PlaneGeometry({ width: 1.3, height: 2.0 });
   const gridMat = new Material3D({
     baseColor: 0xffffff,
@@ -235,16 +225,26 @@ export async function initRacingGame(
   pitBarrier.position.set(7.5, 0.25, 10.0);
   view3d.root.addChild(pitBarrier);
 
-  // Track & Walls
-  const track = buildTrack(view3d.root, sources);
+  // Circuit Generator & Rigid Colliders
+  let currentCircuitId = initialCircuitId || 'monza';
+  let track = buildTrack(view3d.root, sources, currentCircuitId);
 
   // Physics World
-  const physics = new PhysicsWorld(new Vector3(3.5, 0.5, 5));
-  physics.addStaticGround([0, -0.125, 0], [50, 0.01, 50]);
+  const physics = new PhysicsWorld(new Vector3(2.8, 0.5, 5.2));
+  physics.addStaticGround([0, -0.125, 0], [100, 0.01, 100]);
 
-  for (const wall of track.walls) {
-    physics.addStaticBox(wall);
+  let wallBodies: any[] = [];
+  function setupWallColliders(walls: any[]) {
+    for (const body of wallBodies) {
+      physics.removeBody(body);
+    }
+    wallBodies = [];
+    for (const wall of walls) {
+      const body = physics.addStaticBox(wall);
+      if (body) wallBodies.push(body);
+    }
   }
+  setupWallColliders(track.walls);
 
   // Audio Engine
   const audio = new GameAudio();
@@ -261,15 +261,16 @@ export async function initRacingGame(
   window.addEventListener('keydown', unlockAudio);
   window.addEventListener('pointerdown', unlockAudio);
 
-  // Vehicle
+  // Player Vehicle
   let currentKey = 'vehicle-truck-yellow';
+  let currentDriverName = initialPlayerName || 'Kaushal';
   let vehicle = new Vehicle(sources[currentKey], physics);
   view3d.root.addChild(vehicle.container);
 
-  // High-Intensity Vehicle Headlight System (Night & Sunset Driving)
+  // Vehicle Headlight System (Night & Sunset Driving)
   const headlightBeam = new SpotLight({
     color: 0xfffaed,
-    intensity: 0, // Inactive during bright daylight
+    intensity: 0, // Off during daylight
     range: 48,
     coneAngle: 34,
     penumbra: 0.38,
@@ -278,35 +279,17 @@ export async function initRacingGame(
   headlightBeam.position.set(0, 0.45, 0.85);
   headlightBeam.lookAt({ x: 0, y: 0.05, z: 25 });
 
-  const lensGeo = new CubeGeometry({ width: 0.16, height: 0.10, depth: 0.04 });
-  const headlightLensMat = new Material3D({
-    baseColor: 0xd1d5db,
-    metallic: 0.1,
-    roughness: 0.2,
+  // Dynamic Brake Light Glow (Flares red behind car when braking or reversing)
+  const brakeLightGlow = new PointLight({
+    color: 0xef4444,
+    intensity: 0,
+    range: 5.5,
   });
-  const lensLeft = new Mesh3D({ geometry: lensGeo, material: headlightLensMat });
-  lensLeft.position.set(-0.35, 0.32, 0.96);
-
-  const lensRight = new Mesh3D({ geometry: lensGeo, material: headlightLensMat });
-  lensRight.position.set(0.35, 0.32, 0.96);
-
-  const tailLensMat = new Material3D({
-    baseColor: 0xdc2626,
-    metallic: 0.2,
-    roughness: 0.4,
-  });
-  const tailLeft = new Mesh3D({ geometry: lensGeo, material: tailLensMat });
-  tailLeft.position.set(-0.35, 0.32, -0.96);
-
-  const tailRight = new Mesh3D({ geometry: lensGeo, material: tailLensMat });
-  tailRight.position.set(0.35, 0.32, -0.96);
+  brakeLightGlow.position.set(0, 0.35, -1.05);
 
   function attachVehicleLights(targetContainer: any) {
     targetContainer.addChild(headlightBeam);
-    targetContainer.addChild(lensLeft);
-    targetContainer.addChild(lensRight);
-    targetContainer.addChild(tailLeft);
-    targetContainer.addChild(tailRight);
+    targetContainer.addChild(brakeLightGlow);
   }
 
   attachVehicleLights(vehicle.container);
@@ -343,6 +326,17 @@ export async function initRacingGame(
   const smokeParticles = new SmokeTrails(view3d.root, smokeTexture);
   const nitroParticles = new NitroTrails(view3d.root, smokeTexture);
 
+  // Rival Grid & Live Instant Multiplayer Mesh
+  const rivalGrid = new RivalGrid(
+    view3d.root,
+    sources,
+    currentCircuitId,
+    track.waypoints,
+    currentKey,
+    currentDriverName
+  );
+
+  let currentLightingTheme: 'day' | 'sunset' | 'night' = 'day';
   let telemetryTimer = 0;
 
   const tickerFn = () => {
@@ -353,6 +347,16 @@ export async function initRacingGame(
 
     physics.step(dt);
     vehicle.update(dt, input);
+
+    // Update dynamic brake light glow
+    const isBraking = input.z < 0 || vehicle.linearSpeed < -0.05;
+    if (isBraking) {
+      brakeLightGlow.intensity = 18;
+    } else if (currentLightingTheme === 'night') {
+      brakeLightGlow.intensity = 2.8;
+    } else {
+      brakeLightGlow.intensity = 0;
+    }
 
     sun.position.set(vehicle.spherePos.x + 11.4, 15, vehicle.spherePos.z - 5.3);
     sun.lookAt({ x: vehicle.spherePos.x, y: 0, z: vehicle.spherePos.z });
@@ -386,6 +390,17 @@ export async function initRacingGame(
 
     const lapState = lapTimer.getState();
 
+    // Update Competitor / Multiplayer Grid
+    rivalGrid.update(
+      dt,
+      vehicle.container.position.x,
+      vehicle.container.position.z,
+      vehicle.yaw,
+      Math.abs(vehicle.linearSpeed),
+      lapState.lap,
+      lapState.trackProgress
+    );
+
     // Telemetry dispatch at ~30Hz
     telemetryTimer += dt;
     if (telemetryTimer >= 0.033 && onTelemetry) {
@@ -401,6 +416,11 @@ export async function initRacingGame(
       }
 
       const rpm = (audio as any)._rpm;
+      const standings = rivalGrid.getStandings(
+        lapState.lap,
+        lapState.trackProgress,
+        speedKmh
+      );
 
       onTelemetry({
         speedKmh,
@@ -419,6 +439,9 @@ export async function initRacingGame(
         isNewBest: lapState.isNewBest,
         sector: lapState.sector,
         trackProgress: lapState.trackProgress,
+        standings,
+        circuitId: currentCircuitId,
+        circuit: track.circuit,
       });
     }
   };
@@ -427,11 +450,39 @@ export async function initRacingGame(
 
   onProgress?.(1.0, 'Ready!');
 
+  function applyLightingTheme(theme: 'day' | 'sunset' | 'night') {
+    currentLightingTheme = theme;
+    if (theme === 'sunset') {
+      sun.color = 0xff9447;
+      sun.intensity = 2.8;
+      view3d.background = 0x581c87;
+      view3d.fog = { type: 'linear', color: 0x8b5cf6, near: 40, far: 85 };
+      view3d.environment = { skyColor: 0xf97316, groundColor: 0x2e1065, intensity: 1.3 };
+      headlightBeam.intensity = 14;
+    } else if (theme === 'night') {
+      sun.color = 0xdbeafe;
+      sun.intensity = 1.3;
+      view3d.background = 0x070b14;
+      view3d.fog = { type: 'linear', color: 0x070b14, near: 35, far: 70 };
+      view3d.environment = { skyColor: 0x1e293b, groundColor: 0x020617, intensity: 0.85 };
+      headlightBeam.intensity = 28; // High-Intensity Xenon Headlights at Night
+    } else {
+      // Grand Prix Daylight
+      sun.color = 0xfffaed;
+      sun.intensity = 2.4;
+      view3d.background = 0x60a5fa;
+      view3d.fog = { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 };
+      view3d.environment = { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 };
+      headlightBeam.intensity = 0; // Off during daylight
+    }
+  }
+
   return {
     app,
     audio,
     vehicle,
     camera: followCamera,
+    rivalGrid,
     setVehicleColor(newKey: string) {
       if (!sources[newKey] || newKey === currentKey) return;
       currentKey = newKey;
@@ -441,6 +492,36 @@ export async function initRacingGame(
       vehicle.yaw = oldYaw;
       attachVehicleLights(vehicle.container);
       view3d.root.addChild(vehicle.container);
+      rivalGrid.setPlayerConfig(newKey, currentDriverName);
+    },
+    setDriverName(name: string) {
+      currentDriverName = name;
+      rivalGrid.setPlayerConfig(currentKey, name);
+    },
+    setCircuit(newCircuitId: string) {
+      if (!CIRCUITS[newCircuitId] || newCircuitId === currentCircuitId) return;
+      currentCircuitId = newCircuitId;
+
+      // Remove existing 3D track mesh
+      if (track.trackGroup && track.trackGroup.parent) {
+        track.trackGroup.parent.removeChild(track.trackGroup);
+      }
+
+      // Build new circuit layout
+      track = buildTrack(view3d.root, sources, newCircuitId);
+      setupWallColliders(track.walls);
+
+      // Reposition vehicle on starting grid
+      vehicle.reset();
+      lapTimer.setTrack(track);
+
+      // Update rival waypoints
+      rivalGrid.setCircuit(newCircuitId, track.waypoints);
+
+      // If circuit has recommended lighting, auto-switch
+      if (track.circuit?.recommendedTheme) {
+        applyLightingTheme(track.circuit.recommendedTheme);
+      }
     },
     setCameraMode(mode: string) {
       followCamera.setMode(mode);
@@ -449,32 +530,7 @@ export async function initRacingGame(
       return followCamera.cycleMode();
     },
     setLightingTheme(theme: 'day' | 'sunset' | 'night') {
-      if (theme === 'sunset') {
-        sun.color = 0xff9447;
-        sun.intensity = 2.8;
-        view3d.background = 0x581c87;
-        view3d.fog = { type: 'linear', color: 0x8b5cf6, near: 40, far: 85 };
-        view3d.environment = { skyColor: 0xf97316, groundColor: 0x2e1065, intensity: 1.3 };
-        headlightBeam.intensity = 12;
-        headlightLensMat.baseColor = 0xffffff;
-      } else if (theme === 'night') {
-        sun.color = 0xdbeafe;
-        sun.intensity = 1.3;
-        view3d.background = 0x070b14;
-        view3d.fog = { type: 'linear', color: 0x070b14, near: 35, far: 70 };
-        view3d.environment = { skyColor: 0x1e293b, groundColor: 0x020617, intensity: 0.85 };
-        headlightBeam.intensity = 26; // High-Intensity Xenon Headlights at Night
-        headlightLensMat.baseColor = 0xffffff;
-      } else {
-        // High-contrast Grand Prix Daylight
-        sun.color = 0xfffaed;
-        sun.intensity = 2.4;
-        view3d.background = 0x60a5fa;
-        view3d.fog = { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 };
-        view3d.environment = { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 };
-        headlightBeam.intensity = 0; // Headlights off during bright daylight
-        headlightLensMat.baseColor = 0xd1d5db;
-      }
+      applyLightingTheme(theme);
     },
     setSteer(val: number) {
       controls.setSteer(val);
@@ -496,6 +552,7 @@ export async function initRacingGame(
     resetPosition() {
       vehicle.reset();
       lapTimer.reset();
+      rivalGrid.resetGrid();
     },
     destroy() {
       app.ticker.remove(tickerFn);
@@ -503,6 +560,7 @@ export async function initRacingGame(
       window.removeEventListener('pointerdown', unlockAudio);
       controls.destroy();
       audio.destroy();
+      rivalGrid.destroy();
       app.destroy(true, { children: true });
     },
   };

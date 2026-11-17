@@ -55,6 +55,13 @@ export class LapTimer {
     // Canvas sizing handled by WebGPU viewport; HTML HUD scales natively
   }
 
+  setTrack(track) {
+    this._track = track;
+    this._storageKey = `${STORAGE_PREFIX}${track.circuitId || 'circuit'}`;
+    this._bestLap = loadBest(this._storageKey);
+    this.reset();
+  }
+
   reset() {
     this._lap = 1;
     this._currentLapTime = 0;

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { initRacingGame, type GameInstance, type TelemetryData } from "../game/racing-engine/initGame";
+import { CIRCUITS, type CircuitDefinition } from "../game/racing-engine/Track";
 import { CAMERA_MODES } from "../game/racing-engine/Camera";
 import "../styles/racing.css";
 
 const VEHICLE_OPTIONS = [
-  { key: "vehicle-truck-yellow", label: "Amber Team", color: "#f59e0b" },
-  { key: "vehicle-truck-red", label: "Crimson Team", color: "#ef4444" },
-  { key: "vehicle-truck-green", label: "Emerald Team", color: "#10b981" },
-  { key: "vehicle-truck-purple", label: "Cobalt Team", color: "#8b5cf6" },
+  { key: "vehicle-truck-yellow", label: "Amber Bull", team: "Red Bull", color: "#f59e0b" },
+  { key: "vehicle-truck-red", label: "Scarlet Scuderia", team: "Ferrari", color: "#ef4444" },
+  { key: "vehicle-truck-green", label: "Emerald GP", team: "Aston / Mercedes", color: "#10b981" },
+  { key: "vehicle-truck-purple", label: "Cobalt Racing", team: "McLaren / Alpine", color: "#8b5cf6" },
 ];
 
 const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string }> = [
@@ -30,7 +31,14 @@ export default function RacingGame() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadLabel, setLoadLabel] = useState("Initializing circuit & shaders");
-  const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
+  
+  // Grand Prix Hub & Circuit Selection State
+  const [showLanding, setShowLanding] = useState(true);
+  const [showCircuitPicker, setShowCircuitPicker] = useState(false);
+  const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
+  const [driverName, setDriverName] = useState<string>("Kaushal");
+  const [selectedColor, setSelectedColor] = useState<string>("vehicle-truck-yellow");
+
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
   const [isMuted, setIsMuted] = useState(false);
@@ -66,6 +74,8 @@ export default function RacingGame() {
     isNewBest: false,
     sector: 1,
     trackProgress: 0,
+    circuitId: "monza",
+    circuit: CIRCUITS.monza,
   });
 
   // Track viewport orientation
@@ -74,7 +84,6 @@ export default function RacingGame() {
       const isMobile = window.innerWidth < 850 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isPortrait = window.innerHeight > window.innerWidth;
       setIsMobilePortrait(isMobile && isPortrait);
-      // Auto-collapse tower on small mobile portrait to give full view
       if (isMobile && isPortrait) {
         setShowF1Tower(false);
       }
@@ -103,7 +112,9 @@ export default function RacingGame() {
       (data) => {
         if (isDisposed) return;
         setTelemetry(data);
-      }
+      },
+      selectedCircuit,
+      driverName
     )
       .then((instance) => {
         if (isDisposed) {
@@ -173,13 +184,43 @@ export default function RacingGame() {
       sector: 1,
       trackProgress: 0,
     }));
-    setToastMessage("Starting grid reset • Hot lap ready");
+    setToastMessage("Starting grid reset • Ready to race");
     setTimeout(() => setToastMessage(null), 1400);
   };
 
   const handleColorChange = (key: string) => {
     setSelectedColor(key);
     gameRef.current?.setVehicleColor(key);
+  };
+
+  const handleSelectCircuit = (circuitId: string) => {
+    setSelectedCircuit(circuitId);
+    if (gameRef.current) {
+      gameRef.current.setCircuit(circuitId);
+      const c = CIRCUITS[circuitId];
+      if (c?.recommendedTheme) {
+        setLightingTheme(c.recommendedTheme);
+      }
+      setToastMessage(`Switched to ${c?.name || circuitId} • Grid Ready`);
+      setTimeout(() => setToastMessage(null), 1500);
+    }
+    setShowCircuitPicker(false);
+  };
+
+  const handleStartGrandPrix = () => {
+    if (gameRef.current) {
+      gameRef.current.setCircuit(selectedCircuit);
+      gameRef.current.setVehicleColor(selectedColor);
+      gameRef.current.setDriverName(driverName || "Kaushal");
+      const c = CIRCUITS[selectedCircuit];
+      if (c?.recommendedTheme) {
+        gameRef.current.setLightingTheme(c.recommendedTheme);
+        setLightingTheme(c.recommendedTheme);
+      }
+    }
+    setShowLanding(false);
+    setToastMessage(`Grand Prix Started on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`);
+    setTimeout(() => setToastMessage(null), 1800);
   };
 
   const handleCycleCamera = () => {
@@ -218,11 +259,11 @@ export default function RacingGame() {
       } else if (e.code === "KeyR") {
         handleReset();
       } else if (e.code === "KeyM") {
-        handleToggleMute();
+        setShowCircuitPicker((prev) => !prev);
       } else if (e.code === "KeyT") {
         handleCycleLighting();
       } else if (e.code === "KeyL") {
-        setShowF1Tower(prev => !prev);
+        setShowF1Tower((prev) => !prev);
       }
     };
 
@@ -240,47 +281,21 @@ export default function RacingGame() {
 
   const currentCamInfo = CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
   const currentThemeInfo = LIGHTING_THEMES.find((t) => t.key === lightingTheme) || LIGHTING_THEMES[0];
-
-  // Dynamic F1 Field Intervals based on speed, pace, and sector progress
-  const progressRatio = telemetry.trackProgress || 0;
-  const p2Gap = Math.max(0.38, 1.32 + (1 - progressRatio) * 0.45 - (telemetry.speedKmh > 55 ? 0.28 : -0.15));
-  const p3Gap = p2Gap + 1.42;
-  const p4Gap = p3Gap + 1.28;
-  const p5Gap = p4Gap + 1.55;
+  const currentCircuitDef = CIRCUITS[selectedCircuit] || CIRCUITS.monza;
+  const selectedVehicleOption = VEHICLE_OPTIONS.find((v) => v.key === selectedColor) || VEHICLE_OPTIONS[0];
 
   return (
-    <div className={`racing-root ${telemetry.isBoosting ? "boosting" : ""}`}>
-      {/* Real-Time 3D WebGPU / WebGL Viewport */}
+    <div className="racing-viewport">
+      {/* 3D WebGPU / WebGL Engine Canvas */}
       <canvas ref={canvasRef} className="racing-canvas" />
-
-      {/* Subtle Speed Vignette Focus */}
-      <div className={`racing-focus-vignette ${telemetry.isBoosting ? "active" : ""}`} />
-
-      {/* Mobile Orientation Hint */}
-      {!isLoading && isMobilePortrait && !isPortraitHintDismissed && (
-        <div className="racing-rotate-banner">
-          <svg className="racing-rotate-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <rect x="5" y="2" width="14" height="20" rx="3" />
-            <path d="M12 18h.01M20 7l-2-2-2 2M18 5v5" />
-          </svg>
-          <span className="racing-rotate-text">Rotate device to landscape for full circuit view</span>
-          <button
-            className="racing-rotate-dismiss"
-            onClick={() => setIsPortraitHintDismissed(true)}
-            aria-label="Dismiss orientation banner"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {/* Loading Overlay */}
       {isLoading && (
         <div className="racing-modal-backdrop">
           <div className="racing-card racing-load-card">
             <div className="racing-ring-loader" />
-            <h1 className="racing-load-title">RevSector 3D</h1>
-            <p className="racing-load-sub">Precision Circuit Physics by Kaushal</p>
+            <h2 className="racing-load-title">RevSector 3D</h2>
+            <p className="racing-load-sub">Grand Prix Circuit Simulator • By Kaushal</p>
             <div className="racing-progress-track">
               <div
                 className="racing-progress-bar"
@@ -295,7 +310,147 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Notification Toast */}
+      {/* GRAND PRIX LANDING SCREEN & CIRCUIT SELECTOR */}
+      {!isLoading && showLanding && (
+        <div className="revsector-landing-backdrop">
+          <div className="revsector-landing-hub">
+            {/* Header */}
+            <div className="landing-hub-header">
+              <div className="landing-brand-col">
+                <div className="landing-gp-badge">
+                  <span className="landing-f1-pill">F1 GP</span>
+                  <h1 className="landing-title">RevSector 3D</h1>
+                </div>
+                <span className="landing-subtitle">
+                  Engineered by Kaushal • Real-Time WebGPU Multi-Car Circuit Racing
+                </span>
+              </div>
+              <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
+                <span className="mesh-live-dot" />
+                <span>Zero-Connect Mesh Active</span>
+              </div>
+            </div>
+
+            {/* Circuit Selection Grid */}
+            <div>
+              <div className="landing-section-title">Select Grand Prix Circuit</div>
+              <div className="circuit-cards-grid">
+                {Object.values(CIRCUITS).map((circuit) => {
+                  const isSelected = selectedCircuit === circuit.id;
+                  return (
+                    <div
+                      key={circuit.id}
+                      className={`circuit-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setSelectedCircuit(circuit.id)}
+                    >
+                      <div className="circuit-card-top">
+                        <span className="circuit-flag">{circuit.flag}</span>
+                        <span className="circuit-diff-badge">{circuit.difficulty}</span>
+                      </div>
+                      <div className="circuit-card-name">{circuit.name}</div>
+                      <div className="circuit-card-loc">{circuit.location} • {circuit.country}</div>
+                      <div className="circuit-card-desc">{circuit.description}</div>
+                      <div className="circuit-card-stats">
+                        <span className="circuit-stat-item"><strong>{circuit.sectorsCount}</strong> Sectors</span>
+                        <span className="circuit-stat-item"><strong>{circuit.drsZones}</strong> DRS Zones</span>
+                        <span className="circuit-stat-item">Benchmark <strong>{circuit.benchmarkLap}s</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Driver & Livery Customization */}
+            <div className="driver-config-row">
+              <div className="driver-input-box">
+                <label className="landing-section-title">Driver Name</label>
+                <input
+                  type="text"
+                  maxLength={14}
+                  value={driverName}
+                  onChange={(e) => setDriverName(e.target.value)}
+                  className="driver-text-input"
+                  placeholder="Enter Driver Name"
+                />
+              </div>
+
+              <div className="driver-input-box">
+                <label className="landing-section-title">Team Livery</label>
+                <div className="livery-pills-row">
+                  {VEHICLE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      className={`livery-pill-opt ${selectedColor === opt.key ? 'selected' : ''}`}
+                      onClick={() => handleColorChange(opt.key)}
+                    >
+                      <span className="livery-color-sample" style={{ backgroundColor: opt.color }} />
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with Action Button */}
+            <div className="landing-hub-footer">
+              <span className="landing-tip-text">
+                🏎️ 4 Racecars on Grid • Drive against live rivals and anyone visiting the site!
+              </span>
+              <button className="btn-launch-gp" onClick={handleStartGrandPrix}>
+                <span>START GRAND PRIX</span>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IN-GAME CIRCUIT PICKER MODAL */}
+      {!isLoading && showCircuitPicker && (
+        <div className="racing-modal-backdrop" onClick={() => setShowCircuitPicker(false)}>
+          <div className="racing-card racing-modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="racing-modal-header">
+              <h3 className="racing-modal-title">Switch Grand Prix Circuit</h3>
+              <button
+                className="racing-btn racing-btn-icon"
+                onClick={() => setShowCircuitPicker(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="circuit-cards-grid" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
+              {Object.values(CIRCUITS).map((circuit) => {
+                const isSelected = selectedCircuit === circuit.id;
+                return (
+                  <div
+                    key={circuit.id}
+                    className={`circuit-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleSelectCircuit(circuit.id)}
+                    style={{ padding: '12px' }}
+                  >
+                    <div className="circuit-card-top" style={{ marginBottom: '4px' }}>
+                      <span style={{ fontSize: '16px' }}>{circuit.flag} {circuit.name}</span>
+                      <span className="circuit-diff-badge">{circuit.difficulty}</span>
+                    </div>
+                    <div className="circuit-card-loc" style={{ marginBottom: '6px' }}>{circuit.location}</div>
+                    <div className="circuit-card-stats">
+                      <span><strong>{circuit.sectorsCount}</strong> Sectors</span>
+                      <span><strong>{circuit.drsZones}</strong> DRS Zones</span>
+                      <span>Target: <strong>{circuit.benchmarkLap}s</strong></span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Notification Toast */}
       {toastMessage && (
         <div className="racing-toast">
           <span>{toastMessage}</span>
@@ -322,7 +477,7 @@ export default function RacingGame() {
       {/* Top Navigation Bar */}
       {!isLoading && (
         <header className="racing-top-bar">
-          {/* Bespoke Brand Identifier */}
+          {/* Brand Identifier */}
           <div className="racing-brand">
             <svg className="racing-brand-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none">
               <path d="M4 19 L11 5 L14 5 L7 19 Z" fill="var(--accent)" />
@@ -330,16 +485,28 @@ export default function RacingGame() {
             </svg>
             <div className="racing-brand-text">
               <span className="racing-brand-name">RevSector 3D</span>
-              <span className="racing-brand-sub">By Kaushal • Sector Circuit</span>
+              <span className="racing-brand-sub">By Kaushal • {currentCircuitDef.name}</span>
             </div>
           </div>
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
+            {/* Circuits Switcher Button */}
+            <button
+              className="racing-btn"
+              onClick={() => setShowCircuitPicker(true)}
+              title="Change Circuit / Grand Prix Track (M)"
+              aria-label="Change Circuit"
+            >
+              <span style={{ fontSize: '13px' }}>{currentCircuitDef.flag}</span>
+              <span className="racing-btn-text">{currentCircuitDef.name}</span>
+              <kbd className="racing-keycap">M</kbd>
+            </button>
+
             {/* F1 Tower Toggle */}
             <button
               className={`racing-btn f1-toggle-btn ${showF1Tower ? 'active' : ''}`}
-              onClick={() => setShowF1Tower(prev => !prev)}
+              onClick={() => setShowF1Tower((prev) => !prev)}
               title="Toggle F1 Live Leaderboard (L)"
               aria-label="Toggle F1 Leaderboard"
             >
@@ -399,7 +566,7 @@ export default function RacingGame() {
             <button
               className={`racing-btn racing-btn-icon ${isMuted ? "muted" : ""}`}
               onClick={handleToggleMute}
-              title={isMuted ? "Unmute audio (M)" : "Mute audio (M)"}
+              title={isMuted ? "Unmute audio" : "Mute audio"}
               aria-label="Toggle audio"
             >
               {isMuted ? (
@@ -455,7 +622,7 @@ export default function RacingGame() {
         </header>
       )}
 
-      {/* FORMULA 1 OFFICIAL TIMING TOWER / FIELD LEADERBOARD (Left Side) */}
+      {/* FORMULA 1 OFFICIAL TIMING TOWER / DYNAMIC RIVAL LEADERBOARD (Left Side) */}
       {!isLoading && showF1Tower && (
         <aside className="f1-timing-tower" aria-label="F1 Grand Prix Leaderboard">
           {/* Header */}
@@ -486,55 +653,25 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Drivers Standings List */}
+          {/* Dynamic Drivers Standings List */}
           <div className="f1-drivers-list">
-            {/* P1: Player */}
-            <div className="f1-driver-row player-row">
-              <span className="f1-pos-badge p1">1</span>
-              <span
-                className="f1-team-stripe player-team"
-                style={{ backgroundColor: VEHICLE_OPTIONS.find(v => v.key === selectedColor)?.color || '#f59e0b' }}
-              />
-              <span className="f1-driver-code">KAU</span>
-              <span className="f1-tire-badge tire-soft" title="Soft Slick Tires">S</span>
-              <span className="f1-gap-tag leader">LEADER</span>
-            </div>
-
-            {/* P2: Verstappen */}
-            <div className="f1-driver-row">
-              <span className="f1-pos-badge">2</span>
-              <span className="f1-team-stripe team-rbr" />
-              <span className="f1-driver-code">VER</span>
-              <span className="f1-tire-badge tire-med" title="Medium Slick Tires">M</span>
-              <span className="f1-gap-tag">+{p2Gap.toFixed(3)}s</span>
-            </div>
-
-            {/* P3: Hamilton */}
-            <div className="f1-driver-row">
-              <span className="f1-pos-badge">3</span>
-              <span className="f1-team-stripe team-merc" />
-              <span className="f1-driver-code">HAM</span>
-              <span className="f1-tire-badge tire-soft" title="Soft Slick Tires">S</span>
-              <span className="f1-gap-tag">+{p3Gap.toFixed(3)}s</span>
-            </div>
-
-            {/* P4: Norris */}
-            <div className="f1-driver-row">
-              <span className="f1-pos-badge">4</span>
-              <span className="f1-team-stripe team-mcl" />
-              <span className="f1-driver-code">NOR</span>
-              <span className="f1-tire-badge tire-hard" title="Hard Slick Tires">H</span>
-              <span className="f1-gap-tag">+{p4Gap.toFixed(3)}s</span>
-            </div>
-
-            {/* P5: Leclerc */}
-            <div className="f1-driver-row">
-              <span className="f1-pos-badge">5</span>
-              <span className="f1-team-stripe team-fer" />
-              <span className="f1-driver-code">LEC</span>
-              <span className="f1-tire-badge tire-med" title="Medium Slick Tires">M</span>
-              <span className="f1-gap-tag">+{p5Gap.toFixed(3)}s</span>
-            </div>
+            {(telemetry.standings && telemetry.standings.length > 0 ? telemetry.standings : [
+              { position: 1, name: driverName, code: driverName.substring(0, 3).toUpperCase(), color: selectedVehicleOption.color, gap: 'LEADER', tire: 'S' as const, isPlayer: true, lap: telemetry.lap, speedKmh: telemetry.speedKmh },
+              { position: 2, name: 'Max Verstappen', code: 'VER', color: '#ef4444', gap: '+0.542s', tire: 'M' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 75 },
+              { position: 3, name: 'Lewis Hamilton', code: 'HAM', color: '#10b981', gap: '+1.680s', tire: 'S' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 72 },
+              { position: 4, name: 'Lando Norris', code: 'NOR', color: '#8b5cf6', gap: '+2.940s', tire: 'H' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 70 },
+            ]).map((d) => (
+              <div key={d.code} className={`f1-driver-row ${d.isPlayer ? 'player-row current-player' : ''}`}>
+                <span className={`f1-pos-badge ${d.position === 1 ? 'p1' : ''}`}>{d.position}</span>
+                <span
+                  className="f1-team-stripe"
+                  style={{ backgroundColor: d.color }}
+                />
+                <span className="f1-driver-code">{d.code}</span>
+                <span className={`f1-tire-badge tire-${d.tire === 'S' ? 'soft' : d.tire === 'M' ? 'med' : 'hard'}`}>{d.tire}</span>
+                <span className={`f1-gap-tag ${d.gap === 'LEADER' ? 'leader' : ''}`}>{d.gap}</span>
+              </div>
+            ))}
           </div>
         </aside>
       )}
@@ -576,100 +713,67 @@ export default function RacingGame() {
       {/* COCKPIT TELEMETRY INSTRUMENT PANEL (Bottom-Left / Steering Dash) */}
       {!isLoading && (
         <aside className="racing-telemetry-panel">
-          {/* F1 15-LED Shift Light Bar (5 Green, 5 Red, 5 Blue) */}
+          {/* F1 15-LED Shift Light Bar */}
           <div className="f1-shift-cluster">
-            <div className="f1-shift-lights">
-              {Array.from({ length: 15 }).map((_, i) => {
-                const active = i < Math.round(telemetry.rpm * 15);
-                const isRedline = telemetry.rpm > 0.92;
-                const type = i < 5 ? "green" : i < 10 ? "red" : "blue";
-                return (
-                  <span
-                    key={i}
-                    className={`f1-shift-led ${type} ${active ? "lit" : ""} ${isRedline && i >= 10 ? "flashing" : ""}`}
-                  />
-                );
-              })}
-            </div>
-            <div className="racing-rpm-meta">
-              <span className="racing-meta-label">RPM</span>
-              <span className="racing-meta-val">{Math.round(telemetry.rpm * 12500)}</span>
-            </div>
+            {[...Array(15)].map((_, i) => {
+              const activeCount = Math.floor((telemetry.rpm || 0) * 15);
+              const isActive = i < activeCount;
+              const colorType = i < 5 ? 'green' : i < 10 ? 'red' : 'blue';
+              return (
+                <span
+                  key={i}
+                  className={`f1-shift-led ${colorType} ${isActive ? 'lit' : ''}`}
+                />
+              );
+            })}
           </div>
 
-          {/* Main Digital Speed & Gear Cluster */}
           <div className="racing-speed-cluster">
             <div className="racing-speed-readout">
               <span className="racing-speed-num">{telemetry.speedKmh}</span>
-              <span className="racing-speed-unit">km/h</span>
+              <span className="racing-speed-unit">KM/H</span>
             </div>
-
-            <div className="racing-gear-readout">
-              <span className="racing-meta-label">Gear</span>
-              <span className={`racing-gear-box ${telemetry.isBoosting ? "nos" : ""}`}>
-                {telemetry.isBoosting ? "NOS" : telemetry.gear}
+            <div className="racing-gear-box">
+              <span className="racing-gear-tag">GEAR</span>
+              <span className={`racing-gear-num ${telemetry.gear === 'NOS' ? 'gear-nos' : ''}`}>
+                {telemetry.gear}
               </span>
             </div>
           </div>
 
-          {/* ERS / Boost Fuel Gauge */}
-          <div className="racing-boost-section">
-            <div className="racing-boost-header">
-              <span className="racing-meta-label">ERS BOOST</span>
+          {/* Nitrous Tank Gauge */}
+          <div className="racing-nitro-group">
+            <div className="racing-nitro-meta">
+              <span className="racing-meta-label">NOS INJECTION</span>
               <span className="racing-meta-val">{telemetry.nitro}%</span>
             </div>
-            <div className="racing-boost-track">
+            <div className="racing-nitro-track">
               <div
-                className={`racing-boost-fill ${telemetry.isBoosting ? "depleting" : ""}`}
+                className={`racing-nitro-fill ${telemetry.isBoosting ? 'boosting' : ''}`}
                 style={{ width: `${telemetry.nitro}%` }}
               />
             </div>
           </div>
 
-          {/* Total Drift Bank */}
-          {telemetry.totalDriftScore > 0 && (
-            <div className="racing-drift-summary">
-              <span className="racing-meta-label">Drift Score</span>
-              <span className="racing-meta-val">{telemetry.totalDriftScore.toLocaleString()}</span>
-            </div>
-          )}
+          {/* Persistent Career Drift Score */}
+          <div className="racing-drift-career">
+            <span className="racing-career-tag">DRIFT POINTS</span>
+            <span className="racing-career-val">
+              {telemetry.totalDriftScore.toLocaleString()}
+            </span>
+          </div>
         </aside>
       )}
 
-      {/* ON-SCREEN RACING TOUCH CONTROLS (Handy Ergonomic Placement) */}
+      {/* TOUCH CONTROLS FOR MOBILE / TABLET */}
       {!isLoading && (
-        <nav className="racing-touch-cluster" aria-label="Racing Controls">
+        <div className="racing-touch-cluster">
           {/* Left Wing: Steering Paddles */}
           <div className="racing-steer-wing">
             <button
-              className={`racing-steer-paddle ${activeSteer === -1 ? "active" : ""}`}
+              className={`racing-steer-paddle left ${activeSteer === 1 ? 'pressed' : ''}`}
               onPointerDown={(e) => {
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-                handleSteerStart(-1);
-              }}
-              onPointerUp={(e) => {
-                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-                handleSteerEnd();
-              }}
-              onPointerCancel={handleSteerEnd}
-              aria-label="Steer Left (A)"
-              title="Steer Left (A)"
-            >
-              <div className="racing-paddle-ridges">
-                <span />
-                <span />
-                <span />
-              </div>
-              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              <kbd className="racing-pedal-keycap">A</kbd>
-            </button>
-
-            <button
-              className={`racing-steer-paddle ${activeSteer === 1 ? "active" : ""}`}
-              onPointerDown={(e) => {
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                e.currentTarget.setPointerCapture(e.pointerId);
                 handleSteerStart(1);
               }}
               onPointerUp={(e) => {
@@ -677,28 +781,41 @@ export default function RacingGame() {
                 handleSteerEnd();
               }}
               onPointerCancel={handleSteerEnd}
-              aria-label="Steer Right (D)"
-              title="Steer Right (D)"
+              aria-label="Steer Left"
             >
-              <kbd className="racing-pedal-keycap">D</kbd>
-              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18l6-6-6-6" />
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M15 19l-7-7 7-7" />
               </svg>
-              <div className="racing-paddle-ridges">
-                <span />
-                <span />
-                <span />
-              </div>
+              <span className="racing-pedal-keycap">A</span>
+            </button>
+
+            <button
+              className={`racing-steer-paddle right ${activeSteer === -1 ? 'pressed' : ''}`}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                handleSteerStart(-1);
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleSteerEnd();
+              }}
+              onPointerCancel={handleSteerEnd}
+              aria-label="Steer Right"
+            >
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="racing-pedal-keycap">D</span>
             </button>
           </div>
 
-          {/* Right Wing: Drive Pedal, Brake / Reverse Pedal & Nitrous */}
+          {/* Right Wing: Pedals & Nitro */}
           <div className="racing-pedal-wing">
-            {/* Nitrous Boost Button */}
+            {/* Nitrous Trigger */}
             <button
-              className={`racing-nos-trigger ${isNosActive || telemetry.isBoosting ? "firing" : ""}`}
+              className={`racing-nos-trigger ${isNosActive ? 'firing' : ''}`}
               onPointerDown={(e) => {
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                e.currentTarget.setPointerCapture(e.pointerId);
                 handleNosStart();
               }}
               onPointerUp={(e) => {
@@ -706,21 +823,20 @@ export default function RacingGame() {
                 handleNosEnd();
               }}
               onPointerCancel={handleNosEnd}
-              aria-label="Nitrous Boost (Shift)"
-              title="Nitrous Boost (Shift)"
+              aria-label="Nitrous Boost"
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <span className="racing-pedal-keycap">SHIFT</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
               <span>BOOST</span>
-              <kbd className="racing-pedal-keycap">Shift</kbd>
             </button>
 
-            {/* Brake & Reverse Pedal (Smooth Braking + Backward Drive) */}
+            {/* Brake & Reverse Pedal */}
             <button
-              className={`racing-pedal racing-pedal-brake ${activeThrottle === -1 ? "depressed" : ""}`}
+              className={`racing-pedal racing-pedal-brake ${activeThrottle === -1 ? 'depressed' : ''}`}
               onPointerDown={(e) => {
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                e.currentTarget.setPointerCapture(e.pointerId);
                 handleThrottleStart(-1);
               }}
               onPointerUp={(e) => {
@@ -728,24 +844,20 @@ export default function RacingGame() {
                 handleThrottleEnd();
               }}
               onPointerCancel={handleThrottleEnd}
-              aria-label="Brake and Reverse (S)"
-              title="Brake / Reverse (S)"
+              aria-label="Brake and Reverse"
             >
-              <div className="racing-pedal-tread">
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
+              <span className="racing-pedal-keycap">S / ↓</span>
               <span className="racing-pedal-tag">REV / BRAKE</span>
-              <kbd className="racing-pedal-keycap">S</kbd>
+              <div className="racing-pedal-tread">
+                <span /><span /><span />
+              </div>
             </button>
 
-            {/* Accelerator Gas Pedal */}
+            {/* Accelerator Pedal */}
             <button
-              className={`racing-pedal racing-pedal-gas ${activeThrottle === 1 ? "depressed" : ""}`}
+              className={`racing-pedal racing-pedal-gas ${activeThrottle === 1 ? 'depressed' : ''}`}
               onPointerDown={(e) => {
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                e.currentTarget.setPointerCapture(e.pointerId);
                 handleThrottleStart(1);
               }}
               onPointerUp={(e) => {
@@ -753,135 +865,90 @@ export default function RacingGame() {
                 handleThrottleEnd();
               }}
               onPointerCancel={handleThrottleEnd}
-              aria-label="Drive Forward (W)"
-              title="Drive / Accelerate (W)"
+              aria-label="Accelerate"
             >
-              <div className="racing-pedal-tread">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
+              <span className="racing-pedal-keycap">W / ↑</span>
               <span className="racing-pedal-tag">DRIVE</span>
-              <kbd className="racing-pedal-keycap">W</kbd>
+              <div className="racing-pedal-tread">
+                <span /><span /><span /><span />
+              </div>
             </button>
           </div>
-        </nav>
+        </div>
       )}
 
-      {/* Clean Modal: Controls Guide */}
+      {/* Controls Manual / Help Modal */}
       {showHelp && (
         <div className="racing-modal-backdrop" onClick={() => setShowHelp(false)}>
           <div className="racing-card racing-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="racing-modal-header">
-              <div className="racing-brand">
-                <svg className="racing-brand-glyph" viewBox="0 0 24 24" width="18" height="18" fill="none">
-                  <path d="M4 19 L11 5 L14 5 L7 19 Z" fill="var(--accent)" />
-                  <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.8" />
-                </svg>
-                <h3 className="racing-modal-title">RevSector 3D • Controls & Specs</h3>
-              </div>
+              <h3 className="racing-modal-title">RevSector 3D • Driver Manual</h3>
               <button
                 className="racing-btn racing-btn-icon"
                 onClick={() => setShowHelp(false)}
-                aria-label="Close modal"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
-
             <div className="racing-modal-body">
-              <section className="racing-modal-section">
+              <div className="racing-modal-section">
                 <h4>Driving Controls</h4>
                 <div className="racing-key-table">
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">W</kbd> / <kbd className="racing-keycap">↑</kbd>
-                    </span>
-                    <span className="racing-action-cell">Accelerate full throttle</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">W</kbd> or <kbd className="racing-keycap">↑</kbd></span>
+                    <span className="racing-action-cell">Forward Acceleration</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">S</kbd> / <kbd className="racing-keycap">↓</kbd>
-                    </span>
-                    <span className="racing-action-cell">Brake and reverse gear</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">S</kbd> or <kbd className="racing-keycap">↓</kbd></span>
+                    <span className="racing-action-cell">High-Friction Brake & Reverse</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">A</kbd> / <kbd className="racing-keycap">D</kbd>
-                    </span>
-                    <span className="racing-action-cell">Steering and drift sliding</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">A</kbd> / <kbd className="racing-keycap">D</kbd> or <kbd className="racing-keycap">←</kbd> / <kbd className="racing-keycap">→</kbd></span>
+                    <span className="racing-action-cell">Steering & Counter-Steer</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">Shift</kbd> / <kbd className="racing-keycap">Space</kbd>
-                    </span>
-                    <span className="racing-action-cell">Nitrous boost injection</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">Space</kbd> or <kbd className="racing-keycap">Shift</kbd></span>
+                    <span className="racing-action-cell">Nitro Boost & Drift Assist</span>
                   </div>
                 </div>
-              </section>
+              </div>
 
-              <section className="racing-modal-section">
-                <h4>Camera & Session</h4>
+              <div className="racing-modal-section">
+                <h4>Race Functions</h4>
                 <div className="racing-key-table">
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">C</kbd>
-                    </span>
-                    <span className="racing-action-cell">Cycle chase, hood, isometric & aerial cameras</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">M</kbd></span>
+                    <span className="racing-action-cell">Switch Grand Prix Circuit</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">T</kbd>
-                    </span>
-                    <span className="racing-action-cell">Cycle daylight, dusk, and night lighting</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">L</kbd></span>
+                    <span className="racing-action-cell">Toggle F1 Standings Leaderboard</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">L</kbd>
-                    </span>
-                    <span className="racing-action-cell">Toggle F1 live timing tower & scoreboard</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">C</kbd></span>
+                    <span className="racing-action-cell">Cycle Follow Camera Angles</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">M</kbd>
-                    </span>
-                    <span className="racing-action-cell">Toggle 3-stage engine audio</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">T</kbd></span>
+                    <span className="racing-action-cell">Cycle Daylight / Dusk / Night</span>
                   </div>
                   <div className="racing-key-row">
-                    <span className="racing-key-cell">
-                      <kbd className="racing-keycap">R</kbd>
-                    </span>
-                    <span className="racing-action-cell">Reset vehicle to grid position</span>
+                    <span className="racing-key-cell"><kbd className="racing-keycap">R</kbd></span>
+                    <span className="racing-action-cell">Reset Position & Hot Lap</span>
                   </div>
                 </div>
-              </section>
-
-              <section className="racing-modal-section">
-                <h4>Mobile Device Optimization</h4>
-                <p className="racing-modal-desc">
-                  Engineered for <strong>Mobile Landscape Mode</strong>. Left thumb steers with dual paddles; right thumb modulates throttle, brake, and activates nitrous with full multi-touch.
-                </p>
-              </section>
-
-              <section className="racing-modal-section">
-                <h4>Engine Architecture</h4>
-                <p className="racing-modal-desc">
-                  RevSector 3D is a custom real-time WebGPU/WebGL 3D engine built by <strong>Kaushal</strong> with rigid body sphere-raycast dynamics, dynamic particle smoke, and procedural audio synthesis.
-                </p>
-              </section>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Desktop Shortcut Footer */}
+      {/* Desktop Hint Footer */}
       {!isLoading && (
-        <footer className="racing-footer-hint">
-          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • <kbd className="racing-keycap">L</kbd> F1 tower</span>
-        </footer>
+        <div className="racing-footer-hint">
+          <span>Drive: WASD / Arrows • Nitro: Space / Shift • Circuits: M • Standings: L • Reset: R • RevSector 3D by Kaushal</span>
+        </div>
       )}
     </div>
   );
