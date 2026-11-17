@@ -1,12 +1,14 @@
 {
-  "name": "mini-battle",
-  "version": "1.0.0",
+  "name": "krakens-quay-splash-shot",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx",
+    "format": "prettier --write src/**/*.{ts,tsx,css,json}"
   },
   "dependencies": {
     "react": "^19.2.4",
@@ -20,5 +22,18 @@
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
-  }
+  },
+  "description": "Kraken's Quay: Splash & Shot - A premium 4K tropical projectile battle game",
+  "author": "kaushalboii",
+  "license": "MIT",
+  "keywords": [
+    "game",
+    "threejs",
+    "webgl",
+    "4k",
+    "premium",
+    "tropical",
+    "projectile",
+    "turn-based"
+  ]
 }

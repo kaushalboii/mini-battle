@@ -1,4 +1,4 @@
-name: Automatic Release
+name: Build & Deploy to GitHub Pages
 
 on:
   push:
@@ -7,11 +7,56 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  create-release:
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  create-release:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,25 +66,30 @@ jobs:
       - name: Determine Release Tag
         id: tagger
         run: |
-          VERSION="v1.0.${{ github.run_number }}"
+          # Use semantic versioning based on package.json version
+          VERSION="v2.0.${{ github.run_number }}"
           echo "tag=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - Reef Rivals: Treasure Tide"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Kraken's Quay: Splash & Shot"
           body: |
-            ## 🌴 Reef Rivals: Treasure Tide (${{ steps.tagger.outputs.tag }})
+            ## 🦑 Kraken's Quay: Splash & Shot (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🚀 Exact Mint Playground Reef Rivals Experience:
-            - **Original 3D Characters**: Kai Tide, Nia Tide, Brinebeard, Patch, Pearl, and Tiki
-            - **Animated 3D GLTF Rigging**: Idle, throw, hit reaction, fall, and victory cheer animations
-            - **Tropical Lagoon Arena**: Beach dunes, sand islet, volcanic islet, drifting clouds, and reef cover
-            - **Complete Arcade HUD & Sound**: Audio tracks, sound fx, upgrades, shells, and ammo selector
+            ### 🚀 Premium 4K Tropical Turn-Based Projectile Battle:
+            - **Three Unique Weapons**: Coconut (∞ basic), Pineapple Bomb (3× explosive), Watermelon Split (2× cluster)
+            - **Dynamic Wind System**: Crosswind affects every shot trajectory
+            - **Power Charging Mechanic**: Hold FIRE to charge, release to shoot with precision
+            - **Drag-to-Aim Controls**: Intuitive 3D canvas drag + slider fine-tuning
+            - **3 Escalating Rounds**: Scout Skiff → Twin Corsair → Dread Boss
+            - **Procedural Audio**: Web Audio API synthesis (no external files)
+            - **Premium Visuals**: PBR materials, dynamic water, particles, camera shake
+            - **Responsive Design**: Mobile-friendly, landscape & portrait support
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
