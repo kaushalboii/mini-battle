@@ -1,38 +1,38 @@
-import * as THREE from "three";
+import { Vector3 } from '@pixi/3d';
 
-const _desired = new THREE.Vector3();
-const _delta = new THREE.Vector3();
-const _lookPoint = new THREE.Vector3();
+const _desired = new Vector3();
+const _delta = new Vector3();
+const _lookPoint = new Vector3();
 
 export class FollowCamera {
-  camera: THREE.PerspectiveCamera;
-  offset = new THREE.Vector3(9.27, 9.18, 9.27);
+  camera;
 
-  camRightXZ = new THREE.Vector3();
-  camForwardXZ = new THREE.Vector3();
+  offset = new Vector3(9.27, 9.18, 9.27);
+
+  camRightXZ = new Vector3();
+  camForwardXZ = new Vector3();
 
   leadFactor = 3.0;
-  cameraSmoothing = 2.5;
-  deadzoneRadius = 4.5;
-  screenShiftUp = 1.2;
+  cameraSmoothing = 2.0;
+  deadzoneRadius = 5.0;
+  screenShiftUp = 1.0;
 
-  private _smoothedDesired = new THREE.Vector3();
-  private _initialized = false;
+  _smoothedDesired = new Vector3();
+  _initialized = false;
 
-  constructor(camera: THREE.PerspectiveCamera) {
+  constructor(camera) {
     this.camera = camera;
-    this.camera.fov = 42;
+    this.camera.fov = 40;
     this.camera.near = 0.1;
-    this.camera.far = 300;
-    this.camera.updateProjectionMatrix();
+    this.camera.far = 200;
 
-    this.camera.position.copy(this.offset);
+    this.camera.position.copyFrom(this.offset);
 
     this.camRightXZ.set(this.offset.z, 0, -this.offset.x).normalize();
     this.camForwardXZ.set(-this.offset.x, 0, -this.offset.z).normalize();
   }
 
-  update(dt: number, target: THREE.Vector3, velocity: THREE.Vector3) {
+  update(dt, target, velocity) {
     const radius = this.deadzoneRadius;
     const radiusSq = radius * radius;
 
@@ -48,23 +48,30 @@ export class FollowCamera {
       this.leadFactor;
 
     const leadLenSq = leadX * leadX + leadY * leadY;
+
     if (leadLenSq > radiusSq) {
       const k = radius / Math.sqrt(leadLenSq);
+
       leadX *= k;
       leadY *= k;
     }
 
     _desired
-      .copy(target)
+      .copyFrom(target)
       .addScaledVector(this.camRightXZ, leadX)
       .addScaledVector(this.camForwardXZ, leadY);
 
-    const alpha = this._initialized ? 1 - Math.exp(-dt * this.cameraSmoothing) : 1;
+    const alpha = this._initialized
+      ? 1 - Math.exp(-dt * this.cameraSmoothing)
+      : 1;
     const inv = 1 - alpha;
 
-    this._smoothedDesired.x = this._smoothedDesired.x * inv + _desired.x * alpha;
-    this._smoothedDesired.y = this._smoothedDesired.y * inv + _desired.y * alpha;
-    this._smoothedDesired.z = this._smoothedDesired.z * inv + _desired.z * alpha;
+    this._smoothedDesired.x =
+      this._smoothedDesired.x * inv + _desired.x * alpha;
+    this._smoothedDesired.y =
+      this._smoothedDesired.y * inv + _desired.y * alpha;
+    this._smoothedDesired.z =
+      this._smoothedDesired.z * inv + _desired.z * alpha;
     this._initialized = true;
 
     _delta.set(
@@ -86,12 +93,13 @@ export class FollowCamera {
     if (offsetLenSq > radiusSq) {
       const offsetLen = Math.sqrt(offsetLenSq);
       const k = (offsetLen - radius) / offsetLen;
+
       this._smoothedDesired.addScaledVector(this.camRightXZ, offsetX * k);
       this._smoothedDesired.addScaledVector(this.camForwardXZ, offsetY * k);
     }
 
     _lookPoint
-      .copy(this._smoothedDesired)
+      .copyFrom(this._smoothedDesired)
       .addScaledVector(this.camForwardXZ, -this.screenShiftUp);
 
     this.camera.position.set(

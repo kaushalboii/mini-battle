@@ -1,316 +1,209 @@
 import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { Vehicle, MAX_SPEED } from "../game/racing/Vehicle";
-import { FollowCamera } from "../game/racing/Camera";
-import { Controls } from "../game/racing/Controls";
-import { buildTrack, type TrackData } from "../game/racing/Track";
-import { DriftMarks } from "../game/racing/DriftMarks";
-import { SmokeTrails } from "../game/racing/Particles";
-import { GameAudio } from "../game/racing/Audio";
-import { LapTimer, formatLapTime, type LapState } from "../game/racing/LapTimer";
+import { initRacingGame, type GameInstance } from "../game/pixi-racing/initGame";
 import "../styles/racing.css";
+
+const VEHICLE_OPTIONS = [
+  { key: "vehicle-truck-yellow", label: "Yellow Truck", color: "#facc15" },
+  { key: "vehicle-truck-red", label: "Red Truck", color: "#ef4444" },
+  { key: "vehicle-truck-green", label: "Green Truck", color: "#22c55e" },
+  { key: "vehicle-truck-purple", label: "Purple Truck", color: "#a855f7" },
+];
 
 export default function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [lapInfo, setLapInfo] = useState<LapState>({
-    lap: 1,
-    currentLapTime: 0,
-    lastLapTime: null,
-    bestLapTime: null,
-    isNewBest: false,
-    flashColor: null,
-  });
-  const [speedKmh, setSpeedKmh] = useState(0);
-  const [gear, setGear] = useState(1);
-  const controlsRef = useRef<Controls | null>(null);
+  const gameRef = useRef<GameInstance | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadLabel, setLoadLabel] = useState("Initializing PixiJS 3D...");
+  const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
+  const [showHelp, setShowHelp] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
-    let disposed = false;
-    let animationFrame = 0;
+    let isDisposed = false;
 
-    // 1. Scene, Camera, Renderer
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xadb2ba);
-    scene.fog = new THREE.Fog(0xadb2ba, 35, 75);
-
-    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 300);
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      antialias: true,
-      powerPreference: "high-performance",
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-
-    // 2. Lighting (Sun & Hemisphere Fill)
-    const hemiLight = new THREE.HemisphereLight(0xc8d8e8, 0x7a8a5a, 1.25);
-    scene.add(hemiLight);
-
-    const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
-    sun.position.set(11.4, 20, -5.3);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -35;
-    sun.shadow.camera.right = 35;
-    sun.shadow.camera.top = 35;
-    sun.shadow.camera.bottom = -35;
-    sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 90;
-    sun.shadow.bias = -0.0004;
-    scene.add(sun);
-
-    // 3. Track, Vehicle, Camera
-    const trackGroup = new THREE.Group();
-    scene.add(trackGroup);
-    const track: TrackData = buildTrack(trackGroup);
-
-    const vehicle = new Vehicle();
-    vehicle.position.set(-6, 0, 30); // Spawn behind finish line
-    vehicle.yaw = Math.PI / 2; // Facing east
-    scene.add(vehicle.container);
-
-    const followCamera = new FollowCamera(camera);
-    const controls = new Controls();
-    controlsRef.current = controls;
-
-    const driftMarks = new DriftMarks(scene);
-    const particles = new SmokeTrails(scene);
-
-    const audio = new GameAudio();
-    const unlockAudio = () => {
-      audio.unlock();
-      window.removeEventListener("keydown", unlockAudio);
-      window.removeEventListener("pointerdown", unlockAudio);
-    };
-    window.addEventListener("keydown", unlockAudio);
-    window.addEventListener("pointerdown", unlockAudio);
-
-    const lapTimer = new LapTimer(track);
-
-    // 4. Resize Handling
-    const onResize = () => {
-      if (!canvasRef.current) return;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    };
-    window.addEventListener("resize", onResize);
-
-    // 5. Game Loop
-    let lastTime = performance.now();
-    let hudTimer = 0;
-
-    const tick = () => {
-      if (disposed) return;
-      animationFrame = requestAnimationFrame(tick);
-
-      const now = performance.now();
-      const dt = Math.min((now - lastTime) / 1000, 1 / 30);
-      lastTime = now;
-
-      const input = controls.update();
-
-      // Wall Collisions
-      for (const wall of track.walls) {
-        if (
-          vehicle.position.x >= wall.min.x &&
-          vehicle.position.x <= wall.max.x &&
-          vehicle.position.z >= wall.min.y &&
-          vehicle.position.z <= wall.max.y
-        ) {
-          // Rebound
-          const impactSpeed = Math.abs(vehicle.linearSpeed);
-          audio.playImpact(impactSpeed);
-          vehicle.linearSpeed = -vehicle.linearSpeed * 0.45;
-          vehicle.position.x -= Math.sin(vehicle.yaw) * 0.35;
-          vehicle.position.z -= Math.cos(vehicle.yaw) * 0.35;
-          break;
+    initRacingGame(canvasRef.current, (progress, label) => {
+      if (isDisposed) return;
+      setLoadProgress(Math.round(progress * 100));
+      setLoadLabel(label);
+    })
+      .then((instance) => {
+        if (isDisposed) {
+          instance.destroy();
+          return;
         }
-      }
-
-      vehicle.update(dt, input);
-
-      // Sun follows vehicle
-      sun.position.set(vehicle.position.x + 11.4, 20, vehicle.position.z - 5.3);
-      sun.target.position.set(vehicle.position.x, 0, vehicle.position.z);
-      sun.target.updateMatrixWorld();
-
-      followCamera.update(dt, vehicle.position, vehicle.modelVelocity);
-
-      // Drift Marks & Smoke Trails
-      const wheels = vehicle.getWheelWorldPositions();
-      driftMarks.update(wheels.left, wheels.right, vehicle.linearSpeed, vehicle.driftIntensity);
-      particles.update(dt, wheels.left, wheels.right, vehicle.driftIntensity);
-
-      // Audio Engine
-      audio.update(dt, vehicle.linearSpeed / MAX_SPEED, input.z, vehicle.driftIntensity);
-
-      // Lap Timer
-      const hasInput = input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
-      const currentLapState = lapTimer.update(dt, vehicle.position, hasInput);
-
-      // Update UI 15 times/sec to save React re-renders
-      hudTimer += dt;
-      if (hudTimer > 0.066) {
-        hudTimer = 0;
-        setLapInfo({ ...currentLapState });
-        setSpeedKmh(Math.round(Math.abs(vehicle.linearSpeed) * 3.6));
-        const absSpd = Math.abs(vehicle.linearSpeed) / MAX_SPEED;
-        setGear(absSpd < 0.33 ? 1 : absSpd < 0.68 ? 2 : 3);
-      }
-
-      renderer.render(scene, camera);
-    };
-
-    tick();
+        gameRef.current = instance;
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to start PixiJS 3D Racing:", err);
+        setErrorMsg(err?.message || "Failed to initialize 3D canvas");
+        setIsLoading(false);
+      });
 
     return () => {
-      disposed = true;
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("keydown", unlockAudio);
-      window.removeEventListener("pointerdown", unlockAudio);
-      controls.destroy();
-      renderer.dispose();
+      isDisposed = true;
+      if (gameRef.current) {
+        gameRef.current.destroy();
+        gameRef.current = null;
+      }
     };
   }, []);
 
+  const handleReset = () => {
+    gameRef.current?.resetPosition();
+  };
+
+  const handleColorChange = (key: string) => {
+    setSelectedColor(key);
+    gameRef.current?.setVehicleColor(key);
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
   return (
     <div className="racing-root">
+      {/* PixiJS WebGPU/WebGL Canvas */}
       <canvas ref={canvasRef} className="racing-canvas" />
 
-      {/* 2D Lap Timer HUD (Matching PixiJS LapTimer) */}
-      <div className="racing-hud">
-        <div className="racing-hud-row">
-          <span>LAP</span>
-          <b>{lapInfo.lap}</b>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="racing-loading-overlay">
+          <div className="racing-loading-card">
+            <div className="racing-spinner"></div>
+            <h2 className="racing-loading-title">KENNEY STARTER KIT RACING</h2>
+            <p className="racing-loading-subtitle">PixiJS 3D & Crashcat Physics</p>
+            <div className="racing-progress-bar-bg">
+              <div
+                className="racing-progress-bar-fill"
+                style={{ width: `${loadProgress}%` }}
+              ></div>
+            </div>
+            <p className="racing-progress-label">
+              {loadLabel} ({loadProgress}%)
+            </p>
+          </div>
         </div>
-        <div
-          className="racing-current-time"
-          style={{ color: lapInfo.flashColor || "#ffffff" }}
-        >
-          {formatLapTime(lapInfo.currentLapTime)}
-        </div>
-        <div className="racing-hud-divider" />
-        <div className="racing-hud-row">
-          <span>LAST</span>
-          <b>{formatLapTime(lapInfo.lastLapTime)}</b>
-        </div>
-        <div className="racing-hud-row">
-          <span>BEST</span>
-          <b>{formatLapTime(lapInfo.bestLapTime)}</b>
-        </div>
-      </div>
+      )}
 
-      {/* Speedometer & Gear */}
-      <div className="racing-speedo">
-        <div className="racing-speedo-val">
-          {speedKmh}
-          <small>KM/H</small>
+      {/* Error Overlay */}
+      {errorMsg && (
+        <div className="racing-loading-overlay">
+          <div className="racing-loading-card">
+            <h2 style={{ color: "#ef4444" }}>Initialization Failed</h2>
+            <p>{errorMsg}</p>
+            <button
+              className="racing-btn"
+              onClick={() => window.location.reload()}
+              style={{ marginTop: "1rem" }}
+            >
+              Retry
+            </button>
+          </div>
         </div>
-        <div className="racing-gear-tag">GEAR {gear}</div>
-      </div>
+      )}
 
-      {/* Desktop Controls Hint */}
-      <div className="racing-controls-guide">
-        WASD / Arrows to Drive · Space to Drift · Gamepad / Touch Supported
-      </div>
+      {/* Top Right Controls & Color Picker */}
+      {!isLoading && (
+        <div className="racing-controls-panel">
+          <div className="racing-truck-palette">
+            {VEHICLE_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                className={`racing-color-dot ${selectedColor === opt.key ? "active" : ""}`}
+                style={{ backgroundColor: opt.color }}
+                title={opt.label}
+                aria-label={opt.label}
+                onClick={() => handleColorChange(opt.key)}
+              />
+            ))}
+          </div>
 
-      {/* Mobile Touch Controls */}
-      <div className="racing-touch-controls">
-        <div className="racing-touch-cluster">
           <button
-            className="racing-touch-btn"
-            onTouchStart={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchX = -1;
-                controlsRef.current.touchActive = true;
-              }
-            }}
-            onTouchEnd={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchX = 0;
-                controlsRef.current.touchActive = false;
-              }
-            }}
+            className="racing-icon-btn"
+            onClick={handleReset}
+            title="Reset Truck (R)"
+            aria-label="Reset Truck"
           >
-            ◀
+            ↺ Respawn
           </button>
-          <button
-            className="racing-touch-btn"
-            onTouchStart={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchX = 1;
-                controlsRef.current.touchActive = true;
-              }
-            }}
-            onTouchEnd={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchX = 0;
-                controlsRef.current.touchActive = false;
-              }
-            }}
-          >
-            ▶
-          </button>
-        </div>
 
-        <div className="racing-touch-cluster">
           <button
-            className="racing-touch-btn racing-touch-btn-drift"
-            onTouchStart={() => {
-              if (controlsRef.current) controlsRef.current.touchDrift = true;
-            }}
-            onTouchEnd={() => {
-              if (controlsRef.current) controlsRef.current.touchDrift = false;
-            }}
+            className="racing-icon-btn"
+            onClick={() => setShowHelp((prev) => !prev)}
+            title="Help / Controls"
+            aria-label="Help"
           >
-            DRIFT
+            ?
           </button>
+
           <button
-            className="racing-touch-btn"
-            onTouchStart={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchZ = -1;
-                controlsRef.current.touchActive = true;
-              }
-            }}
-            onTouchEnd={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchZ = 0;
-                controlsRef.current.touchActive = false;
-              }
-            }}
+            className="racing-icon-btn"
+            onClick={toggleFullscreen}
+            title="Toggle Fullscreen"
+            aria-label="Toggle Fullscreen"
           >
-            BRAKE
-          </button>
-          <button
-            className="racing-touch-btn"
-            style={{ background: "rgba(42, 157, 143, 0.7)" }}
-            onTouchStart={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchZ = 1;
-                controlsRef.current.touchActive = true;
-              }
-            }}
-            onTouchEnd={() => {
-              if (controlsRef.current) {
-                controlsRef.current.touchZ = 0;
-                controlsRef.current.touchActive = false;
-              }
-            }}
-          >
-            GAS
+            ⛶
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div className="racing-help-modal" onClick={() => setShowHelp(false)}>
+          <div className="racing-help-card" onClick={(e) => e.stopPropagation()}>
+            <div className="racing-help-header">
+              <h3>Kenney Starter Kit Racing</h3>
+              <button onClick={() => setShowHelp(false)}>✕</button>
+            </div>
+            <div className="racing-help-body">
+              <p>
+                <strong>Engine:</strong> Official PixiJS 3D (<code>@pixi/3d</code>)
+              </p>
+              <p>
+                <strong>Physics:</strong> <code>crashcat</code> rigid body sphere & box colliders
+              </p>
+              <p>
+                <strong>Visuals:</strong> Cascaded directional shadows, ACES tone mapping, dynamic drift ribbons, particle smoke puffs.
+              </p>
+              <hr />
+              <h4>Controls</h4>
+              <ul>
+                <li>
+                  <kbd>W</kbd> / <kbd>↑</kbd> : Accelerate forward
+                </li>
+                <li>
+                  <kbd>S</kbd> / <kbd>↓</kbd> : Reverse / Brake
+                </li>
+                <li>
+                  <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> : Steer / Drift
+                </li>
+                <li>
+                  <strong>Touch Screen:</strong> Floating touch joystick anywhere on screen
+                </li>
+                <li>
+                  <strong>Gamepad:</strong> Left stick steering, Right trigger (RT) throttle, Left trigger (LT) brake
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Hint Pill */}
+      {!isLoading && (
+        <div className="racing-hint-bar">
+          <span>WASD / Arrow Keys / Gamepad to Drive • Click to Unlock Audio</span>
+        </div>
+      )}
     </div>
   );
 }
