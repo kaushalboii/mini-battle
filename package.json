@@ -1,6 +1,6 @@
 {
-  "name": "krakens-quay",
-  "version": "2.2.0",
+  "name": "starter-kit-racing-3d",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,18 +21,17 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "Kraken's Quay: Splash & Shot - Rich 3D turn-based projectile battle with rigged characters",
+  "description": "Starter Kit Racing 3D - Kenney Starter Kit Racing with vehicle physics, dynamic drift marks, particle smoke, multi-gear audio and 2D lap timer",
   "author": "kaushalboii",
   "license": "MIT",
   "keywords": [
+    "racing",
     "game",
     "threejs",
-    "webgl",
-    "gltf",
-    "animation",
-    "krakens-quay",
-    "tropical",
-    "projectile",
-    "turn-based"
+    "pixi3d",
+    "drift",
+    "kenney",
+    "physics",
+    "webgl"
   ]
 }

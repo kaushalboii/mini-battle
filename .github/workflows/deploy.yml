@@ -58,19 +58,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - Kraken's Quay: Splash & Shot"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Starter Kit Racing 3D"
           body: |
-            ## 🦑 Kraken's Quay: Splash & Shot (${{ steps.tagger.outputs.tag }})
+            ## 🏎️ Starter Kit Racing 3D (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🚀 Rich 3D Turn-Based Battle Experience:
-            - **Animated 3D Characters**: Rigged GLTF models with Skeletal Animation (Kai Tide, Nia Tide, Brinebeard, Patch, Pearl, Tiki)
-            - **Motion Clips**: Smooth transitions between `idle`, `throw`, `hit`, `fall`, and `victory`
-            - **3D Tropical Ocean Arena**: Sand islets, dune beach horizon, puffy clouds, coral cover, and dynamic water
-            - **Arcade Arsenal & Upgrades**: Coconut, Pineapple Bomb, Pebble Volley, Shell collection, and power-ups
-            - **Rich Audio**: Original soundtrack and sound fx
+            ### 🚀 Kenney's Starter Kit Racing 3D Port:
+            - **3D Vehicle Physics**: Arcade truck driving model with steering, drifting, and suspension roll
+            - **Dynamic Drift Marks**: Streaming real-time tire skid ribbons on the asphalt
+            - **Particle Smoke Trails**: World-space drift smoke puffs emitted from rear wheels
+            - **Multi-Gear Procedural Audio**: 3-speed transmission, RPM curves, lowpass throttle filter, and skid screech
+            - **2D Lap Timer HUD**: Lap counter, current lap time, last lap, and persistent best lap
+            - **Follow Camera**: Dynamic lead vector, smoothing, and look-at target
+            - **Touch & Gamepad Controls**: Mobile on-screen joystick and steering pedals
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
