@@ -50,6 +50,9 @@ export interface GameInstance {
   setNitro: (active: boolean) => void;
   setMuted: (muted: boolean) => void;
   resetPosition: () => void;
+  playStartBeep: (isGo?: boolean) => void;
+  playIgnition: () => void;
+  unlockAudio: () => void;
   destroy: () => void;
 }
 
@@ -501,6 +504,15 @@ export async function initRacingGame(
       lastLapTime = null;
       currentSector = 1;
       isFlash = false;
+    },
+    playStartBeep(isGo: boolean = false) {
+      audio.playStartBeep(isGo);
+    },
+    playIgnition() {
+      audio.playIgnition();
+    },
+    unlockAudio() {
+      audio.unlock();
     },
     destroy() {
       isRunning = false;

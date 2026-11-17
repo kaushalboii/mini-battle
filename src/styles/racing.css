@@ -1752,6 +1752,460 @@ html, body {
 }
 
 /* ==========================================================================
+   FULLSCREEN ROTATE TO LANDSCAPE BLOCKER
+   ========================================================================== */
+.revsector-rotate-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #161922 0%, #07080b 100%);
+  padding: 24px;
+  text-align: center;
+  user-select: none;
+  animation: rotate-screen-fade 250ms ease-out;
+}
+
+@keyframes rotate-screen-fade {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.rotate-screen-card {
+  max-width: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 24px;
+  background: rgba(20, 22, 30, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.rotate-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rotate-f1-pill {
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+
+.rotate-brand-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Animated Rotating Phone Device */
+.rotate-phone-anim {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.phone-device-box {
+  width: 52px;
+  height: 94px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  background: #0d0e13;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(245, 158, 11, 0.35);
+  animation: phoneRotateCycle 2.4s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes phoneRotateCycle {
+  0%, 15% { transform: rotate(0deg); }
+  45%, 70% { transform: rotate(-90deg); }
+  90%, 100% { transform: rotate(0deg); }
+}
+
+.phone-notch {
+  position: absolute;
+  top: 3px;
+  width: 14px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+}
+
+.phone-screen-display {
+  width: 40px;
+  height: 78px;
+  border-radius: 5px;
+  background: #141720;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.phone-racing-track {
+  width: 22px;
+  height: 55px;
+  border: 2px dashed rgba(245, 158, 11, 0.6);
+  border-radius: 12px;
+}
+
+.phone-racing-car {
+  position: absolute;
+  font-size: 13px;
+}
+
+.rotate-arc-arrows {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  pointer-events: none;
+  animation: arc-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes arc-pulse {
+  0%, 15% { opacity: 0.3; }
+  45%, 70% { opacity: 1; transform: scale(1.05); }
+  90%, 100% { opacity: 0.3; }
+}
+
+.rotate-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.rotate-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.rotate-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-force-landscape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-force-landscape:hover {
+  background: var(--accent);
+  color: #0f1015;
+}
+
+.rotate-subnote {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   CINEMATIC LOGO INTRO SCREEN (Phase: 'intro')
+   ========================================================================== */
+.revsector-intro-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 35%, #181d2a 0%, #07080b 100%);
+  padding: 20px;
+  user-select: none;
+  animation: intro-fade-in 300ms ease-out;
+}
+
+@keyframes intro-fade-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.revsector-intro-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 22px;
+  padding: 36px 36px;
+  max-width: 520px;
+  width: 100%;
+  background: rgba(18, 20, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.18);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.intro-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.intro-f1-badge {
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+}
+
+.intro-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #34d399;
+  font-family: var(--font-mono);
+}
+
+.intro-logo-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.intro-logo-glyph {
+  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.6));
+  animation: glyph-pulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes glyph-pulse {
+  from { transform: scale(1); filter: drop-shadow(0 0 14px rgba(245, 158, 11, 0.4)); }
+  to { transform: scale(1.05); filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.8)); }
+}
+
+.intro-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin: 4px 0 0;
+}
+
+.intro-tagline {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.intro-credits {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.intro-action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-enter-paddock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f1015;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.4);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-enter-paddock:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.55);
+}
+
+.btn-enter-paddock:active {
+  transform: translateY(0);
+}
+
+.btn-engine-icon {
+  font-size: 16px;
+}
+
+.intro-audio-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   OFFICIAL F1 STARTING LIGHTS GANTRY (Phase: 'lights')
+   ========================================================================== */
+.f1-starting-gantry-overlay {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  pointer-events: none;
+  animation: gantry-drop 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gantry-drop {
+  from { opacity: 0; transform: translate(-50%, -16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.f1-gantry-housing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: rgba(14, 16, 22, 0.96);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 28px rgba(239, 68, 68, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.f1-gantry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.f1-gantry-lights-row {
+  display: flex;
+  gap: 16px;
+  padding: 6px 0;
+}
+
+.f1-gantry-light-unit {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #15161c;
+  border: 2px solid #2a2e3c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.f1-gantry-bulb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2b1111;
+  transition: all 80ms ease;
+}
+
+.f1-gantry-bulb.lit {
+  background: #ff1515;
+  box-shadow: 0 0 16px #ff1515, 0 0 32px rgba(255, 21, 21, 0.85);
+}
+
+.f1-gantry-bulb.green {
+  background: #00ff66;
+  box-shadow: 0 0 20px #00ff66, 0 0 40px rgba(0, 255, 102, 0.95);
+}
+
+.f1-gantry-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.f1-lights-out-text {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #10b981;
+  letter-spacing: 0.06em;
+  animation: flash-green 150ms infinite alternate;
+}
+
+@keyframes flash-green {
+  from { opacity: 0.85; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.04); }
+}
+
+.f1-lights-waiting {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
    REVSECTOR GRAND PRIX LANDING SCREEN & CIRCUIT SELECTOR
    High-craft F1 Championship Hub designed by Kaushal
    ========================================================================== */
@@ -1760,27 +2214,28 @@ html, body {
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  background: radial-gradient(circle at 50% 20%, rgba(30, 27, 46, 0.94) 0%, rgba(10, 11, 16, 0.98) 100%);
+  background: radial-gradient(circle at 50% 20%, rgba(20, 24, 36, 0.96) 0%, rgba(9, 10, 14, 0.98) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 16px;
+  padding: 24px 16px;
   overflow-y: auto;
 }
 
 .revsector-landing-hub {
   position: relative;
-  max-width: 820px;
+  margin: auto;
+  max-width: 860px;
   width: 100%;
-  background: rgba(18, 19, 26, 0.95);
+  background: rgba(18, 19, 26, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  padding: 28px;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   animation: hub-fade-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 

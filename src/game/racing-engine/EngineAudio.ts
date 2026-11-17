@@ -176,6 +176,52 @@ export class EngineAudio {
     } catch {}
   }
 
+  public playStartBeep(isGo: boolean = false) {
+    if (this.isMuted) return;
+    this.unlock();
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const t = this.ctx.currentTime;
+      osc.type = isGo ? 'square' : 'sine';
+      osc.frequency.setValueAtTime(isGo ? 880 : 440, t);
+      if (isGo) {
+        osc.frequency.exponentialRampToValueAtTime(1100, t + 0.25);
+      }
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (isGo ? 0.35 : 0.16));
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + (isGo ? 0.38 : 0.18));
+    } catch {}
+  }
+
+  public playIgnition() {
+    if (this.isMuted) return;
+    this.unlock();
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const t = this.ctx.currentTime;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(45, t);
+      osc.frequency.exponentialRampToValueAtTime(190, t + 0.35);
+      osc.frequency.exponentialRampToValueAtTime(65, t + 0.85);
+
+      gain.gain.setValueAtTime(0.01, t);
+      gain.gain.linearRampToValueAtTime(0.32, t + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 1.0);
+    } catch {}
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.engineGain && this.ctx) {
