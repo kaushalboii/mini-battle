@@ -37,6 +37,7 @@ export default function RacingGame() {
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
   const [selectedColor, setSelectedColor] = useState<string>("#f59e0b");
+  const [isPracticeMode, setIsPracticeMode] = useState<boolean>(false);
 
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
@@ -172,7 +173,7 @@ export default function RacingGame() {
       ...prev,
       speedKmh: 0,
       linearSpeed: 0,
-      gear: "N",
+      gear: 1,
       currentLapTime: 0,
       lastLapTime: null,
       lap: 1,
@@ -182,9 +183,19 @@ export default function RacingGame() {
       isBoosting: false,
       sector: 1,
       trackProgress: 0,
+      isFlash: false,
+      isNewBest: false,
     }));
-    setToastMessage("Starting grid reset • Ready to race");
+    setToastMessage("Grid Reset • Lap Timer Reset to 00:00.00");
     setTimeout(() => setToastMessage(null), 1400);
+  };
+
+  const handleTogglePracticeMode = (forceState?: boolean) => {
+    const nextState = forceState !== undefined ? forceState : !isPracticeMode;
+    setIsPracticeMode(nextState);
+    gameRef.current?.setPracticeMode(nextState);
+    setToastMessage(nextState ? "AI Practice Grid Active • 3 Sparring Bots" : "Live Peer Mode • Solo Blank Track");
+    setTimeout(() => setToastMessage(null), 1800);
   };
 
   const handleColorChange = (key: string) => {
@@ -211,6 +222,7 @@ export default function RacingGame() {
       gameRef.current.setCircuit(selectedCircuit);
       gameRef.current.setVehicleColor(selectedColor);
       gameRef.current.setDriverName(driverName || "Kaushal");
+      gameRef.current.setPracticeMode(isPracticeMode);
       const c = CIRCUITS[selectedCircuit];
       if (c?.recommendedTheme) {
         gameRef.current.setLightingTheme(c.recommendedTheme);
@@ -218,7 +230,11 @@ export default function RacingGame() {
       }
     }
     setShowLanding(false);
-    setToastMessage(`Grand Prix Started on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`);
+    setToastMessage(
+      isPracticeMode
+        ? `Grand Prix Started • Practice Grid on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+        : `Grand Prix Started • Live Solo on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+    );
     setTimeout(() => setToastMessage(null), 1800);
   };
 
@@ -263,12 +279,14 @@ export default function RacingGame() {
         handleCycleLighting();
       } else if (e.code === "KeyL") {
         setShowF1Tower((prev) => !prev);
+      } else if (e.code === "KeyP") {
+        handleTogglePracticeMode();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [cameraMode, lightingTheme, isMuted]);
+  }, [cameraMode, lightingTheme, isMuted, isPracticeMode]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -360,6 +378,42 @@ export default function RacingGame() {
               </div>
             </div>
 
+            {/* Race Mode Selector (Live Peer vs AI Practice Grid) */}
+            <div className="landing-mode-section">
+              <label className="landing-section-title">Select Racing Mode</label>
+              <div className="landing-mode-grid">
+                <button
+                  type="button"
+                  className={`landing-mode-card ${!isPracticeMode ? 'selected' : ''}`}
+                  onClick={() => setIsPracticeMode(false)}
+                >
+                  <div className="mode-card-top">
+                    <span className="mode-badge-live">🌐 ZERO-CONNECT MESH</span>
+                    {!isPracticeMode && <span className="mode-check">✓ Active</span>}
+                  </div>
+                  <div className="mode-card-title">Pure Live Peer (Solo Hot Laps)</div>
+                  <div className="mode-card-desc">
+                    Clean, blank 2km circuit with zero bots. Drive solo hot laps or alongside live users visiting RevSector in real time.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`landing-mode-card ${isPracticeMode ? 'selected' : ''}`}
+                  onClick={() => setIsPracticeMode(true)}
+                >
+                  <div className="mode-card-top">
+                    <span className="mode-badge-ai">🤖 AI SPARRING GRID</span>
+                    {isPracticeMode && <span className="mode-check">✓ Active</span>}
+                  </div>
+                  <div className="mode-card-title">Practice Grid (3 Sparring Bots)</div>
+                  <div className="mode-card-desc">
+                    Race against 3 independent AI bots (Verstappen, Hamilton, Norris) on separate lines. Full car-to-car crash physics.
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Driver & Livery Customization */}
             <div className="driver-config-row">
               <div className="driver-input-box">
@@ -394,7 +448,9 @@ export default function RacingGame() {
             {/* Footer with Action Button */}
             <div className="landing-hub-footer">
               <span className="landing-tip-text">
-                🏎️ 4 Racecars on Grid • Drive against live rivals and anyone visiting the site!
+                {!isPracticeMode
+                  ? "🏎️ Solo Live Mode Active • Clean blank track unless live players join!"
+                  : "🏎️ AI Grid Active • Sparring with Verstappen, Hamilton & Norris!"}
               </span>
               <button className="btn-launch-gp" onClick={handleStartGrandPrix}>
                 <span>START GRAND PRIX</span>
@@ -513,6 +569,28 @@ export default function RacingGame() {
               <span className="racing-btn-text">Standings</span>
               <kbd className="racing-keycap">L</kbd>
             </button>
+
+            {/* Mode Switcher (Solo / Live Mesh vs AI Practice Grid) */}
+            <div className="racing-mode-pill-group" title="Toggle Race Mode: Live Peer (Solo) / Practice Grid (P)">
+              <button
+                type="button"
+                className={`racing-mode-pill ${!isPracticeMode ? 'active' : ''}`}
+                onClick={() => handleTogglePracticeMode(false)}
+                title="Solo Live Mode (Clean track, real humans only)"
+              >
+                <span className="mode-live-dot" />
+                <span className="racing-btn-text">Solo / Live</span>
+              </button>
+              <button
+                type="button"
+                className={`racing-mode-pill ${isPracticeMode ? 'active' : ''}`}
+                onClick={() => handleTogglePracticeMode(true)}
+                title="AI Practice Mode (3 Sparring Bots)"
+              >
+                <span className="racing-btn-text">🤖 Practice</span>
+              </button>
+              <kbd className="racing-keycap">P</kbd>
+            </div>
 
             {/* Vehicle Palette Group */}
             <div className="racing-palette-group" title="Select Vehicle Team">
@@ -656,9 +734,6 @@ export default function RacingGame() {
           <div className="f1-drivers-list">
             {(telemetry.standings && telemetry.standings.length > 0 ? telemetry.standings : [
               { position: 1, name: driverName, code: driverName.substring(0, 3).toUpperCase(), color: selectedVehicleOption.color, gap: 'LEADER', tire: 'S' as const, isPlayer: true, lap: telemetry.lap, speedKmh: telemetry.speedKmh },
-              { position: 2, name: 'Max Verstappen', code: 'VER', color: '#ef4444', gap: '+0.542s', tire: 'M' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 75 },
-              { position: 3, name: 'Lewis Hamilton', code: 'HAM', color: '#10b981', gap: '+1.680s', tire: 'S' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 72 },
-              { position: 4, name: 'Lando Norris', code: 'NOR', color: '#8b5cf6', gap: '+2.940s', tire: 'H' as const, isPlayer: false, lap: telemetry.lap, speedKmh: 70 },
             ]).map((d) => (
               <div key={d.code} className={`f1-driver-row ${d.isPlayer ? 'player-row current-player' : ''}`}>
                 <span className={`f1-pos-badge ${d.position === 1 ? 'p1' : ''}`}>{d.position}</span>

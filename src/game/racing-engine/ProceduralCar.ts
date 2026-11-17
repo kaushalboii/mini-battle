@@ -260,41 +260,52 @@ export function createProceduralF1Car(
   rrGroup.add(rrWheelData.wheelGroup);
   root.add(rrGroup);
 
-  // 6. Dual Xenon Headlights
-  const lensGeo = new THREE.BoxGeometry(0.12, 0.08, 0.04);
+  // 6. High-Luminance Xenon Headlights
+  const lensGeo = new THREE.BoxGeometry(0.14, 0.08, 0.04);
   const leftLens = new THREE.Mesh(lensGeo, headlightLensMat);
-  leftLens.position.set(-0.32, 0.30, 2.02);
+  leftLens.position.set(-0.35, 0.32, 2.02);
   chassisGroup.add(leftLens);
 
   const rightLens = new THREE.Mesh(lensGeo, headlightLensMat);
-  rightLens.position.set(0.32, 0.30, 2.02);
+  rightLens.position.set(0.35, 0.32, 2.02);
   chassisGroup.add(rightLens);
 
   // Dynamic Headlight SpotLight Beams
-  const leftBeam = new THREE.SpotLight(0xfffaed, 0, 48, Math.PI / 6, 0.4, 1.2);
-  leftBeam.position.set(-0.32, 0.35, 2.0);
+  const leftBeam = new THREE.SpotLight(0xfffaed, 0, 75, Math.PI / 4.2, 0.45, 1.0);
+  leftBeam.position.set(-0.35, 0.38, 2.05);
   const leftTarget = new THREE.Object3D();
-  leftTarget.position.set(-0.32, 0.1, 20);
+  leftTarget.position.set(-0.35, 0.0, 18);
   root.add(leftTarget);
   leftBeam.target = leftTarget;
   root.add(leftBeam);
 
-  const rightBeam = new THREE.SpotLight(0xfffaed, 0, 48, Math.PI / 6, 0.4, 1.2);
-  rightBeam.position.set(0.32, 0.35, 2.0);
+  const rightBeam = new THREE.SpotLight(0xfffaed, 0, 75, Math.PI / 4.2, 0.45, 1.0);
+  rightBeam.position.set(0.35, 0.38, 2.05);
   const rightTarget = new THREE.Object3D();
-  rightTarget.position.set(0.32, 0.1, 20);
+  rightTarget.position.set(0.35, 0.0, 18);
   root.add(rightTarget);
   rightBeam.target = rightTarget;
   root.add(rightBeam);
 
-  // 7. FIA Central Red Rear Rain & Brake Light
-  const brakeLightGeo = new THREE.BoxGeometry(0.18, 0.10, 0.04);
+  // Forward Asphalt Road-Wash Light (Illuminates track in front of vehicle at night)
+  const forwardRoadWash = new THREE.PointLight(0xdbeafe, 0, 28.0, 1.2);
+  forwardRoadWash.position.set(0, 0.45, 3.5);
+  root.add(forwardRoadWash);
+
+  // 7. Authentic Single Central FIA Rain & Brake Light Unit
+  // In Formula 1 racing, there is ONE central LED rain/brake light under the rear wing/diffuser
+  const fiaHousingGeo = new THREE.BoxGeometry(0.24, 0.12, 0.06);
+  const fiaHousing = new THREE.Mesh(fiaHousingGeo, carbonMat);
+  fiaHousing.position.set(0, 0.28, -1.05);
+  chassisGroup.add(fiaHousing);
+
+  const brakeLightGeo = new THREE.BoxGeometry(0.18, 0.08, 0.04);
   const brakeLightMesh = new THREE.Mesh(brakeLightGeo, glowRedMat);
-  brakeLightMesh.position.set(0, 0.28, -1.05);
+  brakeLightMesh.position.set(0, 0.28, -1.08);
   chassisGroup.add(brakeLightMesh);
 
-  const brakeGlow = new THREE.PointLight(0xef4444, 0, 6.0);
-  brakeGlow.position.set(0, 0.32, -1.15);
+  const brakeGlow = new THREE.PointLight(0xff2222, 0, 8.0, 1.2);
+  brakeGlow.position.set(0, 0.28, -1.18);
   root.add(brakeGlow);
 
   // 8. Nitro Boost Flame Cones & Glow
@@ -343,26 +354,32 @@ export function createProceduralF1Car(
     rlWheelData.tireMesh.rotation.x = spinAngle;
     rrWheelData.tireMesh.rotation.x = spinAngle;
 
-    // 3. Headlights intensity
+    // 3. Headlights intensity at night
     if (isNight) {
-      leftBeam.intensity = 26;
-      rightBeam.intensity = 26;
-      headlightLensMat.emissive.setHex(0xffffff);
+      leftBeam.intensity = 140;
+      rightBeam.intensity = 140;
+      forwardRoadWash.intensity = 32;
+      headlightLensMat.emissive.setHex(0xe0f2fe);
+      headlightLensMat.emissiveIntensity = 2.5;
     } else {
       leftBeam.intensity = 0;
       rightBeam.intensity = 0;
+      forwardRoadWash.intensity = 0;
       headlightLensMat.emissive.setHex(0x000000);
+      headlightLensMat.emissiveIntensity = 0;
     }
 
-    // 4. Brake lights & FIA rain light
+    // 4. Single FIA central rear brake & rain light
     if (isBraking) {
-      brakeGlow.intensity = 18;
-      brakeLightMesh.scale.set(1.4, 1.4, 1.4);
+      brakeGlow.intensity = 26;
+      brakeLightMesh.scale.set(1.35, 1.35, 1.35);
+      glowRedMat.color.setHex(0xff0000);
     } else if (isNight) {
-      // Strobe FIA rain light at night
-      const strobe = Math.sin(Date.now() * 0.012) > 0;
-      brakeGlow.intensity = strobe ? 4.5 : 1.2;
+      // FIA rain strobe pattern at night
+      const strobe = Math.sin(Date.now() * 0.015) > 0;
+      brakeGlow.intensity = strobe ? 6.0 : 1.5;
       brakeLightMesh.scale.set(1.0, 1.0, 1.0);
+      glowRedMat.color.setHex(0xef4444);
     } else {
       brakeGlow.intensity = 0;
       brakeLightMesh.scale.set(1.0, 1.0, 1.0);

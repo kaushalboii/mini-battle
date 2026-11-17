@@ -132,20 +132,47 @@ export class EngineAudio {
   public playImpact(intensity: number) {
     if (!this.ctx || !this.isUnlocked || this.isMuted) return;
     try {
+      const t = this.ctx.currentTime;
+      // 1. Low-end chassis boom
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.2);
+      osc.frequency.setValueAtTime(160, t);
+      osc.frequency.exponentialRampToValueAtTime(25, t + 0.35);
 
-      const vol = Math.min(0.4, 0.1 + intensity * 0.02);
-      gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+      const vol = Math.min(0.65, 0.2 + intensity * 0.04);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.26);
+      osc.start(t);
+      osc.stop(t + 0.42);
+
+      // 2. High-frequency metal crunch / body crumple noise
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.18);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(2200, t);
+      filter.Q.value = 2.0;
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(Math.min(0.55, 0.15 + intensity * 0.03), t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+      noise.start(t);
     } catch {}
   }
 

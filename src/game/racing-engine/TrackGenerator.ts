@@ -1,8 +1,8 @@
 /**
- * RevSector 3D - Procedural Grand Prix Circuit & Environment Generator
- * Generates continuous curved asphalt circuits, alternating FIA red/white rumble kerbs,
- * Armco perimeter crash barriers, overhead electronic gantry, and stadium night lighting.
- * Engineered by Kaushal.
+ * RevSector 3D - Grand Prix Circuit & Environment Generator (Grand Scale)
+ * Massive 1.5km - 2.0km racing circuits with 300m+ full-throttle straights, 13.5m wide asphalt ribbon,
+ * 3D FIA red/white apex rumble kerbs, 150m/100m/50m corner braking boards, and overhead gantry.
+ * Engineered and authored by Kaushal.
  */
 
 import * as THREE from 'three';
@@ -23,17 +23,7 @@ export interface GeneratedTrack {
   waypoints: CircuitWaypoint[];
   totalLength: number;
   circuitId: string;
-  circuitInfo: {
-    name: string;
-    location: string;
-    country: string;
-    flag: string;
-    difficulty: string;
-    description: string;
-    benchmarkLap: number;
-    sectorsCount: number;
-    recommendedTheme: 'day' | 'sunset' | 'night';
-  };
+  circuitInfo: CircuitMeta;
   startPosition: THREE.Vector3;
   startRotationY: number;
 }
@@ -60,11 +50,11 @@ export const CIRCUITS_METADATA: Record<string, CircuitMeta> = {
     country: 'Italy',
     flag: '🇮🇹',
     difficulty: 'High Speed',
-    description: 'High-speed straights, Curva Grande, Ascari chicane, and the legendary Parabolica curve.',
-    benchmarkLap: 22.4,
+    description: 'The Temple of Speed. Massive 360m straights, high-speed Curva Grande, Ascari chicane, and Parabolica.',
+    benchmarkLap: 46.5,
     sectorsCount: 20,
     drsZones: 3,
-    recommendedTheme: 'day' as const,
+    recommendedTheme: 'day',
   },
   silverstone: {
     id: 'silverstone',
@@ -73,11 +63,11 @@ export const CIRCUITS_METADATA: Record<string, CircuitMeta> = {
     country: 'United Kingdom',
     flag: '🇬🇧',
     difficulty: 'Technical GP',
-    description: 'Technical Maggotts-Becketts chicane complex, Hangar straight, and stadium complex.',
-    benchmarkLap: 20.8,
+    description: 'Iconic Maggotts-Becketts chicane complex, 340m Hangar straight, Stowe corner, and Club stadium section.',
+    benchmarkLap: 42.0,
     sectorsCount: 18,
     drsZones: 2,
-    recommendedTheme: 'sunset' as const,
+    recommendedTheme: 'sunset',
   },
   marina: {
     id: 'marina',
@@ -86,111 +76,67 @@ export const CIRCUITS_METADATA: Record<string, CircuitMeta> = {
     country: 'Singapore',
     flag: '🇸🇬',
     difficulty: 'Drift & Agility',
-    description: 'Glamorous night city street circuit with 90° corners, close Armco walls, and high drift multipliers.',
-    benchmarkLap: 18.5,
+    description: 'Night street racing under floodlights. 90° street chicanes, close barriers, and intense drift zones.',
+    benchmarkLap: 38.5,
     sectorsCount: 16,
     drsZones: 2,
-    recommendedTheme: 'night' as const,
+    recommendedTheme: 'night',
   },
 };
 
-// Circuit Waypoint Control Nodes (Closed Spline loops)
-const CIRCUIT_NODES: Record<string, {
-  name: string;
-  location: string;
-  country: string;
-  flag: string;
-  difficulty: string;
-  description: string;
-  benchmarkLap: number;
-  sectorsCount: number;
-  recommendedTheme: 'day' | 'sunset' | 'night';
-  nodes: Array<[number, number]>;
-}> = {
-  monza: {
-    name: 'Monza Speed Ring',
-    location: 'Autodromo Nazionale Monza',
-    country: 'Italy',
-    flag: '🇮🇹',
-    difficulty: 'High Speed',
-    description: 'High-speed straights, Curva Grande, Ascari chicane, and the legendary Parabolica curve.',
-    benchmarkLap: 22.4,
-    sectorsCount: 20,
-    recommendedTheme: 'day',
-    nodes: [
-      [3.5, 5.0],      // Start/Finish Line & Gantry
-      [3.5, 24.0],     // Pit Straight DRS
-      [2.0, 36.0],     // Turn 1 Curva Grande Entry
-      [-8.0, 42.0],    // Curva Grande High-Speed Arc
-      [-22.0, 38.0],   // Curva Grande Apex
-      [-32.0, 30.0],   // Varianta della Roggia Hairpin
-      [-32.0, 10.0],   // Back Straight DRS Zone
-      [-32.0, -15.0],  // Serraglio Run
-      [-32.0, -32.0],  // Heavy Braking Zone
-      [-26.0, -40.0],  // Ascari Chicane Entry
-      [-16.0, -38.0],  // Ascari Apex
-      [-10.0, -28.0],  // Infield Straight
-      [-8.0, -14.0],   // Technical Chicane
-      [-4.0, -18.0],   // Parabolica Approach
-      [1.0, -22.0],    // Parabolica Apex
-      [3.5, -8.0],     // Final Turn onto Pit Straight
-    ],
-  },
-  silverstone: {
-    name: 'Silverstone GP',
-    location: 'Silverstone Circuit',
-    country: 'United Kingdom',
-    flag: '🇬🇧',
-    difficulty: 'Technical GP',
-    description: 'Technical Maggotts-Becketts chicane complex, Hangar straight, and stadium complex.',
-    benchmarkLap: 20.8,
-    sectorsCount: 18,
-    recommendedTheme: 'sunset',
-    nodes: [
-      [3.5, 5.0],      // Hamilton Straight / S/F
-      [3.5, 22.0],     // Abbey Acceleration
-      [0.0, 32.0],     // Farm Curve
-      [-10.0, 36.0],   // Maggotts Approach
-      [-20.0, 38.0],   // Becketts Chicane
-      [-28.0, 32.0],   // Chapel Exit
-      [-38.0, 24.0],   // Hangar Straight DRS
-      [-42.0, 8.0],    // Stowe Corner Apex
-      [-40.0, -8.0],   // Vale Braking Zone
-      [-32.0, -18.0],  // Club Corner
-      [-22.0, -22.0],  // Farm Loop
-      [-12.0, -18.0],  // Wellington Straight
-      [-6.0, -10.0],   // Brooklands
-      [-1.0, -15.0],   // Luffield Complex
-      [3.5, -6.0],     // Woodcote onto Straight
-    ],
-  },
-  marina: {
-    name: 'Marina Bay Street Circuit',
-    location: 'Marina Bay City Circuit',
-    country: 'Singapore',
-    flag: '🇸🇬',
-    difficulty: 'Drift & Agility',
-    description: 'Glamorous night city street circuit with 90° corners, close Armco walls, and high drift multipliers.',
-    benchmarkLap: 18.5,
-    sectorsCount: 16,
-    recommendedTheme: 'night',
-    nodes: [
-      [3.5, 5.0],      // Padang S/F Straight
-      [3.5, 20.0],     // Republic Boulevard
-      [0.0, 28.0],     // Sheares Curve (90° Left)
-      [-12.0, 28.0],   // Raffles Avenue
-      [-18.0, 22.0],   // Esplanade Turn (90° Left)
-      [-18.0, 10.0],   // City Center Run
-      [-26.0, 10.0],   // Stamford Road Chicane
-      [-32.0, 4.0],    // Memorial Hairpin
-      [-32.0, -12.0],  // Waterfront Straight
-      [-24.0, -20.0],  // Singapore Flyer Curve
-      [-14.0, -20.0],  // Bayfront Avenue
-      [-6.0, -14.0],   // Helix Bridge Straight
-      [-1.0, -18.0],   // Anderson Bridge
-      [3.5, -6.0],     // Pit Entry onto S/F
-    ],
-  },
+// Grand Scale Spline Control Nodes
+const CIRCUIT_NODES: Record<string, Array<[number, number]>> = {
+  monza: [
+    [0, 0],         // Start/Finish Line & Electronic Gantry
+    [0, 120],       // Pit Straight DRS Zone
+    [0, 280],       // End of Main Straight - 280m full-throttle acceleration!
+    [-30, 390],     // Curva Grande Entry
+    [-110, 460],    // Curva Grande Sweeper
+    [-230, 420],    // Curva Grande Apex
+    [-330, 310],    // Curva Grande Exit
+    [-360, 190],    // Roggia Hairpin Approach
+    [-360, 20],     // High-Speed Back Straight 1
+    [-360, -160],   // Serraglio DRS Run (280m straight!)
+    [-360, -310],   // Heavy Braking Zone for Ascari
+    [-270, -380],   // Ascari Chicane Left Entry
+    [-160, -360],   // Ascari Transition Right
+    [-80, -240],    // Infield Stadium Section
+    [-45, -120],    // Parabolica Approach
+    [15, -200],     // Parabolica Entry
+    [65, -130],     // Parabolica Apex
+    [35, -45],      // Parabolica Exit onto Pit Straight
+  ],
+  silverstone: [
+    [0, 0],         // Hamilton Straight / S/F Line
+    [0, 170],       // Abbey Acceleration
+    [-35, 280],     // Farm Curve Apex
+    [-120, 350],    // Maggotts Entry
+    [-220, 370],    // Becketts Chicane
+    [-310, 300],    // Chapel Exit
+    [-390, 190],    // Hangar Straight Entry
+    [-450, 0],      // Hangar Straight DRS Trap (360m straight!)
+    [-450, -160],   // Stowe Corner Braking
+    [-380, -280],   // Vale Chicane
+    [-260, -320],   // Club Corner
+    [-150, -260],   // Infield Loop
+    [-80, -150],    // Wellington Straight
+    [-25, -65],     // Brooklands & Luffield Complex
+  ],
+  marina: [
+    [0, 0],         // Padang Grandstand Straight
+    [0, 190],       // Republic Boulevard DRS Run
+    [-45, 280],     // Turn 1 Sheares Curve (90° Street Corner)
+    [-155, 280],    // Raffles Avenue DRS
+    [-240, 215],    // Turn 3 Esplanade Hairpin
+    [-240, 70],     // City Center Run
+    [-325, 70],     // Stamford Road Chicane
+    [-390, -25],    // Memorial Corner
+    [-390, -195],   // Waterfront Straight
+    [-280, -280],   // Singapore Flyer Curve
+    [-165, -260],   // Bayfront Avenue
+    [-70, -175],    // Helix Bridge High-Speed Straight
+    [-15, -90],     // Anderson Bridge onto Pit Straight
+  ],
 };
 
 export function buildProceduralTrack(
@@ -200,34 +146,34 @@ export function buildProceduralTrack(
   const group = new THREE.Group();
   scene.add(group);
 
-  const config = CIRCUIT_NODES[circuitId] || CIRCUIT_NODES.monza;
-  const nodes = config.nodes;
+  const meta = CIRCUITS_METADATA[circuitId] || CIRCUITS_METADATA.monza;
+  const nodes = CIRCUIT_NODES[circuitId] || CIRCUIT_NODES.monza;
 
-  // 1. Create Smooth Continuous CatmullRom Spline
+  // 1. CatmullRom Spline Curve (Grand Scale)
   const curvePoints = nodes.map(([x, z]) => new THREE.Vector3(x, 0.05, z));
-  const trackCurve = new THREE.CatmullRomCurve3(curvePoints, true, 'centripetal', 0.25);
+  const trackCurve = new THREE.CatmullRomCurve3(curvePoints, true, 'centripetal', 0.22);
 
-  const numSamples = 160;
+  const numSamples = 280;
   const sampledPoints = trackCurve.getSpacedPoints(numSamples);
-  const trackWidth = 8.8; // 8.8 meters wide circuit
+  const trackWidth = 13.5; // 13.5 meters wide F1 track
   const halfW = trackWidth / 2;
 
   // Materials
   const asphaltMat = new THREE.MeshStandardMaterial({
-    color: 0x1f2229,
-    roughness: 0.85,
-    metalness: 0.15,
+    color: 0x1b1d22,
+    roughness: 0.88,
+    metalness: 0.12,
   });
 
   const curbRedMat = new THREE.MeshStandardMaterial({
     color: 0xef4444,
-    roughness: 0.5,
+    roughness: 0.45,
     metalness: 0.1,
   });
 
   const curbWhiteMat = new THREE.MeshStandardMaterial({
     color: 0xf4f4f5,
-    roughness: 0.5,
+    roughness: 0.45,
     metalness: 0.1,
   });
 
@@ -242,26 +188,23 @@ export function buildProceduralTrack(
   });
 
   const grassMat = new THREE.MeshStandardMaterial({
-    color: 0x1e3a1f,
+    color: 0x1a331c,
     roughness: 0.95,
     metalness: 0.05,
   });
 
-  // Infield Grass Terrain
-  const groundGeo = new THREE.PlaneGeometry(280, 280);
+  // Massive Infield / Outfield Grass Plain (1,400m x 1,400m)
+  const groundGeo = new THREE.PlaneGeometry(1400, 1400);
   groundGeo.rotateX(-Math.PI / 2);
   const groundMesh = new THREE.Mesh(groundGeo, grassMat);
-  groundMesh.position.y = -0.01;
+  groundMesh.position.y = -0.02;
   groundMesh.receiveShadow = true;
   group.add(groundMesh);
 
-  // 2. Generate Road Ribbon Geometry
+  // 2. Generate Road Ribbon Mesh
   const roadPositions: number[] = [];
   const roadNormals: number[] = [];
   const roadIndices: number[] = [];
-
-  const leftEdgeLine: THREE.Vector3[] = [];
-  const rightEdgeLine: THREE.Vector3[] = [];
 
   const waypoints: CircuitWaypoint[] = [];
   let accumulatedDistance = 0;
@@ -272,7 +215,6 @@ export function buildProceduralTrack(
     const tangent = trackCurve.getTangentAt(u).normalize();
     const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
 
-    // Inner & Outer edges
     const pLeft = p.clone().addScaledVector(normal, -halfW);
     const pRight = p.clone().addScaledVector(normal, halfW);
 
@@ -282,17 +224,13 @@ export function buildProceduralTrack(
     roadPositions.push(pRight.x, pRight.y, pRight.z);
     roadNormals.push(0, 1, 0);
 
-    leftEdgeLine.push(pLeft.clone().addScaledVector(normal, 0.2).add(new THREE.Vector3(0, 0.02, 0)));
-    rightEdgeLine.push(pRight.clone().addScaledVector(normal, -0.2).add(new THREE.Vector3(0, 0.02, 0)));
-
     if (i > 0) {
       accumulatedDistance += p.distanceTo(sampledPoints[i - 1]);
     }
 
-    // Curvature check
     const nextTangent = trackCurve.getTangentAt((i + 1) / sampledPoints.length).normalize();
     const dot = tangent.dot(nextTangent);
-    const isCorner = dot < 0.985;
+    const isCorner = dot < 0.992;
 
     waypoints.push({
       x: p.x,
@@ -321,32 +259,32 @@ export function buildProceduralTrack(
   roadMesh.receiveShadow = true;
   group.add(roadMesh);
 
-  // 3. FIA Rumble Kerbs (Alternating Red and White Segments at Corners)
+  // 3. 3D Alternating Red & White Rumble Curbs at Corner Apexes
   for (let i = 0; i < waypoints.length; i++) {
     const wp = waypoints[i];
     if (wp.isCorner) {
       const isRed = i % 2 === 0;
       const curbMat = isRed ? curbRedMat : curbWhiteMat;
-      const curbGeo = new THREE.BoxGeometry(0.7, 0.12, 1.4);
+      const curbGeo = new THREE.BoxGeometry(0.85, 0.16, 2.2);
       const curbMesh = new THREE.Mesh(curbGeo, curbMat);
-      curbMesh.position.set(wp.x + wp.normalX * (halfW + 0.35), 0.06, wp.z + wp.normalZ * (halfW + 0.35));
-      curbMesh.lookAt(wp.x + wp.normalX * halfW + wp.tangentX, 0.06, wp.z + wp.normalZ * halfW + wp.tangentZ);
+      curbMesh.position.set(wp.x + wp.normalX * (halfW + 0.42), 0.08, wp.z + wp.normalZ * (halfW + 0.42));
+      curbMesh.lookAt(wp.x + wp.normalX * halfW + wp.tangentX, 0.08, wp.z + wp.normalZ * halfW + wp.tangentZ);
       curbMesh.receiveShadow = true;
       group.add(curbMesh);
     }
   }
 
-  // 4. Armco Metal Crash Barriers along Outer Perimeter
+  // 4. Perimeter Armco Crash Barriers
   const barrierPositions: number[] = [];
   const barrierIndices: number[] = [];
 
   for (let i = 0; i < sampledPoints.length; i++) {
     const wp = waypoints[i];
-    const bx = wp.x + wp.normalX * (halfW + 1.2);
-    const bz = wp.z + wp.normalZ * (halfW + 1.2);
+    const bx = wp.x + wp.normalX * (halfW + 1.6);
+    const bz = wp.z + wp.normalZ * (halfW + 1.6);
 
     barrierPositions.push(bx, 0.0, bz);
-    barrierPositions.push(bx, 0.75, bz);
+    barrierPositions.push(bx, 0.9, bz);
   }
 
   for (let i = 0; i < sampledPoints.length - 1; i++) {
@@ -364,118 +302,119 @@ export function buildProceduralTrack(
   barrierMesh.castShadow = true;
   group.add(barrierMesh);
 
-  // 5. Formula 1 Start/Finish Electronic Timing Gantry
+  // 5. 150m, 100m, 50m Braking Marker Boards before Major Corners
+  const boardMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const boardPoleGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.0, 8);
+  const boardSignGeo = new THREE.BoxGeometry(0.8, 0.5, 0.08);
+
+  for (let i = 10; i < waypoints.length; i += 24) {
+    const wp = waypoints[i];
+    if (wp.isCorner) {
+      // Place marker 30m before corner
+      const prevWp = waypoints[Math.max(0, i - 8)];
+      const bx = prevWp.x + prevWp.normalX * (halfW + 1.2);
+      const bz = prevWp.z + prevWp.normalZ * (halfW + 1.2);
+
+      const marker = new THREE.Group();
+      const pole = new THREE.Mesh(boardPoleGeo, barrierMat);
+      pole.position.y = 1.0;
+      marker.add(pole);
+
+      const sign = new THREE.Mesh(boardSignGeo, boardMat);
+      sign.position.y = 1.8;
+      marker.add(sign);
+
+      marker.position.set(bx, 0, bz);
+      group.add(marker);
+    }
+  }
+
+  // 6. Formula 1 Start/Finish Electronic Timing Gantry
   const gantryMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.85, roughness: 0.25 });
-  const gantryPillarGeo = new THREE.BoxGeometry(0.4, 4.2, 0.4);
+  const gantryPillarGeo = new THREE.BoxGeometry(0.6, 6.2, 0.6);
 
   const gantryLeft = new THREE.Mesh(gantryPillarGeo, gantryMat);
-  gantryLeft.position.set(3.5 - halfW - 0.5, 2.1, 5.0);
+  gantryLeft.position.set(-halfW - 1.2, 3.1, 0);
   gantryLeft.castShadow = true;
   group.add(gantryLeft);
 
   const gantryRight = new THREE.Mesh(gantryPillarGeo, gantryMat);
-  gantryRight.position.set(3.5 + halfW + 0.5, 2.1, 5.0);
+  gantryRight.position.set(halfW + 1.2, 3.1, 0);
   gantryRight.castShadow = true;
   group.add(gantryRight);
 
-  const gantryBeamGeo = new THREE.BoxGeometry(trackWidth + 1.8, 0.6, 0.5);
+  const gantryBeamGeo = new THREE.BoxGeometry(trackWidth + 3.2, 0.8, 0.7);
   const gantryBeam = new THREE.Mesh(gantryBeamGeo, gantryMat);
-  gantryBeam.position.set(3.5, 4.0, 5.0);
+  gantryBeam.position.set(0, 5.8, 0);
   gantryBeam.castShadow = true;
   group.add(gantryBeam);
 
-  // Red FIA Timing Header
-  const timingHeaderGeo = new THREE.BoxGeometry(5.2, 0.8, 0.15);
+  // Red FIA RevSector Header Board
+  const timingHeaderGeo = new THREE.BoxGeometry(trackWidth - 1.5, 1.1, 0.2);
   const timingHeaderMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.4 });
   const timingHeader = new THREE.Mesh(timingHeaderGeo, timingHeaderMat);
-  timingHeader.position.set(3.5, 3.8, 5.25);
+  timingHeader.position.set(0, 5.5, 0.4);
   group.add(timingHeader);
 
-  // 5 Red Starting Lights
-  const lightHousingGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
+  // 5 Red Starting Lamps
+  const lightHousingGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16);
   lightHousingGeo.rotateX(Math.PI / 2);
   const redLightMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
   for (let l = -2; l <= 2; l++) {
     const lamp = new THREE.Mesh(lightHousingGeo, redLightMat);
-    lamp.position.set(3.5 + l * 0.6, 3.8, 5.35);
+    lamp.position.set(l * 1.1, 5.5, 0.55);
     group.add(lamp);
   }
 
-  // Checkered Start/Finish Line on Track Surface
-  const finishGeo = new THREE.PlaneGeometry(trackWidth, 1.2);
+  // Checkered Start/Finish Strip
+  const finishGeo = new THREE.PlaneGeometry(trackWidth, 2.0);
   finishGeo.rotateX(-Math.PI / 2);
   const finishMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const finishLine = new THREE.Mesh(finishGeo, finishMat);
-  finishLine.position.set(3.5, 0.06, 5.0);
+  finishLine.position.set(0, 0.06, 0);
   group.add(finishLine);
 
-  // 6. Stadium Floodlight Towers (For Night & Sunset Racing)
-  const floodlightPoleGeo = new THREE.CylinderGeometry(0.15, 0.22, 9.0, 8);
-  const floodlightHeadGeo = new THREE.BoxGeometry(1.4, 0.6, 0.8);
+  // 7. Staggered F1 Grid Slots on Main Straight
+  const gridSlotGeo = new THREE.PlaneGeometry(2.4, 4.2);
+  gridSlotGeo.rotateX(-Math.PI / 2);
+  const gridSlotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 });
+
+  for (let g = 1; g <= 8; g++) {
+    const slotMesh = new THREE.Mesh(gridSlotGeo, gridSlotMat);
+    const lateralOffset = g % 2 === 1 ? -2.8 : 2.8;
+    const forwardOffset = g * 12.0;
+    slotMesh.position.set(lateralOffset, 0.06, forwardOffset);
+    group.add(slotMesh);
+  }
+
+  // 8. Stadium Floodlight Towers (High-Powered Night Lighting)
+  const floodlightPoleGeo = new THREE.CylinderGeometry(0.25, 0.38, 16.0, 8);
+  const floodlightHeadGeo = new THREE.BoxGeometry(2.4, 0.9, 1.2);
   const floodlightMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.7 });
 
-  const floodlightPoints = [
-    [-15.0, 44.0],
-    [-34.0, 15.0],
-    [-30.0, -36.0],
-    [-8.0, -26.0],
-    [5.0, 20.0],
-  ];
+  const floodlightInterval = Math.floor(waypoints.length / 8);
+  for (let f = 0; f < waypoints.length; f += floodlightInterval) {
+    const wp = waypoints[f];
+    const fx = wp.x + wp.normalX * (halfW + 6.0);
+    const fz = wp.z + wp.normalZ * (halfW + 6.0);
 
-  for (const [fx, fz] of floodlightPoints) {
     const pole = new THREE.Mesh(floodlightPoleGeo, floodlightMat);
-    pole.position.set(fx, 4.5, fz);
+    pole.position.set(fx, 8.0, fz);
     pole.castShadow = true;
     group.add(pole);
 
     const head = new THREE.Mesh(floodlightHeadGeo, floodlightMat);
-    head.position.set(fx, 8.8, fz);
+    head.position.set(fx, 15.8, fz);
     group.add(head);
 
-    // Stadium Spotlight
-    const spot = new THREE.SpotLight(0xfffaed, 0, 50, Math.PI / 4, 0.45, 1.0);
-    spot.position.set(fx, 8.8, fz);
+    const spot = new THREE.SpotLight(0xfffaed, 0, 120, Math.PI / 3.5, 0.45, 1.1);
+    spot.position.set(fx, 15.8, fz);
     const targetObj = new THREE.Object3D();
-    targetObj.position.set(fx * 0.5, 0, fz * 0.5);
+    targetObj.position.set(wp.x, 0, wp.z);
     group.add(targetObj);
     spot.target = targetObj;
     group.add(spot);
-  }
-
-  // 7. Low-Poly Environmental Pine Trees & Paddock Tents
-  const trunkGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.2, 6);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 });
-  const foliageGeo = new THREE.ConeGeometry(1.1, 2.4, 6);
-  const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1e3a1f, roughness: 0.85 });
-
-  for (let t = 0; t < 28; t++) {
-    const angle = (t / 28) * Math.PI * 2;
-    const radius = 26 + (t % 7) * 8;
-    const tx = Math.cos(angle) * radius - 12;
-    const tz = Math.sin(angle) * radius;
-
-    // Check distance from road to avoid placing on track
-    let minDist = Infinity;
-    for (let s = 0; s < sampledPoints.length; s += 8) {
-      const d = Math.hypot(sampledPoints[s].x - tx, sampledPoints[s].z - tz);
-      if (d < minDist) minDist = d;
-    }
-
-    if (minDist > halfW + 3.0) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 0.6;
-      tree.add(trunk);
-
-      const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-      foliage.position.y = 2.2;
-      foliage.castShadow = true;
-      tree.add(foliage);
-
-      tree.position.set(tx, 0, tz);
-      group.add(tree);
-    }
   }
 
   return {
@@ -483,18 +422,8 @@ export function buildProceduralTrack(
     waypoints,
     totalLength: accumulatedDistance,
     circuitId,
-    circuitInfo: {
-      name: config.name,
-      location: config.location,
-      country: config.country,
-      flag: config.flag,
-      difficulty: config.difficulty,
-      description: config.description,
-      benchmarkLap: config.benchmarkLap,
-      sectorsCount: config.sectorsCount,
-      recommendedTheme: config.recommendedTheme,
-    },
-    startPosition: new THREE.Vector3(3.5, 0, 5.0),
+    circuitInfo: meta,
+    startPosition: new THREE.Vector3(-2.8, 0, 12.0), // P1 Starting Slot
     startRotationY: 0,
   };
 }

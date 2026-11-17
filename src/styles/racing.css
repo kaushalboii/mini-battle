@@ -325,6 +325,53 @@ html, body {
   font-family: var(--font-mono);
 }
 
+/* Mode Switcher Pill Group */
+.racing-mode-pill-group {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-depressed);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
+  padding: 2px;
+  gap: 2px;
+}
+
+.racing-mode-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.racing-mode-pill:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.racing-mode-pill.active {
+  background: var(--surface-raised);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mode-live-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+  animation: pulse-dot 1.8s infinite;
+}
+
 .racing-btn:focus-visible {
   border-color: var(--accent);
 }
@@ -373,24 +420,27 @@ html, body {
 }
 
 /* ==========================================================================
-   Motorsport Cockpit Telemetry HUD (Desktop: Bottom-Left)
+   Motorsport Cockpit Telemetry HUD (Bottom-Center Steering Wheel Dash)
    ========================================================================== */
 .racing-telemetry-panel {
   position: absolute;
-  bottom: max(24px, env(safe-area-inset-bottom));
-  left: max(24px, env(safe-area-inset-left));
-  width: 220px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 175px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 10px 14px;
   background-color: var(--surface-panel);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-panel);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
-  z-index: 10;
+  z-index: 12;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* F1 15-LED Shift Light Bar (5 Green, 5 Red, 5 Blue) */
@@ -1918,6 +1968,93 @@ html, body {
   color: var(--text-primary);
 }
 
+/* Landing Mode Selection (Live Peer vs AI Practice Grid) */
+.landing-mode-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landing-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.landing-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.landing-mode-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.landing-mode-card.selected {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px -6px rgba(245, 158, 11, 0.25);
+}
+
+.mode-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mode-badge-live {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mode-badge-ai {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mode-check {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mode-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mode-card-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 /* Driver & Livery Config Row */
 .driver-config-row {
   display: grid;
@@ -2030,6 +2167,9 @@ html, body {
 /* Responsive adjustments for mobile landing */
 @media (max-width: 768px) {
   .circuit-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing-mode-grid {
     grid-template-columns: 1fr;
   }
   .driver-config-row {
