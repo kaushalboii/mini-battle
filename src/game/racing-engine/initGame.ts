@@ -6,6 +6,7 @@
  */
 
 import {
+  CubeGeometry,
   DirectionalLight,
   Material3D,
   Mesh3D,
@@ -43,6 +44,8 @@ export interface TelemetryData {
   bestLapTime: number | null;
   isFlash: boolean;
   isNewBest: boolean;
+  sector: number;
+  trackProgress: number;
 }
 
 export interface GameInstance {
@@ -115,10 +118,10 @@ export async function initRacingGame(
     autoResize: true,
     shadowQuality: 'high',
     toneMapping: 'aces',
-    exposure: 1.0,
-    environment: { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1 },
-    background: 0xadb2ba,
-    fog: { type: 'linear', color: 0xadb2ba, near: 30, far: 55 },
+    exposure: 1.05,
+    environment: { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 },
+    background: 0x60a5fa,
+    fog: { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 },
   });
 
   app.stage.addChild(view3d);
@@ -128,13 +131,13 @@ export async function initRacingGame(
 
   // Directional Sun Light
   const sun = new DirectionalLight({
-    color: 0xfff4e0,
-    intensity: 2,
+    color: 0xfffaed,
+    intensity: 2.4,
     castShadow: true,
     shadow: {
       bias: 0.0008,
       normalBias: 0.05,
-      maxDistance: 80,
+      maxDistance: 85,
       cascades: 3,
       lambda: 0.6,
     },
@@ -144,13 +147,13 @@ export async function initRacingGame(
   sun.lookAt({ x: 0, y: 0, z: 0 });
   view3d.root.addChild(sun);
 
-  // Ground plane
+  // High-Contrast Grand Prix Circuit Grass
   const ground = new Mesh3D({
-    geometry: new PlaneGeometry({ width: 200, height: 200 }),
+    geometry: new PlaneGeometry({ width: 350, height: 350 }),
     material: new Material3D({
-      baseColor: 0x6b7268,
-      metallic: 0.0,
-      roughness: 0.9,
+      baseColor: 0x183317, // Deep Monza circuit turf
+      metallic: 0.04,
+      roughness: 0.88,
     }),
     castShadow: false,
     receiveShadow: true,
@@ -159,6 +162,77 @@ export async function initRacingGame(
   ground.rotation.set(-Math.PI / 2, 0, 0);
   ground.position.set(0, -0.13, 0);
   view3d.root.addChild(ground);
+
+  // Formula 1 Track PBR Material Calibration (asphalt & grip)
+  for (const source of Object.values(sources)) {
+    const s = source as any;
+    if (s?.materials) {
+      for (const mat of s.materials) {
+        if (mat.roughness !== undefined) {
+          mat.roughness = 0.80;
+          mat.metallic = 0.08;
+        }
+      }
+    }
+  }
+
+  // F1 Starting Grid Boxes (P1 - P6 alternating slots on main straight)
+  const gridGeo = new PlaneGeometry({ width: 1.3, height: 2.0 });
+  const gridMat = new Material3D({
+    baseColor: 0xffffff,
+    metallic: 0.1,
+    roughness: 0.4,
+  });
+  const gridSlots = [
+    [2.8, 5.2],
+    [4.6, 7.6],
+    [2.8, 10.0],
+    [4.6, 12.4],
+    [2.8, 14.8],
+    [4.6, 17.2],
+  ];
+  for (const [gx, gz] of gridSlots) {
+    const slot = new Mesh3D({
+      geometry: gridGeo,
+      material: gridMat,
+      castShadow: false,
+      receiveShadow: true,
+    });
+    slot.rotation.set(-Math.PI / 2, 0, 0);
+    slot.position.set(gx, -0.11, gz);
+    view3d.root.addChild(slot);
+  }
+
+  // Formula 1 Start/Finish Electronic Timing Gantry
+  const gantryMat = new Material3D({ baseColor: 0x18181b, metallic: 0.8, roughness: 0.25 });
+  const pillarGeo = new CubeGeometry({ width: 0.35, height: 3.8, depth: 0.35 });
+
+  const pillarLeft = new Mesh3D({ geometry: pillarGeo, material: gantryMat });
+  pillarLeft.position.set(0.4, 1.8, 3.75);
+  view3d.root.addChild(pillarLeft);
+
+  const pillarRight = new Mesh3D({ geometry: pillarGeo, material: gantryMat });
+  pillarRight.position.set(7.1, 1.8, 3.75);
+  view3d.root.addChild(pillarRight);
+
+  const beamGeo = new CubeGeometry({ width: 7.0, height: 0.5, depth: 0.4 });
+  const crossBeam = new Mesh3D({ geometry: beamGeo, material: gantryMat });
+  crossBeam.position.set(3.75, 3.6, 3.75);
+  view3d.root.addChild(crossBeam);
+
+  // Red RevSector FIA Timing Board
+  const boardGeo = new CubeGeometry({ width: 4.8, height: 0.9, depth: 0.12 });
+  const boardMat = new Material3D({ baseColor: 0xdc2626, metallic: 0.3, roughness: 0.5 });
+  const timingBoard = new Mesh3D({ geometry: boardGeo, material: boardMat });
+  timingBoard.position.set(3.75, 3.4, 3.75);
+  view3d.root.addChild(timingBoard);
+
+  // Pitlane Armco Barrier (separates main straight from paddock)
+  const barrierGeo = new CubeGeometry({ width: 0.3, height: 0.65, depth: 22.0 });
+  const barrierMat = new Material3D({ baseColor: 0x3f3f46, metallic: 0.6, roughness: 0.35 });
+  const pitBarrier = new Mesh3D({ geometry: barrierGeo, material: barrierMat });
+  pitBarrier.position.set(7.5, 0.25, 10.0);
+  view3d.root.addChild(pitBarrier);
 
   // Track & Walls
   const track = buildTrack(view3d.root, sources);
@@ -289,6 +363,8 @@ export async function initRacingGame(
         bestLapTime: lapState.bestLapTime,
         isFlash: lapState.isFlash,
         isNewBest: lapState.isNewBest,
+        sector: lapState.sector,
+        trackProgress: lapState.trackProgress,
       });
     }
   };
@@ -319,24 +395,24 @@ export async function initRacingGame(
     },
     setLightingTheme(theme: 'day' | 'sunset' | 'night') {
       if (theme === 'sunset') {
-        sun.color = 0xff9e54;
-        sun.intensity = 2.6;
-        view3d.background = 0x8b5cf6;
-        view3d.fog = { type: 'linear', color: 0xc2410c, near: 35, far: 65 };
-        view3d.environment = { skyColor: 0xfb923c, groundColor: 0x4c1d95, intensity: 1.2 };
+        sun.color = 0xff9447;
+        sun.intensity = 2.8;
+        view3d.background = 0x581c87;
+        view3d.fog = { type: 'linear', color: 0x8b5cf6, near: 40, far: 85 };
+        view3d.environment = { skyColor: 0xf97316, groundColor: 0x2e1065, intensity: 1.3 };
       } else if (theme === 'night') {
-        sun.color = 0x38bdf8;
-        sun.intensity = 0.8;
-        view3d.background = 0x0f172a;
-        view3d.fog = { type: 'linear', color: 0x0f172a, near: 25, far: 50 };
-        view3d.environment = { skyColor: 0x1e1b4b, groundColor: 0x0f172a, intensity: 0.6 };
+        sun.color = 0xdbeafe;
+        sun.intensity = 1.6;
+        view3d.background = 0x070b14;
+        view3d.fog = { type: 'linear', color: 0x070b14, near: 35, far: 70 };
+        view3d.environment = { skyColor: 0x1e293b, groundColor: 0x020617, intensity: 0.85 };
       } else {
-        // Day
-        sun.color = 0xfff4e0;
-        sun.intensity = 2.0;
-        view3d.background = 0xadb2ba;
-        view3d.fog = { type: 'linear', color: 0xadb2ba, near: 30, far: 55 };
-        view3d.environment = { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1.0 };
+        // High-contrast Grand Prix Daylight
+        sun.color = 0xfffaed;
+        sun.intensity = 2.4;
+        view3d.background = 0x60a5fa;
+        view3d.fog = { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 };
+        view3d.environment = { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 };
       }
     },
     setSteer(val: number) {

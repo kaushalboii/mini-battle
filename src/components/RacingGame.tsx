@@ -29,13 +29,14 @@ export default function RacingGame() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [loadLabel, setLoadLabel] = useState("Initializing custom 3D engine");
+  const [loadLabel, setLoadLabel] = useState("Initializing circuit & shaders");
   const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
   const [isMuted, setIsMuted] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showF1Tower, setShowF1Tower] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Orientation state
@@ -63,6 +64,8 @@ export default function RacingGame() {
     bestLapTime: null,
     isFlash: false,
     isNewBest: false,
+    sector: 1,
+    trackProgress: 0,
   });
 
   // Track viewport orientation
@@ -71,6 +74,10 @@ export default function RacingGame() {
       const isMobile = window.innerWidth < 850 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isPortrait = window.innerHeight > window.innerWidth;
       setIsMobilePortrait(isMobile && isPortrait);
+      // Auto-collapse tower on small mobile portrait to give full view
+      if (isMobile && isPortrait) {
+        setShowF1Tower(false);
+      }
     };
 
     handleViewportChange();
@@ -199,6 +206,8 @@ export default function RacingGame() {
         handleToggleMute();
       } else if (e.code === "KeyT") {
         handleCycleLighting();
+      } else if (e.code === "KeyL") {
+        setShowF1Tower(prev => !prev);
       }
     };
 
@@ -217,13 +226,16 @@ export default function RacingGame() {
   const currentCamInfo = CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
   const currentThemeInfo = LIGHTING_THEMES.find((t) => t.key === lightingTheme) || LIGHTING_THEMES[0];
 
-  // RPM segment bar calculation (12 discrete LED segments)
-  const rpmSegments = 12;
-  const activeSegments = Math.min(rpmSegments, Math.round(telemetry.rpm * rpmSegments));
+  // Dynamic F1 Field Intervals based on speed, pace, and sector progress
+  const progressRatio = telemetry.trackProgress || 0;
+  const p2Gap = Math.max(0.38, 1.32 + (1 - progressRatio) * 0.45 - (telemetry.speedKmh > 55 ? 0.28 : -0.15));
+  const p3Gap = p2Gap + 1.42;
+  const p4Gap = p3Gap + 1.28;
+  const p5Gap = p4Gap + 1.55;
 
   return (
     <div className={`racing-root ${telemetry.isBoosting ? "boosting" : ""}`}>
-      {/* Real-Time 3D Viewport */}
+      {/* Real-Time 3D WebGPU / WebGL Viewport */}
       <canvas ref={canvasRef} className="racing-canvas" />
 
       {/* Subtle Speed Vignette Focus */}
@@ -309,6 +321,18 @@ export default function RacingGame() {
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
+            {/* F1 Tower Toggle */}
+            <button
+              className={`racing-btn f1-toggle-btn ${showF1Tower ? 'active' : ''}`}
+              onClick={() => setShowF1Tower(prev => !prev)}
+              title="Toggle F1 Live Leaderboard (L)"
+              aria-label="Toggle F1 Leaderboard"
+            >
+              <span className="f1-pill-badge">F1</span>
+              <span className="racing-btn-text">Standings</span>
+              <kbd className="racing-keycap">L</kbd>
+            </button>
+
             {/* Vehicle Palette Group */}
             <div className="racing-palette-group" title="Select Vehicle Team">
               {VEHICLE_OPTIONS.map((opt) => (
@@ -416,12 +440,98 @@ export default function RacingGame() {
         </header>
       )}
 
+      {/* FORMULA 1 OFFICIAL TIMING TOWER / FIELD LEADERBOARD (Left Side) */}
+      {!isLoading && showF1Tower && (
+        <aside className="f1-timing-tower" aria-label="F1 Grand Prix Leaderboard">
+          {/* Header */}
+          <div className="f1-tower-header">
+            <div className="f1-gp-badge">
+              <span className="f1-gp-tag">F1</span>
+              <span className="f1-gp-name">REVSECTOR</span>
+            </div>
+            <div className="f1-tower-lap">
+              <span className="f1-lap-text">LAP</span>
+              <span className="f1-lap-count">{telemetry.lap} <span className="f1-lap-total">/ 5</span></span>
+            </div>
+          </div>
+
+          {/* Sector Tracking Bar */}
+          <div className="f1-sector-tracker">
+            <div className={`f1-sector-block ${telemetry.sector === 1 ? 'active' : telemetry.sector > 1 ? 'complete' : ''}`}>
+              <span className="f1-sec-label">S1</span>
+              <span className="f1-sec-pip" />
+            </div>
+            <div className={`f1-sector-block ${telemetry.sector === 2 ? 'active' : telemetry.sector > 2 ? 'complete' : ''}`}>
+              <span className="f1-sec-label">S2</span>
+              <span className="f1-sec-pip" />
+            </div>
+            <div className={`f1-sector-block ${telemetry.sector === 3 ? 'active' : ''}`}>
+              <span className="f1-sec-label">S3</span>
+              <span className="f1-sec-pip" />
+            </div>
+          </div>
+
+          {/* Drivers Standings List */}
+          <div className="f1-drivers-list">
+            {/* P1: Player */}
+            <div className="f1-driver-row player-row">
+              <span className="f1-pos-badge p1">1</span>
+              <span
+                className="f1-team-stripe player-team"
+                style={{ backgroundColor: VEHICLE_OPTIONS.find(v => v.key === selectedColor)?.color || '#f59e0b' }}
+              />
+              <span className="f1-driver-code">KAU</span>
+              <span className="f1-tire-badge tire-soft" title="Soft Slick Tires">S</span>
+              <span className="f1-gap-tag leader">LEADER</span>
+            </div>
+
+            {/* P2: Verstappen */}
+            <div className="f1-driver-row">
+              <span className="f1-pos-badge">2</span>
+              <span className="f1-team-stripe team-rbr" />
+              <span className="f1-driver-code">VER</span>
+              <span className="f1-tire-badge tire-med" title="Medium Slick Tires">M</span>
+              <span className="f1-gap-tag">+{p2Gap.toFixed(3)}s</span>
+            </div>
+
+            {/* P3: Hamilton */}
+            <div className="f1-driver-row">
+              <span className="f1-pos-badge">3</span>
+              <span className="f1-team-stripe team-merc" />
+              <span className="f1-driver-code">HAM</span>
+              <span className="f1-tire-badge tire-soft" title="Soft Slick Tires">S</span>
+              <span className="f1-gap-tag">+{p3Gap.toFixed(3)}s</span>
+            </div>
+
+            {/* P4: Norris */}
+            <div className="f1-driver-row">
+              <span className="f1-pos-badge">4</span>
+              <span className="f1-team-stripe team-mcl" />
+              <span className="f1-driver-code">NOR</span>
+              <span className="f1-tire-badge tire-hard" title="Hard Slick Tires">H</span>
+              <span className="f1-gap-tag">+{p4Gap.toFixed(3)}s</span>
+            </div>
+
+            {/* P5: Leclerc */}
+            <div className="f1-driver-row">
+              <span className="f1-pos-badge">5</span>
+              <span className="f1-team-stripe team-fer" />
+              <span className="f1-driver-code">LEC</span>
+              <span className="f1-tire-badge tire-med" title="Medium Slick Tires">M</span>
+              <span className="f1-gap-tag">+{p5Gap.toFixed(3)}s</span>
+            </div>
+          </div>
+        </aside>
+      )}
+
       {/* UNIFIED MOTORSPORT LAP TIMING CONSOLE (Top-Center) */}
       {!isLoading && (
         <section className={`racing-timing-console ${telemetry.isFlash ? (telemetry.isNewBest ? "new-best" : "lap-flash") : ""}`}>
           <div className="racing-timing-header">
             <span className="racing-lap-badge">LAP {telemetry.lap}</span>
-            <span className="racing-timing-state">{telemetry.isFlash && telemetry.isNewBest ? "NEW RECORD" : "SECTOR 1"}</span>
+            <span className="racing-timing-state">
+              {telemetry.isFlash && telemetry.isNewBest ? "PURPLE SECTOR" : `SECTOR ${telemetry.sector || 1}`}
+            </span>
           </div>
           <div className="racing-timing-main">
             <span className="racing-timing-current">{formatLapTime(telemetry.currentLapTime)}</span>
@@ -439,38 +549,36 @@ export default function RacingGame() {
         </section>
       )}
 
-      {/* Drift Score Banner */}
+      {/* DRIFT SCORE TOAST (Cleanly Below Timing Console — NO OVERLAP!) */}
       {!isLoading && telemetry.currentDriftPoints > 0 && (
         <div className="racing-drift-toast">
-          <span className="racing-drift-label">Drift</span>
+          <span className="racing-drift-flame">🔥</span>
+          <span className="racing-drift-label">DRIFT POWER</span>
           <span className="racing-drift-score">+{telemetry.currentDriftPoints}</span>
         </div>
       )}
 
-      {/* COCKPIT TELEMETRY INSTRUMENT PANEL */}
+      {/* COCKPIT TELEMETRY INSTRUMENT PANEL (Bottom-Left / Steering Dash) */}
       {!isLoading && (
         <aside className="racing-telemetry-panel">
-          {/* 12-Segment RPM LED Gauge */}
-          <div className="racing-rpm-gauge">
-            <div className="racing-rpm-segments">
-              {Array.from({ length: rpmSegments }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`racing-rpm-bar ${
-                    i < activeSegments
-                      ? i >= 10
-                        ? "redline"
-                        : i >= 8
-                        ? "amber"
-                        : "green"
-                      : ""
-                  }`}
-                />
-              ))}
+          {/* F1 15-LED Shift Light Bar (5 Green, 5 Red, 5 Blue) */}
+          <div className="f1-shift-cluster">
+            <div className="f1-shift-lights">
+              {Array.from({ length: 15 }).map((_, i) => {
+                const active = i < Math.round(telemetry.rpm * 15);
+                const isRedline = telemetry.rpm > 0.92;
+                const type = i < 5 ? "green" : i < 10 ? "red" : "blue";
+                return (
+                  <span
+                    key={i}
+                    className={`f1-shift-led ${type} ${active ? "lit" : ""} ${isRedline && i >= 10 ? "flashing" : ""}`}
+                  />
+                );
+              })}
             </div>
             <div className="racing-rpm-meta">
               <span className="racing-meta-label">RPM</span>
-              <span className="racing-meta-val">{Math.round(telemetry.rpm * 8000)}</span>
+              <span className="racing-meta-val">{Math.round(telemetry.rpm * 12500)}</span>
             </div>
           </div>
 
@@ -489,10 +597,10 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Boost Reserve Meter */}
+          {/* ERS / Boost Fuel Gauge */}
           <div className="racing-boost-section">
             <div className="racing-boost-header">
-              <span className="racing-meta-label">Boost</span>
+              <span className="racing-meta-label">ERS BOOST</span>
               <span className="racing-meta-val">{telemetry.nitro}%</span>
             </div>
             <div className="racing-boost-track">
@@ -503,7 +611,7 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Drift Score Readout */}
+          {/* Total Drift Bank */}
           {telemetry.totalDriftScore > 0 && (
             <div className="racing-drift-summary">
               <span className="racing-meta-label">Drift Score</span>
@@ -687,6 +795,12 @@ export default function RacingGame() {
                   </div>
                   <div className="racing-key-row">
                     <span className="racing-key-cell">
+                      <kbd className="racing-keycap">L</kbd>
+                    </span>
+                    <span className="racing-action-cell">Toggle F1 live timing tower & scoreboard</span>
+                  </div>
+                  <div className="racing-key-row">
+                    <span className="racing-key-cell">
                       <kbd className="racing-keycap">M</kbd>
                     </span>
                     <span className="racing-action-cell">Toggle 3-stage engine audio</span>
@@ -721,7 +835,7 @@ export default function RacingGame() {
       {/* Desktop Shortcut Footer */}
       {!isLoading && (
         <footer className="racing-footer-hint">
-          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • RevSector 3D by Kaushal</span>
+          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • <kbd className="racing-keycap">L</kbd> F1 tower</span>
         </footer>
       )}
     </div>

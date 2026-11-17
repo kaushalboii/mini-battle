@@ -116,6 +116,10 @@ export class LapTimer {
   }
 
   getState() {
+    const totalCells = this._track?.requiredCellKeys?.size || 15;
+    const progress = Math.min(1, Math.max(0, this._visited.size / totalCells));
+    const sector = progress < 0.33 ? 1 : progress < 0.66 ? 2 : 3;
+
     return {
       lap: this._lap,
       currentLapTime: this._currentLapTime,
@@ -124,6 +128,8 @@ export class LapTimer {
       isRunning: this._running,
       isFlash: this._flashTime > 0,
       isNewBest: this._isNewBest,
+      sector,
+      trackProgress: progress,
     };
   }
 }
