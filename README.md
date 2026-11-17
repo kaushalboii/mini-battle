@@ -1,6 +1,6 @@
-# 🏎️ Apex Velocity 3D • Grand Prix Racing
+# 🏎️ RevSector 3D • Grand Prix Racing
 
-> A custom real-time 3D arcade racing simulator engineered by **Kaushal** with modern WebGPU & WebGL hardware acceleration, rigid body physics, nitrous injection, active tire smoke, and sector telemetry.
+> A custom real-time 3D circuit racing simulator engineered by **Kaushal** with modern WebGPU & WebGL hardware acceleration, rigid body physics, nitrous injection, active tire smoke, and sector telemetry.
 
 [![Play Live](https://img.shields.io/badge/Play-Live-brightgreen?style=for-the-badge&logo=github)](https://kaushalboii.github.io/mini-battle/)
 [![Developer](https://img.shields.io/badge/Developer-Kaushal-amber?style=for-the-badge)](https://github.com/kaushalboii)
@@ -52,8 +52,9 @@
 
 ## 🛠️ Engine Architecture
 
-* **Engine**: Custom WebGPU / WebGL2 Real-Time 3D Rendering Pipeline
+* **Game & Engine Title**: RevSector 3D
 * **Author / Developer**: Kaushal
+* **Graphics Pipeline**: Custom WebGPU / WebGL2 Real-Time 3D Rendering
 * **Physics Simulator**: Continuous rigid body sphere and box collider dynamics
 * **UI Framework**: React 19 + TypeScript + Vite
 * **Design Philosophy**: Engineered following `unslop` principles — 4px grid, graphite neutral ramp, zero slop glow, authentic motorsport telemetry.

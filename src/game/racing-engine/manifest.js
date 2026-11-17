@@ -1,5 +1,5 @@
 /**
- * Apex Velocity 3D - Asset Registry & Binary Loader
+ * RevSector 3D - Asset Registry & Binary Loader
  * Resolves 3D track components, vehicle meshes, procedural audio buffers, and FX textures.
  * Developed by Kaushal.
  */

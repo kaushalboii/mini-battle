@@ -1,5 +1,5 @@
 /**
- * Apex Velocity 3D - Scene Graph & Real-Time Engine Coordinator
+ * RevSector 3D - Scene Graph & Real-Time Engine Coordinator
  * Custom WebGPU/WebGL 3D engine with rigid body dynamics, tire smoke particles,
  * multi-angle follow cameras, procedural audio, and high-performance telemetry.
  * Developed by Kaushal.

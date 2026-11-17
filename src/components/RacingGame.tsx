@@ -252,8 +252,8 @@ export default function RacingGame() {
         <div className="racing-modal-backdrop">
           <div className="racing-card racing-load-card">
             <div className="racing-ring-loader" />
-            <h1 className="racing-load-title">Apex Velocity 3D</h1>
-            <p className="racing-load-sub">Custom Physics Engine by Kaushal</p>
+            <h1 className="racing-load-title">RevSector 3D</h1>
+            <p className="racing-load-sub">Precision Circuit Physics by Kaushal</p>
             <div className="racing-progress-track">
               <div
                 className="racing-progress-bar"
@@ -302,8 +302,8 @@ export default function RacingGame() {
               <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.85" />
             </svg>
             <div className="racing-brand-text">
-              <span className="racing-brand-name">Apex Velocity 3D</span>
-              <span className="racing-brand-sub">By Kaushal • Grand Prix</span>
+              <span className="racing-brand-name">RevSector 3D</span>
+              <span className="racing-brand-sub">By Kaushal • Sector Circuit</span>
             </div>
           </div>
 
@@ -628,7 +628,7 @@ export default function RacingGame() {
                   <path d="M4 19 L11 5 L14 5 L7 19 Z" fill="var(--accent)" />
                   <path d="M10 19 L17 5 L20 5 L13 19 Z" fill="var(--text-primary)" fillOpacity="0.8" />
                 </svg>
-                <h3 className="racing-modal-title">Apex Velocity 3D • Controls & Specs</h3>
+                <h3 className="racing-modal-title">RevSector 3D • Controls & Specs</h3>
               </div>
               <button
                 className="racing-btn racing-btn-icon"
@@ -710,7 +710,7 @@ export default function RacingGame() {
               <section className="racing-modal-section">
                 <h4>Engine Architecture</h4>
                 <p className="racing-modal-desc">
-                  Apex Velocity 3D is a custom real-time WebGPU/WebGL 3D engine built by <strong>Kaushal</strong> with rigid body sphere-raycast dynamics, dynamic particle smoke, and procedural audio synthesis.
+                  RevSector 3D is a custom real-time WebGPU/WebGL 3D engine built by <strong>Kaushal</strong> with rigid body sphere-raycast dynamics, dynamic particle smoke, and procedural audio synthesis.
                 </p>
               </section>
             </div>
@@ -721,7 +721,7 @@ export default function RacingGame() {
       {/* Desktop Shortcut Footer */}
       {!isLoading && (
         <footer className="racing-footer-hint">
-          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • Engine by Kaushal</span>
+          <span>WASD to drive • <kbd className="racing-keycap">Shift</kbd> boost • <kbd className="racing-keycap">C</kbd> camera • RevSector 3D by Kaushal</span>
         </footer>
       )}
     </div>

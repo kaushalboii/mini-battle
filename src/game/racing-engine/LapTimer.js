@@ -1,12 +1,12 @@
 /**
- * Apex Velocity 3D - Sector Timing & Lap Telemetry Core
+ * RevSector 3D - Sector Timing & Lap Telemetry Core
  * Precision track sector validation, checkpoint forward-projection, and local record persistence.
  * Engineered by Kaushal.
  */
 
 import { Container } from 'pixi.js';
 
-const STORAGE_PREFIX = 'apex.bestLap.';
+const STORAGE_PREFIX = 'revsector.bestLap.';
 
 function loadBest(key) {
   try {
