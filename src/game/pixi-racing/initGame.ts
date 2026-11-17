@@ -47,6 +47,8 @@ export interface GameInstance {
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
   setLightingTheme: (theme: 'day' | 'sunset' | 'night') => void;
+  setSteer: (val: number) => void;
+  setThrottle: (val: number) => void;
   setNitro: (active: boolean) => void;
   setMuted: (muted: boolean) => void;
   resetPosition: () => void;
@@ -252,6 +254,7 @@ export async function initRacingGame(
     const hasInput =
       input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
 
+    lapTimer.resize(app.screen.width, app.screen.height);
     lapTimer.update(dt, vehicle.container.position, hasInput);
 
     // Telemetry dispatch at ~30Hz
@@ -320,6 +323,12 @@ export async function initRacingGame(
         view3d.fog = { type: 'linear', color: 0xadb2ba, near: 30, far: 55 };
         view3d.environment = { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1.0 };
       }
+    },
+    setSteer(val: number) {
+      controls.setSteer(val);
+    },
+    setThrottle(val: number) {
+      controls.setThrottle(val);
     },
     setNitro(active: boolean) {
       controls.setNitro(active);

@@ -31,6 +31,11 @@ export default function RacingGame() {
   const [showHelp, setShowHelp] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Touch pedals state
+  const [activeSteer, setActiveSteer] = useState<-1 | 0 | 1>(0);
+  const [activeThrottle, setActiveThrottle] = useState<-1 | 0 | 1>(0);
+  const [isNosActive, setIsNosActive] = useState(false);
+
   // Telemetry state
   const [telemetry, setTelemetry] = useState<TelemetryData>({
     speedKmh: 0,
@@ -81,6 +86,34 @@ export default function RacingGame() {
       }
     };
   }, []);
+
+  // Controls API
+  const handleSteerStart = (dir: -1 | 1) => {
+    setActiveSteer(dir);
+    gameRef.current?.setSteer(dir);
+  };
+  const handleSteerEnd = () => {
+    setActiveSteer(0);
+    gameRef.current?.setSteer(0);
+  };
+
+  const handleThrottleStart = (dir: -1 | 1) => {
+    setActiveThrottle(dir);
+    gameRef.current?.setThrottle(dir);
+  };
+  const handleThrottleEnd = () => {
+    setActiveThrottle(0);
+    gameRef.current?.setThrottle(0);
+  };
+
+  const handleNosStart = () => {
+    setIsNosActive(true);
+    gameRef.current?.setNitro(true);
+  };
+  const handleNosEnd = () => {
+    setIsNosActive(false);
+    gameRef.current?.setNitro(false);
+  };
 
   const handleReset = () => {
     gameRef.current?.resetPosition();
@@ -192,7 +225,7 @@ export default function RacingGame() {
             <h2 style={{ color: "#ef4444" }}>Ignition Failure</h2>
             <p>{errorMsg}</p>
             <button
-              className="racing-btn"
+              className="arcade-btn arcade-btn-amber"
               onClick={() => window.location.reload()}
               style={{ marginTop: "1rem" }}
             >
@@ -202,79 +235,120 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Top Right Controls Bar */}
+      {/* Top Arcade Navigation Bar */}
       {!isLoading && (
-        <div className="racing-controls-panel">
-          <div className="racing-truck-palette">
-            {VEHICLE_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                className={`racing-color-dot ${selectedColor === opt.key ? "active" : ""}`}
-                style={{ backgroundColor: opt.color }}
-                title={opt.label}
-                aria-label={opt.label}
-                onClick={() => handleColorChange(opt.key)}
-              />
-            ))}
+        <header className="arcade-header-bar">
+          {/* Brand Logo Crest */}
+          <div className="arcade-logo-badge">
+            <span className="arcade-logo-flag">🏁</span>
+            <div className="arcade-logo-text">
+              <span className="arcade-logo-title">APEX DRIFT</span>
+              <span className="arcade-logo-sub">CIRCUIT 3D</span>
+            </div>
           </div>
 
-          <button
-            className="racing-icon-btn racing-cam-btn"
-            onClick={handleCycleCamera}
-            title="Switch Camera View (C)"
-            aria-label="Switch Camera"
-          >
-            📷 {currentCamInfo.label} <kbd className="racing-kbd-inline">C</kbd>
-          </button>
+          {/* Action Buttons Group */}
+          <div className="arcade-nav-actions">
+            {/* Color Dial Selector */}
+            <div className="arcade-wheel-selector" title="Select Vehicle Team">
+              {VEHICLE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  className={`arcade-wheel-dot ${selectedColor === opt.key ? "active" : ""}`}
+                  style={{ "--dot-color": opt.color } as React.CSSProperties}
+                  title={opt.label}
+                  aria-label={opt.label}
+                  onClick={() => handleColorChange(opt.key)}
+                >
+                  <span className="arcade-wheel-inner" style={{ backgroundColor: opt.color }} />
+                </button>
+              ))}
+            </div>
 
-          <button
-            className="racing-icon-btn"
-            onClick={handleCycleLighting}
-            title="Toggle Atmosphere (T)"
-            aria-label="Atmosphere"
-          >
-            {currentThemeInfo.icon} {currentThemeInfo.label}
-          </button>
+            {/* Camera View Switcher */}
+            <button
+              className="arcade-btn arcade-btn-cam"
+              onClick={handleCycleCamera}
+              title="Switch Camera View (C)"
+              aria-label="Switch Camera"
+            >
+              <svg className="arcade-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4 4h10a2 2 0 0 1 2 2v2.586l3.707-3.707A1 1 0 0 1 21 5.586v12.828a1 1 0 0 1-1.707.707L16 15.414V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h10V6H4zm14 4.414v3.172l3 3V7.414l-3 3z" />
+              </svg>
+              <span className="arcade-btn-label">{currentCamInfo.label}</span>
+              <kbd className="arcade-kbd">C</kbd>
+            </button>
 
-          <button
-            className="racing-icon-btn"
-            onClick={handleToggleMute}
-            title={isMuted ? "Unmute Audio (M)" : "Mute Audio (M)"}
-            aria-label="Mute Audio"
-          >
-            {isMuted ? "🔇" : "🔊"}
-          </button>
+            {/* Lighting Atmosphere */}
+            <button
+              className="arcade-btn arcade-btn-theme"
+              onClick={handleCycleLighting}
+              title="Toggle Atmosphere (T)"
+              aria-label="Atmosphere"
+            >
+              <span className="arcade-btn-emoji">{currentThemeInfo.icon}</span>
+              <span className="arcade-btn-label">{currentThemeInfo.label}</span>
+              <kbd className="arcade-kbd">T</kbd>
+            </button>
 
-          <button
-            className="racing-icon-btn"
-            onClick={handleReset}
-            title="Reset Vehicle (R)"
-            aria-label="Reset Vehicle"
-          >
-            ↺ Respawn <kbd className="racing-kbd-inline">R</kbd>
-          </button>
+            {/* Audio Toggle */}
+            <button
+              className={`arcade-btn arcade-btn-icon-only ${isMuted ? "muted" : ""}`}
+              onClick={handleToggleMute}
+              title={isMuted ? "Unmute Audio (M)" : "Mute Audio (M)"}
+              aria-label="Toggle Sound"
+            >
+              {isMuted ? (
+                <svg className="arcade-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3.293 2.293a1 1 0 0 0-1.414 1.414l18 18a1 1 0 0 0 1.414-1.414l-4.52-4.52A8.966 8.966 0 0 0 20 12c0-3.72-2.26-6.91-5.5-8.24a1 1 0 0 0-.76 1.85C16.33 6.64 18 9.13 18 12a6.97 6.97 0 0 1-2.07 4.93l-2.06-2.06A4.98 4.98 0 0 0 14 12V6.414l-4.293 4.293L3.293 2.293zM10 6.828L6.828 10H4a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2.828L12 19.172V14.83l-2-2V6.828z" />
+                </svg>
+              ) : (
+                <svg className="arcade-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3.172a1 1 0 0 0-1.707-.707L5.586 7H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2.586l4.707 4.535A1 1 0 0 0 12 20.828V3.172zM15.54 7.46a1 1 0 0 1 1.41-.15A8.96 8.96 0 0 1 20 12a8.96 8.96 0 0 1-3.05 4.69 1 1 0 1 1-1.26-1.56A6.97 6.97 0 0 0 18 12a6.97 6.97 0 0 0-2.31-3.13 1 1 0 0 1-.15-1.41zm-2.83 2.83a1 1 0 0 1 1.41 0A4.98 4.98 0 0 1 15.5 12c0 .96-.28 1.86-.78 2.62a1 1 0 1 1-1.66-1.12c.28-.43.44-.95.44-1.5s-.16-1.07-.44-1.5a1 1 0 0 1 0-1.41z" />
+                </svg>
+              )}
+            </button>
 
-          <button
-            className="racing-icon-btn"
-            onClick={() => setShowHelp((prev) => !prev)}
-            title="Game Manual & Controls"
-            aria-label="Help"
-          >
-            ?
-          </button>
+            {/* Respawn Button */}
+            <button
+              className="arcade-btn arcade-btn-amber"
+              onClick={handleReset}
+              title="Reset Vehicle to Grid (R)"
+              aria-label="Respawn"
+            >
+              <svg className="arcade-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+              </svg>
+              <span className="arcade-btn-label">Respawn</span>
+              <kbd className="arcade-kbd">R</kbd>
+            </button>
 
-          <button
-            className="racing-icon-btn"
-            onClick={toggleFullscreen}
-            title="Toggle Fullscreen"
-            aria-label="Toggle Fullscreen"
-          >
-            ⛶
-          </button>
-        </div>
+            {/* Help / Guide */}
+            <button
+              className="arcade-btn arcade-btn-icon-only"
+              onClick={() => setShowHelp((prev) => !prev)}
+              title="Game Manual & Controls"
+              aria-label="Help"
+            >
+              <span className="arcade-icon-txt">?</span>
+            </button>
+
+            {/* Fullscreen */}
+            <button
+              className="arcade-btn arcade-btn-icon-only"
+              onClick={toggleFullscreen}
+              title="Toggle Fullscreen"
+              aria-label="Fullscreen"
+            >
+              <svg className="arcade-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+              </svg>
+            </button>
+          </div>
+        </header>
       )}
 
-      {/* Active Drift Score Floating Banner */}
+      {/* Floating Active Drift Score Banner */}
       {!isLoading && telemetry.currentDriftPoints > 0 && (
         <div className="racing-drift-meter">
           <span className="racing-drift-flame">🔥</span>
@@ -283,59 +357,138 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* High-Tech Dashboard Cluster (Bottom Right) */}
+      {/* High-Tech Dashboard Cluster (Center-Right / Bottom) */}
       {!isLoading && (
-        <div className="racing-instrument-cluster">
-          <div className="racing-speed-display">
-            <span className="racing-speed-num">{telemetry.speedKmh}</span>
-            <span className="racing-speed-unit">KM/H</span>
-          </div>
-
-          <div className="racing-gear-display">
-            <span className="racing-gear-lbl">GEAR</span>
-            <span className={`racing-gear-val ${telemetry.isBoosting ? "nitro-gear" : ""}`}>
-              {telemetry.isBoosting ? "NOS" : telemetry.gear}
+        <div className="arcade-dashboard">
+          <div className="arcade-dash-header">
+            <span className="arcade-dash-tele">TELEMETRY</span>
+            <span className={`arcade-dash-nos-state ${telemetry.isBoosting ? "active" : ""}`}>
+              {telemetry.isBoosting ? "⚡ NOS BOOST" : "READY"}
             </span>
           </div>
 
-          <div className="racing-nitro-gauge-wrap">
-            <div className="racing-nitro-header">
-              <span>NITRO INJECTION</span>
-              <span>{telemetry.nitro}%</span>
+          <div className="arcade-dash-main">
+            {/* Speedometer */}
+            <div className="arcade-speedo-box">
+              <span className="arcade-speedo-val">{telemetry.speedKmh}</span>
+              <span className="arcade-speedo-unit">KM/H</span>
             </div>
-            <div className="racing-nitro-bar-bg">
+
+            {/* Gear Indicator */}
+            <div className="arcade-gear-box">
+              <span className="arcade-gear-lbl">GEAR</span>
+              <span className={`arcade-gear-num ${telemetry.isBoosting ? "gear-nos" : ""}`}>
+                {telemetry.isBoosting ? "NOS" : telemetry.gear}
+              </span>
+            </div>
+          </div>
+
+          {/* Nitro Gauge */}
+          <div className="arcade-nitro-tray">
+            <div className="arcade-nitro-meta">
+              <span className="arcade-nitro-lbl">NITRO BOOST</span>
+              <span className="arcade-nitro-pct">{telemetry.nitro}%</span>
+            </div>
+            <div className="arcade-nitro-track">
               <div
-                className={`racing-nitro-bar-fill ${telemetry.isBoosting ? "boosting" : ""}`}
+                className={`arcade-nitro-glow-fill ${telemetry.isBoosting ? "boosting" : ""}`}
                 style={{ width: `${telemetry.nitro}%` }}
               />
             </div>
           </div>
 
           {telemetry.totalDriftScore > 0 && (
-            <div className="racing-total-drift-badge">
-              <span>DRIFT SCORE</span>
-              <b>{telemetry.totalDriftScore.toLocaleString()}</b>
+            <div className="arcade-drift-bank">
+              <span className="arcade-drift-lbl">DRIFT SCORE</span>
+              <span className="arcade-drift-pts">{telemetry.totalDriftScore.toLocaleString()}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Mobile / Quick Nitro Boost Button (Bottom Left) */}
+      {/* RESPONSIVE ON-SCREEN ARCADE TOUCH CONTROLS (Mobile & Web Playable) */}
       {!isLoading && (
-        <button
-          className={`racing-nos-touch-btn ${telemetry.isBoosting ? "active" : ""}`}
-          onPointerDown={() => gameRef.current?.setNitro(true)}
-          onPointerUp={() => gameRef.current?.setNitro(false)}
-          onPointerLeave={() => gameRef.current?.setNitro(false)}
-          title="Hold Shift or Space for Nitro"
-        >
-          <span className="nos-icon">⚡</span>
-          <span className="nos-txt">NOS</span>
-          <kbd className="racing-kbd-inline nos-kbd">SHIFT</kbd>
-        </button>
+        <div className="arcade-touch-hud">
+          {/* Left Wing: Steering Pedals */}
+          <div className="arcade-pedal-cluster arcade-pedal-cluster-left">
+            <button
+              className={`arcade-steer-paddle paddle-left ${activeSteer === -1 ? "paddle-active" : ""}`}
+              onPointerDown={() => handleSteerStart(-1)}
+              onPointerUp={handleSteerEnd}
+              onPointerCancel={handleSteerEnd}
+              onPointerLeave={handleSteerEnd}
+              aria-label="Steer Left"
+            >
+              <svg className="paddle-chevron" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+              </svg>
+              <span className="paddle-txt">LEFT</span>
+            </button>
+
+            <button
+              className={`arcade-steer-paddle paddle-right ${activeSteer === 1 ? "paddle-active" : ""}`}
+              onPointerDown={() => handleSteerStart(1)}
+              onPointerUp={handleSteerEnd}
+              onPointerCancel={handleSteerEnd}
+              onPointerLeave={handleSteerEnd}
+              aria-label="Steer Right"
+            >
+              <svg className="paddle-chevron" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+              <span className="paddle-txt">RIGHT</span>
+            </button>
+          </div>
+
+          {/* Right Wing: Drive, Brake & Nitro Core */}
+          <div className="arcade-pedal-cluster arcade-pedal-cluster-right">
+            {/* Nitrous Booster Button */}
+            <button
+              className={`arcade-nos-core ${isNosActive || telemetry.isBoosting ? "nos-core-firing" : ""}`}
+              onPointerDown={handleNosStart}
+              onPointerUp={handleNosEnd}
+              onPointerCancel={handleNosEnd}
+              onPointerLeave={handleNosEnd}
+              aria-label="Nitro Boost"
+            >
+              <div className="nos-core-inner">
+                <span className="nos-core-bolt">⚡</span>
+                <span className="nos-core-txt">NOS</span>
+              </div>
+            </button>
+
+            {/* Reverse / Brake Pedal */}
+            <button
+              className={`arcade-drive-pedal pedal-brake ${activeThrottle === -1 ? "pedal-depressed" : ""}`}
+              onPointerDown={() => handleThrottleStart(-1)}
+              onPointerUp={handleThrottleEnd}
+              onPointerCancel={handleThrottleEnd}
+              onPointerLeave={handleThrottleEnd}
+              aria-label="Brake and Reverse"
+            >
+              <span className="pedal-ribs"></span>
+              <span className="pedal-lbl">BRAKE</span>
+              <span className="pedal-sub">REV</span>
+            </button>
+
+            {/* Gas / Drive Accelerator Pedal */}
+            <button
+              className={`arcade-drive-pedal pedal-gas ${activeThrottle === 1 ? "pedal-depressed" : ""}`}
+              onPointerDown={() => handleThrottleStart(1)}
+              onPointerUp={handleThrottleEnd}
+              onPointerCancel={handleThrottleEnd}
+              onPointerLeave={handleThrottleEnd}
+              aria-label="Accelerate"
+            >
+              <span className="pedal-ribs"></span>
+              <span className="pedal-lbl">DRIVE</span>
+              <span className="pedal-sub">GAS ▲</span>
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Help Modal */}
+      {/* Help & Controls Modal */}
       {showHelp && (
         <div className="racing-help-modal" onClick={() => setShowHelp(false)}>
           <div className="racing-help-card" onClick={(e) => e.stopPropagation()}>
@@ -345,28 +498,28 @@ export default function RacingGame() {
             </div>
             <div className="racing-help-body">
               <p>
-                A high-octane 3D arcade racer built with real-time rigid body dynamics, multi-gear transmission, streamed rubber skid marks, and nitrous flame particle exhaust.
+                Engineered for responsive desktop and mobile gaming with dedicated alloy pedals, 3D chase camera, and dual nitrous injection.
               </p>
               <hr />
               <h4>Controls & Maneuvers</h4>
               <ul>
                 <li>
-                  <kbd>W</kbd> / <kbd>↑</kbd> : Full Throttle Drive
+                  <kbd>W</kbd> / <kbd>↑</kbd> or <span className="arcade-hint-pill">DRIVE PEDAL</span> : Accelerate Full Throttle
                 </li>
                 <li>
-                  <kbd>S</kbd> / <kbd>↓</kbd> : Reverse / Hard Brake
+                  <kbd>S</kbd> / <kbd>↓</kbd> or <span className="arcade-hint-pill">BRAKE PEDAL</span> : Reverse & Hard Brake
                 </li>
                 <li>
-                  <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> : Steer / Power Slide
+                  <kbd>A</kbd> / <kbd>D</kbd> or <span className="arcade-hint-pill">LEFT / RIGHT</span> : Steer & Power Slide
                 </li>
                 <li>
-                  <kbd>Shift</kbd> / <kbd>Space</kbd> : <strong>Nitrous Boost (NOS)</strong> — 1.55x Top Speed & Acceleration
+                  <kbd>Shift</kbd> / <kbd>Space</kbd> or <span className="arcade-hint-pill">⚡ NOS</span> : Nitrous Boost (1.55x Top Speed Surge)
                 </li>
                 <li>
                   <kbd>C</kbd> : Cycle Camera (Chase View, Close Follow, Hood Cam, Isometric, Aerial)
                 </li>
                 <li>
-                  <kbd>T</kbd> : Switch Lighting (☀️ Daylight, 🌅 Sunset, 🌙 Neon Night)
+                  <kbd>T</kbd> : Switch Atmosphere (☀️ Daylight, 🌅 Sunset, 🌙 Neon Night)
                 </li>
                 <li>
                   <kbd>M</kbd> : Mute / Unmute Audio Engine
@@ -375,10 +528,7 @@ export default function RacingGame() {
                   <kbd>R</kbd> : Quick Respawn at Start Line
                 </li>
                 <li>
-                  <strong>Touch Screen:</strong> Floating Joystick + NOS Button
-                </li>
-                <li>
-                  <strong>Gamepad:</strong> Left stick steering, RT gas, LT brake, A / RB Nitrous
+                  <strong>Mobile:</strong> Two-thumb gameplay: left thumb steers, right thumb drives and hits nitrous!
                 </li>
               </ul>
             </div>
@@ -386,10 +536,10 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Bottom Hint Bar */}
+      {/* Desktop Helper Pill */}
       {!isLoading && (
-        <div className="racing-hint-bar">
-          <span>WASD to Drive • <kbd className="racing-kbd-inline">SHIFT</kbd> Nitro Boost • <kbd className="racing-kbd-inline">C</kbd> Camera • <kbd className="racing-kbd-inline">T</kbd> Atmosphere</span>
+        <div className="arcade-desktop-hint">
+          <span>WASD to Drive • <kbd className="arcade-kbd">SHIFT</kbd> Nitro • <kbd className="arcade-kbd">C</kbd> Camera • On-Screen Pedals Active</span>
         </div>
       )}
     </div>

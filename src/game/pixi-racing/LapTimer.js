@@ -154,6 +154,18 @@ export class LapTimer {
     this.container.addChild(this._bestText);
   }
 
+  resize(width, height) {
+    if (width < 640) {
+      this.container.x = 12;
+      this.container.y = 70;
+      this.container.scale.set(0.78);
+    } else {
+      this.container.x = 20;
+      this.container.y = 76;
+      this.container.scale.set(1.0);
+    }
+  }
+
   update(dt, position, hasInput) {
     if (!this._running && !hasInput) return;
     this._running = true;
