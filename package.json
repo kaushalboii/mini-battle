@@ -1,6 +1,6 @@
 {
-  "name": "reef-rivals-treasure-tide",
-  "version": "2.1.0",
+  "name": "krakens-quay",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,7 +21,7 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "Reef Rivals: Treasure Tide - Rich 3D turn-based projectile battle with rigged characters",
+  "description": "Kraken's Quay: Splash & Shot - Rich 3D turn-based projectile battle with rigged characters",
   "author": "kaushalboii",
   "license": "MIT",
   "keywords": [
@@ -30,7 +30,7 @@
     "webgl",
     "gltf",
     "animation",
-    "reef-rivals",
+    "krakens-quay",
     "tropical",
     "projectile",
     "turn-based"

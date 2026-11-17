@@ -58,9 +58,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - Reef Rivals: Treasure Tide"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Kraken's Quay: Splash & Shot"
           body: |
-            ## 🌴 Reef Rivals: Treasure Tide (${{ steps.tagger.outputs.tag }})
+            ## 🦑 Kraken's Quay: Splash & Shot (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)

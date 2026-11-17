@@ -1,6 +1,6 @@
 const CDN = "https://cdn.mint.gg";
 
-export const REEF_RIVALS_MINT_ASSETS = {
+export const KRAKENS_QUAY_ASSETS = {
   world: {
     ocean: `${CDN}/glb/ocean-arena-normalized-80242a1b9f8d268b.glb`,
     beachHorizon: `${CDN}/glb/sunlit-dune-beach-horizon-normalized-287c6d59086ebe12.glb`,
@@ -106,4 +106,6 @@ export const REEF_RIVALS_MINT_ASSETS = {
   },
 } as const;
 
-export type ReefCharacterKey = keyof typeof REEF_RIVALS_MINT_ASSETS.characters;
+export const REEF_RIVALS_MINT_ASSETS = KRAKENS_QUAY_ASSETS;
+export type KrakensCharacterKey = keyof typeof KRAKENS_QUAY_ASSETS.characters;
+export type ReefCharacterKey = KrakensCharacterKey;

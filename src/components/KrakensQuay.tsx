@@ -1,72 +1,21 @@
-/* eslint-disable @next/next/no-img-element -- Portable Vite capsule has no Next Image runtime. */
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import {
-  REEF_RIVALS_MINT_ASSETS as ASSETS,
-  type ReefCharacterKey,
-} from "./reefRivalsMintAssets";
+import { KRAKENS_QUAY_ASSETS as ASSETS } from "../assets/krakensQuayAssets";
+import type {
+  Phase,
+  Ammo,
+  Upgrade,
+  UiState,
+  GameController,
+  KrakensCharacterKey,
+} from "../game/types";
+import { INITIAL_UI, ROUND_DATA, AMMO_INFO } from "../game/constants";
+import "../styles/krakens-quay.css";
 
-type Phase = "loading" | "menu" | "player" | "projectile" | "enemy" | "upgrade" | "won" | "lost" | "error";
-type Ammo = "coconut" | "pineapple" | "volley";
-type Upgrade = "power" | "patch" | "armor";
-type Ui = {
-  phase: Phase;
-  round: number;
-  playerHp: number;
-  enemyHp: number;
-  enemyMax: number;
-  angle: number;
-  power: number;
-  ammo: Ammo;
-  pineapple: number;
-  volley: number;
-  shells: number;
-  status: string;
-  loading: string;
-  sound: boolean;
-};
-type Controller = {
-  start: () => void;
-  fire: () => void;
-  setAngle: (value: number) => void;
-  setPower: (value: number) => void;
-  setAmmo: (ammo: Ammo) => void;
-  chooseUpgrade: (upgrade: Upgrade) => void;
-  toggleSound: () => void;
-};
-
-const INITIAL_UI: Ui = {
-  phase: "loading",
-  round: 1,
-  playerHp: 100,
-  enemyHp: 55,
-  enemyMax: 55,
-  angle: 35,
-  power: 68,
-  ammo: "coconut",
-  pineapple: 0,
-  volley: 0,
-  shells: 0,
-  status: "Loading the Treasure Tide…",
-  loading: "Calling in Mint's reef fleet…",
-  sound: true,
-};
-
-const ROUND_DATA = [
-  { hp: 55, enemies: ["captain"] as ReefCharacterKey[], name: "Brinebeard's Welcome Party" },
-  { hp: 92, enemies: ["patch", "pearl"] as ReefCharacterKey[], name: "The Pearl Poachers" },
-  { hp: 138, enemies: ["captain", "patch", "tiki"] as ReefCharacterKey[], name: "Treasure Tide Showdown" },
-] as const;
-
-const AMMO_INFO: Record<Ammo, { label: string; damage: number; model: keyof typeof ASSETS.world }> = {
-  coconut: { label: "Coconut", damage: 24, model: "coconut" },
-  pineapple: { label: "Pineapple", damage: 39, model: "pineapple" },
-  volley: { label: "Pebble Volley", damage: 29, model: "volley" },
-};
-
-export default function ReefRivals() {
+export default function KrakensQuay() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const controllerRef = useRef<Controller | null>(null);
-  const [ui, setUi] = useState<Ui>(INITIAL_UI);
+  const controllerRef = useRef<GameController | null>(null);
+  const [ui, setUi] = useState<UiState>(INITIAL_UI);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -140,14 +89,28 @@ export default function ReefRivals() {
 
         const manager = new THREE.LoadingManager();
         manager.onProgress = (_url, loaded, total) => {
-          if (!disposed) setUi((value) => ({ ...value, loading: `Unpacking Mint assets · ${loaded}/${total}` }));
+          if (!disposed)
+            setUi((value) => ({
+              ...value,
+              loading: `Unpacking Kraken's Quay assets · ${loaded}/${total}`,
+            }));
         };
         const loader = new GLTFLoader(manager);
         const textureLoader = new THREE.TextureLoader(manager);
-        const characterEntries = Object.entries(ASSETS.characters) as [ReefCharacterKey, (typeof ASSETS.characters)[ReefCharacterKey]][];
+        const characterEntries = Object.entries(ASSETS.characters) as [
+          KrakensCharacterKey,
+          (typeof ASSETS.characters)[KrakensCharacterKey],
+        ][];
         const allPaths = [
           ...Object.values(ASSETS.world),
-          ...characterEntries.flatMap(([, character]) => [character.model, character.idle, character.throw, character.hit, character.fall, character.victory]),
+          ...characterEntries.flatMap(([, character]) => [
+            character.model,
+            character.idle,
+            character.throw,
+            character.hit,
+            character.fall,
+            character.victory,
+          ]),
         ];
         const [loaded, [waterBaseColor, waterNormal, waterRoughness]] = await Promise.all([
           Promise.all(
@@ -298,6 +261,7 @@ export default function ReefRivals() {
         coral.position.set(-6.2, 0.1, 0.1);
         coral.rotation.y = 0.2;
         worldRoot.add(coral);
+
         const driftwood = fit(sceneFor(ASSETS.world.driftwood), 3.5);
         driftwood.position.set(6.2, 0.05, 0.2);
         driftwood.rotation.y = -0.15;
@@ -346,10 +310,13 @@ export default function ReefRivals() {
             });
           return clip;
         };
-        const characters = {} as Record<ReefCharacterKey, CharacterRuntime>;
+        const characters = {} as Record<KrakensCharacterKey, CharacterRuntime>;
         for (const [key, asset] of characterEntries) {
           const source = sceneFor(asset.model);
-          const root = fitHeight(source, key === "nia" ? 2.65 : key === "kai" ? 2.75 : key === "captain" ? 3.15 : 2.95);
+          const root = fitHeight(
+            source,
+            key === "nia" ? 2.65 : key === "kai" ? 2.75 : key === "captain" ? 3.15 : 2.95,
+          );
           const mixer = new THREE.AnimationMixer(source);
           const clips = {
             idle: stabilizeIdleFacing(gltfs.get(asset.idle)!.animations[0]),
@@ -376,7 +343,11 @@ export default function ReefRivals() {
               }
               action.play();
               runtime.action = action;
-              if (name !== "idle" && name !== "fall") later(() => !disposed && runtime.play("idle"), Math.min(1700, clips[name].duration * 900));
+              if (name !== "idle" && name !== "fall")
+                later(
+                  () => !disposed && runtime.play("idle"),
+                  Math.min(1700, clips[name].duration * 900),
+                );
             },
           };
           characters[key] = runtime;
@@ -390,8 +361,8 @@ export default function ReefRivals() {
         characters.nia.root.rotation.y = 0.2;
         heroFloat.add(characters.nia.root);
 
-        const heroKeys: ReefCharacterKey[] = ["kai", "nia"];
-        const enemyKeys: ReefCharacterKey[] = ["captain", "patch", "pearl", "tiki"];
+        const heroKeys: KrakensCharacterKey[] = ["kai", "nia"];
+        const enemyKeys: KrakensCharacterKey[] = ["captain", "patch", "pearl", "tiki"];
         enemyKeys.forEach((key) => {
           characters[key].root.rotation.y = -0.2;
           rivalFloat.add(characters[key].root);
@@ -408,7 +379,7 @@ export default function ReefRivals() {
           spin: number;
         };
         type OverboardFlight = {
-          key: ReefCharacterKey;
+          key: KrakensCharacterKey;
           start: import("three").Vector3;
           age: number;
           duration: number;
@@ -440,9 +411,9 @@ export default function ReefRivals() {
         let heroShot = 0;
         let coralHp = 2;
         let driftwoodHp = 2;
-        let activeEnemies: ReefCharacterKey[] = ROUND_DATA[0].enemies.slice();
-        let enemyAboard: ReefCharacterKey[] = activeEnemies.slice();
-        let heroAboard: ReefCharacterKey[] = heroKeys.slice();
+        let activeEnemies: KrakensCharacterKey[] = ROUND_DATA[0].enemies.slice();
+        let enemyAboard: KrakensCharacterKey[] = activeEnemies.slice();
+        let heroAboard: KrakensCharacterKey[] = heroKeys.slice();
 
         const sync = (status: string) => {
           if (disposed) return;
@@ -468,7 +439,11 @@ export default function ReefRivals() {
           aimMarker.visible = next === "player";
           sync(status);
         };
-        const resetCharacter = (key: ReefCharacterKey, position: import("three").Vector3, facing: number) => {
+        const resetCharacter = (
+          key: KrakensCharacterKey,
+          position: import("three").Vector3,
+          facing: number,
+        ) => {
           const character = characters[key];
           character.root.position.copy(position);
           character.root.rotation.set(0, facing, 0);
@@ -485,8 +460,19 @@ export default function ReefRivals() {
         const placeEnemies = () => {
           enemyAboard = activeEnemies.slice();
           enemyKeys.forEach((key) => (characters[key].root.visible = false));
-          const slots = activeEnemies.length === 1 ? [0.25] : activeEnemies.length === 2 ? [-0.9, 1] : [-1.55, 0.15, 1.65];
-          activeEnemies.forEach((key, index) => resetCharacter(key, new THREE.Vector3(slots[index], 1.82, 2.05 + (index % 2) * 0.18), -0.2));
+          const slots =
+            activeEnemies.length === 1
+              ? [0.25]
+              : activeEnemies.length === 2
+                ? [-0.9, 1]
+                : [-1.55, 0.15, 1.65];
+          activeEnemies.forEach((key, index) =>
+            resetCharacter(
+              key,
+              new THREE.Vector3(slots[index], 1.82, 2.05 + (index % 2) * 0.18),
+              -0.2,
+            ),
+          );
         };
         const setupRound = () => {
           const data = ROUND_DATA[round - 1];
@@ -506,11 +492,23 @@ export default function ReefRivals() {
           placeEnemies();
         };
         const showEffect = (kind: "impact" | "splash", position: import("three").Vector3) => {
-          const root = fit(sceneFor(kind === "impact" ? ASSETS.world.impact : ASSETS.world.splash), kind === "impact" ? 2.4 : 2.9);
+          const root = fit(
+            sceneFor(kind === "impact" ? ASSETS.world.impact : ASSETS.world.splash),
+            kind === "impact" ? 2.4 : 2.9,
+          );
           root.position.copy(position);
           root.scale.setScalar(0.12);
           scene.add(root);
-          effects.push({ root, age: 0, duration: 0.72, delay: 0, peakScale: 1.35, startY: position.y, rise: 0.14, spin: 2.8 });
+          effects.push({
+            root,
+            age: 0,
+            duration: 0.72,
+            delay: 0,
+            peakScale: 1.35,
+            startY: position.y,
+            rise: 0.14,
+            spin: 2.8,
+          });
         };
         const showOverboardSplash = (position: import("three").Vector3) => {
           const pieces = [
@@ -535,9 +533,13 @@ export default function ReefRivals() {
             });
           });
         };
-        const knockOverboard = (key: ReefCharacterKey, direction: -1 | 1) => {
+        const knockOverboard = (key: KrakensCharacterKey, direction: -1 | 1) => {
           const character = characters[key];
-          overboardFlights.splice(0, overboardFlights.length, ...overboardFlights.filter((flight) => flight.key !== key));
+          overboardFlights.splice(
+            0,
+            overboardFlights.length,
+            ...overboardFlights.filter((flight) => flight.key !== key),
+          );
           character.play("fall");
           overboardFlights.push({
             key,
@@ -557,14 +559,14 @@ export default function ReefRivals() {
           playerHp = 0;
           enemyAboard.forEach((key) => characters[key].play("victory"));
           playSound("defeat");
-          setPhase("lost", "The rivals found the treasure first!");
+          setPhase("lost", "The rivals claimed the quay!");
         };
         const winGame = () => {
           removeProjectile();
           enemyHp = 0;
           heroAboard.forEach((key) => characters[key].play("victory"));
           playSound("victory");
-          setPhase("won", "Treasure Tide champions!");
+          setPhase("won", "Kraken's Quay Champions!");
         };
         const finishRound = () => {
           enemyHp = 0;
@@ -596,9 +598,18 @@ export default function ReefRivals() {
             else startPlayerTurn();
           }, delay);
         };
-        const spawnProjectile = (owner: "player" | "enemy", shotAmmo: Ammo, shotAngle: number, shotPower: number, damage: number) => {
+        const spawnProjectile = (
+          owner: "player" | "enemy",
+          shotAmmo: Ammo,
+          shotAngle: number,
+          shotPower: number,
+          damage: number,
+        ) => {
           removeProjectile();
-          const root = fit(sceneFor(ASSETS.world[AMMO_INFO[shotAmmo].model]), shotAmmo === "pineapple" ? 1.05 : 0.82);
+          const root = fit(
+            sceneFor(ASSETS.world[AMMO_INFO[shotAmmo].model]),
+            shotAmmo === "pineapple" ? 1.05 : 0.82,
+          );
           const start = new THREE.Vector3(owner === "player" ? -7.55 : 7.55, 3.55, 0.75);
           root.position.copy(start);
           scene.add(root);
@@ -606,7 +617,11 @@ export default function ReefRivals() {
           const speed = 9.2 + shotPower * 0.086;
           projectile = {
             root,
-            velocity: new THREE.Vector3((owner === "player" ? 1 : -1) * Math.cos(radians) * speed, Math.sin(radians) * speed, 0),
+            velocity: new THREE.Vector3(
+              (owner === "player" ? 1 : -1) * Math.cos(radians) * speed,
+              Math.sin(radians) * speed,
+              0,
+            ),
             owner,
             ammo: shotAmmo,
             damage,
@@ -625,7 +640,10 @@ export default function ReefRivals() {
           if (target === "enemy") {
             enemyHp -= damage;
             const hitKey = enemyAboard[Math.floor(Math.random() * enemyAboard.length)];
-            const targetCount = Math.max(0, Math.ceil((Math.max(0, enemyHp) / enemyMax) * activeEnemies.length));
+            const targetCount = Math.max(
+              0,
+              Math.ceil((Math.max(0, enemyHp) / enemyMax) * activeEnemies.length),
+            );
             const knocked = enemyAboard.length > targetCount;
             if (knocked) {
               enemyAboard = enemyAboard.filter((key) => key !== hitKey);
@@ -639,12 +657,20 @@ export default function ReefRivals() {
               later(() => !disposed && finishRound(), 1380);
               return;
             }
-            endFlight(knocked ? `${ASSETS.characters[hitKey].name} knocked overboard!` : `Direct hit! ${Math.round(damage)} damage`, knocked ? 1480 : 780);
+            endFlight(
+              knocked
+                ? `${ASSETS.characters[hitKey].name} knocked overboard!`
+                : `Direct hit! ${Math.round(damage)} damage`,
+              knocked ? 1480 : 780,
+            );
           } else {
             const reduced = Math.max(7, damage - armor);
             playerHp -= reduced;
             const hitKey = heroAboard[Math.floor(Math.random() * heroAboard.length)];
-            const targetCount = Math.max(0, Math.ceil((Math.max(0, playerHp) / 100) * heroKeys.length));
+            const targetCount = Math.max(
+              0,
+              Math.ceil((Math.max(0, playerHp) / 100) * heroKeys.length),
+            );
             const knocked = heroAboard.length > targetCount;
             if (knocked) {
               heroAboard = heroAboard.filter((key) => key !== hitKey);
@@ -658,7 +684,12 @@ export default function ReefRivals() {
               later(() => !disposed && lose(), 1380);
               return;
             }
-            endFlight(knocked ? `${ASSETS.characters[hitKey].name} knocked overboard!` : `Ouch! The tube team took ${Math.round(reduced)} damage`, knocked ? 1480 : 780);
+            endFlight(
+              knocked
+                ? `${ASSETS.characters[hitKey].name} knocked overboard!`
+                : `Ouch! The tide team took ${Math.round(reduced)} damage`,
+              knocked ? 1480 : 780,
+            );
           }
         };
 
@@ -680,11 +711,18 @@ export default function ReefRivals() {
             const firedAmmo = ammo;
             if (firedAmmo === "pineapple") pineapple -= 1;
             if (firedAmmo === "volley") volley -= 1;
-            if ((firedAmmo === "pineapple" && pineapple <= 0) || (firedAmmo === "volley" && volley <= 0)) ammo = "coconut";
+            if ((firedAmmo === "pineapple" && pineapple <= 0) || (firedAmmo === "volley" && volley <= 0))
+              ammo = "coconut";
             if (heroAboard.length === 0) return;
             const thrower = characters[heroAboard[heroShot++ % heroAboard.length]];
             thrower.play("throw");
-            spawnProjectile("player", firedAmmo, angle, power, AMMO_INFO[firedAmmo].damage + damageBonus);
+            spawnProjectile(
+              "player",
+              firedAmmo,
+              angle,
+              power,
+              AMMO_INFO[firedAmmo].damage + damageBonus,
+            );
           },
           setAngle(value) {
             if (phase !== "player") return;
@@ -716,7 +754,8 @@ export default function ReefRivals() {
           },
           toggleSound() {
             sound = !sound;
-            if (sound && phase !== "menu" && phase !== "loading") void audio.music.play().catch(() => undefined);
+            if (sound && phase !== "menu" && phase !== "loading")
+              void audio.music.play().catch(() => undefined);
             if (!sound) Object.values(audio).forEach((clip) => clip.pause());
             sync(sound ? "Sound on" : "Sound off");
           },
@@ -736,10 +775,14 @@ export default function ReefRivals() {
             event.preventDefault();
             controllerRef.current?.fire();
           }
-          if (event.key === "ArrowUp" || event.key.toLowerCase() === "w") controllerRef.current?.setAngle(angle + 2);
-          if (event.key === "ArrowDown" || event.key.toLowerCase() === "s") controllerRef.current?.setAngle(angle - 2);
-          if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") controllerRef.current?.setPower(power + 3);
-          if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") controllerRef.current?.setPower(power - 3);
+          if (event.key === "ArrowUp" || event.key.toLowerCase() === "w")
+            controllerRef.current?.setAngle(angle + 2);
+          if (event.key === "ArrowDown" || event.key.toLowerCase() === "s")
+            controllerRef.current?.setAngle(angle - 2);
+          if (event.key === "ArrowRight" || event.key.toLowerCase() === "d")
+            controllerRef.current?.setPower(power + 3);
+          if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a")
+            controllerRef.current?.setPower(power - 3);
           if (event.key === "1") controllerRef.current?.setAmmo("coconut");
           if (event.key === "2") controllerRef.current?.setAmmo("pineapple");
           if (event.key === "3") controllerRef.current?.setAmmo("volley");
@@ -748,38 +791,8 @@ export default function ReefRivals() {
         window.addEventListener("keydown", onKeyDown);
         resize();
         canvasRef.current.dataset.assetState = "ready";
-        const qaParams = new URLSearchParams(window.location.search);
-        if (qaParams.get("qa-no-scenery") === "1") scenicWorld.visible = false;
-        const qaRound = Number(qaParams.get("qa-round"));
-        const qaPlayerHp = Number(qaParams.get("qa-player-hp"));
-        if (qaParams.get("qa-upgrade") === "1") {
-          round = Number.isInteger(qaRound) && qaRound >= 1 && qaRound < ROUND_DATA.length ? qaRound : 1;
-          setupRound();
-          setPhase("upgrade", `Round ${round} cleared — choose a float upgrade`);
-        } else if (Number.isInteger(qaRound) && qaRound >= 1 && qaRound <= ROUND_DATA.length) {
-          round = qaRound;
-          if (Number.isFinite(qaPlayerHp) && qaPlayerHp > 0 && qaPlayerHp <= 100) playerHp = qaPlayerHp;
-          setupRound();
-          if (qaParams.get("qa-no-cover") === "1") {
-            coral.visible = false;
-            driftwood.visible = false;
-          }
-          startPlayerTurn();
-          const qaSplash = qaParams.get("qa-splash");
-          if (qaSplash === "hero" || qaSplash === "rival") {
-            const requestedSplashDelay = Number(qaParams.get("qa-splash-delay"));
-            const splashDelay = Number.isFinite(requestedSplashDelay)
-              ? THREE.MathUtils.clamp(requestedSplashDelay, 300, 10000)
-              : 650;
-            later(() => {
-              const key = qaSplash === "hero" ? heroAboard.at(-1) : enemyAboard[0];
-              if (key) knockOverboard(key, qaSplash === "hero" ? -1 : 1);
-            }, splashDelay);
-          }
-        } else {
-          setupRound();
-          setPhase("menu", "Three rounds stand between you and the treasure");
-        }
+        setupRound();
+        setPhase("menu", "Three rounds stand between you and Kraken's Quay");
 
         let lastFrameTime = performance.now();
         let elapsed = 0;
@@ -823,17 +836,31 @@ export default function ReefRivals() {
               showEffect("impact", p.clone());
               playSound("bonus");
               endFlight("Star buoy! +5 golden shells");
-            } else if (owner === "player" && p.distanceTo(new THREE.Vector3(10.8, 3.6, 0.7)) < 3.05) {
+            } else if (
+              owner === "player" &&
+              p.distanceTo(new THREE.Vector3(10.8, 3.6, 0.7)) < 3.05
+            ) {
               hitTeam("enemy");
-            } else if (owner === "enemy" && p.distanceTo(new THREE.Vector3(-10.8, 3.55, 0.7)) < 3.05) {
+            } else if (
+              owner === "enemy" &&
+              p.distanceTo(new THREE.Vector3(-10.8, 3.55, 0.7)) < 3.05
+            ) {
               hitTeam("player");
-            } else if (owner === "player" && driftwood.visible && p.distanceTo(new THREE.Vector3(6.2, 1.45, 0.2)) < 1.8) {
+            } else if (
+              owner === "player" &&
+              driftwood.visible &&
+              p.distanceTo(new THREE.Vector3(6.2, 1.45, 0.2)) < 1.8
+            ) {
               driftwoodHp -= 1;
               showEffect("impact", p.clone());
               playSound("impact");
               if (driftwoodHp <= 0) driftwood.visible = false;
               endFlight(driftwood.visible ? "The driftwood blocked it" : "Driftwood cover smashed!");
-            } else if (owner === "enemy" && coral.visible && p.distanceTo(new THREE.Vector3(-6.2, 1.6, 0.2)) < 1.8) {
+            } else if (
+              owner === "enemy" &&
+              coral.visible &&
+              p.distanceTo(new THREE.Vector3(-6.2, 1.6, 0.2)) < 1.8
+            ) {
               coralHp -= 1;
               showEffect("impact", p.clone());
               playSound("impact");
@@ -842,7 +869,11 @@ export default function ReefRivals() {
             } else if (p.y < 0.05 || Math.abs(p.x) > 25 || p.y > 22) {
               showEffect("splash", new THREE.Vector3(THREE.MathUtils.clamp(p.x, -23, 23), 0.02, 0.3));
               playSound("splash");
-              endFlight(owner === "player" ? "Splash! The rivals are laughing" : "Their shot found the fish");
+              endFlight(
+                owner === "player"
+                  ? "Splash! The rivals are laughing"
+                  : "Their shot found the fish",
+              );
             }
           }
 
@@ -899,7 +930,12 @@ export default function ReefRivals() {
       } catch (error) {
         console.error(error);
         if (canvasRef.current) canvasRef.current.dataset.assetState = "error";
-        if (!disposed) setUi((value) => ({ ...value, phase: "error", status: "A Mint asset failed to load. Refresh to retry." }));
+        if (!disposed)
+          setUi((value) => ({
+            ...value,
+            phase: "error",
+            status: "Asset failed to load. Refresh to retry.",
+          }));
       }
     })();
 
@@ -921,102 +957,200 @@ export default function ReefRivals() {
 
   return (
     <main
-      className="reef-game"
+      className="kq-game reef-game"
       style={{ "--reef-hud-sprite": `url(${ASSETS.images.hud})` } as CSSProperties}
     >
-      <canvas ref={canvasRef} className="reef-canvas" aria-label="Reef Rivals 3D game" />
+      <canvas ref={canvasRef} className="kq-canvas reef-canvas" aria-label="Kraken's Quay 3D game" />
 
-      <header className="reef-topbar">
-        <img src={ASSETS.images.title} alt="Reef Rivals: Treasure Tide" className="reef-mini-logo" />
-        <div className="reef-round-chip">ROUND {ui.round}/3</div>
-        <button className="reef-sound" onClick={() => controllerRef.current?.toggleSound()} aria-label="Toggle sound">
+      <header className="kq-topbar reef-topbar">
+        <img
+          src={ASSETS.images.title}
+          alt="Kraken's Quay: Splash & Shot"
+          className="kq-mini-logo reef-mini-logo"
+        />
+        <div className="kq-round-chip reef-round-chip">ROUND {ui.round}/3</div>
+        <button
+          className="kq-sound reef-sound"
+          onClick={() => controllerRef.current?.toggleSound()}
+          aria-label="Toggle sound"
+        >
           {ui.sound ? "SOUND ON" : "SOUND OFF"}
         </button>
       </header>
 
-      <section className="reef-health reef-health-player" aria-label="Player health">
-        <div className="reef-health-copy"><span>TIDE TEAM</span><strong>{ui.playerHp}</strong></div>
-        <div className="reef-health-track"><i style={{ width: `${playerPct}%` }} /></div>
+      <section className="kq-health reef-health kq-health-player reef-health-player" aria-label="Player health">
+        <div className="kq-health-copy reef-health-copy">
+          <span>TIDE GUARD</span>
+          <strong>{ui.playerHp}</strong>
+        </div>
+        <div className="kq-health-track reef-health-track">
+          <i style={{ width: `${playerPct}%` }} />
+        </div>
       </section>
-      <section className="reef-health reef-health-enemy" aria-label="Rival health">
-        <div className="reef-health-copy"><span>REEF RIVALS</span><strong>{ui.enemyHp}</strong></div>
-        <div className="reef-health-track"><i style={{ width: `${enemyPct}%` }} /></div>
+      <section className="kq-health reef-health kq-health-enemy reef-health-enemy" aria-label="Rival health">
+        <div className="kq-health-copy reef-health-copy">
+          <span>KRAKEN CREW</span>
+          <strong>{ui.enemyHp}</strong>
+        </div>
+        <div className="kq-health-track reef-health-track">
+          <i style={{ width: `${enemyPct}%` }} />
+        </div>
       </section>
 
-      <div className={`reef-status reef-status-${ui.phase}`}>{ui.status}</div>
-      <div className="reef-shells"><span className="reef-icon reef-icon-shell" />{ui.shells}</div>
+      <div className={`kq-status reef-status kq-status-${ui.phase} reef-status-${ui.phase}`}>
+        {ui.status}
+      </div>
+      <div className="kq-shells reef-shells">
+        <span className="kq-icon reef-icon kq-icon-shell reef-icon-shell" />
+        {ui.shells}
+      </div>
 
       {ui.phase === "loading" && (
-        <section className="reef-overlay reef-loading">
-          <div className="reef-spinner"><span /></div>
+        <section className="kq-overlay reef-overlay kq-loading reef-loading">
+          <div className="kq-spinner reef-spinner">
+            <span />
+          </div>
           <p>{ui.loading}</p>
         </section>
       )}
 
       {ui.phase === "menu" && (
-        <section className="reef-overlay reef-menu">
-          <img src={ASSETS.images.title} alt="Reef Rivals: Treasure Tide" />
-          <p>Three turn-based tube-and-raft battles. Set the angle, charge the shot, smash cover, and claim the treasure.</p>
-          <button className="reef-primary" onClick={() => controllerRef.current?.start()}>START THE TIDE</button>
-          <small>W/S angle · A/D power · 1/2/3 ammo · Space to fire</small>
+        <section className="kq-overlay reef-overlay kq-menu reef-menu">
+          <img src={ASSETS.images.title} alt="Kraken's Quay: Splash & Shot" />
+          <p>
+            Three turn-based tube-and-raft battles. Aim the trajectory, charge your shot, smash
+            enemy barricades, and claim Kraken's Quay.
+          </p>
+          <button className="kq-primary reef-primary" onClick={() => controllerRef.current?.start()}>
+            ENTER THE QUAY
+          </button>
+          <small>W/S or Sliders for Angle · A/D for Power · 1/2/3 for Ammo · Space to Fire</small>
         </section>
       )}
 
       {ui.phase === "upgrade" && (
-        <section className="reef-overlay reef-upgrade">
-          <span className="reef-kicker">ROUND {ui.round} CLEARED</span>
-          <h1>Pick one float upgrade</h1>
-          <div className="reef-upgrade-grid">
+        <section className="kq-overlay reef-overlay kq-upgrade reef-upgrade">
+          <span className="kq-kicker reef-kicker">ROUND {ui.round} CLEARED</span>
+          <h1>Choose a Float Upgrade</h1>
+          <div className="kq-upgrade-grid reef-upgrade-grid">
             <button onClick={() => controllerRef.current?.chooseUpgrade("power")}>
-              <span className="reef-upgrade-art" style={{ backgroundImage: `url(${ASSETS.images.upgradePower})` }} aria-hidden="true" />
-              <b>HOT COCONUTS</b><span className="reef-upgrade-copy">+8 damage to every shot</span>
+              <span
+                className="kq-upgrade-art reef-upgrade-art"
+                style={{ backgroundImage: `url(${ASSETS.images.upgradePower})` }}
+                aria-hidden="true"
+              />
+              <b>HOT COCONUTS</b>
+              <span className="kq-upgrade-copy reef-upgrade-copy">+8 damage to every shot</span>
             </button>
             <button onClick={() => controllerRef.current?.chooseUpgrade("patch")}>
-              <span className="reef-upgrade-art" style={{ backgroundImage: `url(${ASSETS.images.upgradePatch})` }} aria-hidden="true" />
-              <b>HEART PATCH</b><span className="reef-upgrade-copy">Restore 34 team health</span>
+              <span
+                className="kq-upgrade-art reef-upgrade-art"
+                style={{ backgroundImage: `url(${ASSETS.images.upgradePatch})` }}
+                aria-hidden="true"
+              />
+              <b>HEART PATCH</b>
+              <span className="kq-upgrade-copy reef-upgrade-copy">Restore +34 health</span>
             </button>
             <button onClick={() => controllerRef.current?.chooseUpgrade("armor")}>
-              <span className="reef-upgrade-art" style={{ backgroundImage: `url(${ASSETS.images.upgradeArmor})` }} aria-hidden="true" />
-              <b>CORAL ARMOR</b><span className="reef-upgrade-copy">Reduce every rival hit by 4</span>
+              <span
+                className="kq-upgrade-art reef-upgrade-art"
+                style={{ backgroundImage: `url(${ASSETS.images.upgradeArmor})` }}
+                aria-hidden="true"
+              />
+              <b>CORAL ARMOR</b>
+              <span className="kq-upgrade-copy reef-upgrade-copy">Reduce incoming damage by 4</span>
             </button>
           </div>
         </section>
       )}
 
       {(ui.phase === "won" || ui.phase === "lost" || ui.phase === "error") && (
-        <section className={`reef-overlay reef-result reef-result-${ui.phase}`}>
-          <span className={`reef-result-icon reef-icon reef-icon-${ui.phase === "won" ? "star" : "heart"}`} />
-          <h1>{ui.phase === "won" ? "TREASURE TIDE CHAMPIONS!" : ui.phase === "lost" ? "TUBES TIPPED!" : "THE TIDE GOT STUCK"}</h1>
+        <section className={`kq-overlay reef-overlay kq-result reef-result kq-result-${ui.phase} reef-result-${ui.phase}`}>
+          <span
+            className={`kq-result-icon reef-result-icon kq-icon reef-icon kq-icon-${ui.phase === "won" ? "star" : "heart"} reef-icon-${ui.phase === "won" ? "star" : "heart"}`}
+          />
+          <h1>
+            {ui.phase === "won"
+              ? "KRAKEN'S QUAY CHAMPIONS!"
+              : ui.phase === "lost"
+                ? "TUBES TIPPED!"
+                : "THE QUAY GOT STUCK"}
+          </h1>
           <p>{ui.status}</p>
           <strong>{ui.shells} GOLDEN SHELLS</strong>
-          {ui.phase !== "error" && <button className="reef-primary" onClick={() => controllerRef.current?.start()}>PLAY AGAIN</button>}
+          {ui.phase !== "error" && (
+            <button className="kq-primary reef-primary" onClick={() => controllerRef.current?.start()}>
+              PLAY AGAIN
+            </button>
+          )}
         </section>
       )}
 
-      <section className={`reef-controls ${canControl ? "is-ready" : "is-locked"}`}>
-        <div className="reef-control-block">
-          <label htmlFor="angle">ANGLE <b>{ui.angle}°</b></label>
-          <input id="angle" type="range" min="15" max="76" value={ui.angle} disabled={!canControl}
-            onChange={(event) => controllerRef.current?.setAngle(Number(event.target.value))} />
+      <section className={`kq-controls reef-controls ${canControl ? "is-ready" : "is-locked"}`}>
+        <div className="kq-control-block reef-control-block">
+          <label htmlFor="angle">
+            ANGLE <b>{ui.angle}°</b>
+          </label>
+          <input
+            id="angle"
+            type="range"
+            min="15"
+            max="76"
+            value={ui.angle}
+            disabled={!canControl}
+            onChange={(event) => controllerRef.current?.setAngle(Number(event.target.value))}
+          />
         </div>
-        <div className="reef-control-block">
-          <label htmlFor="power">POWER <b>{ui.power}%</b></label>
-          <input id="power" type="range" min="35" max="100" value={ui.power} disabled={!canControl}
-            onChange={(event) => controllerRef.current?.setPower(Number(event.target.value))} />
+        <div className="kq-control-block reef-control-block">
+          <label htmlFor="power">
+            POWER <b>{ui.power}%</b>
+          </label>
+          <input
+            id="power"
+            type="range"
+            min="35"
+            max="100"
+            value={ui.power}
+            disabled={!canControl}
+            onChange={(event) => controllerRef.current?.setPower(Number(event.target.value))}
+          />
         </div>
-        <div className="reef-ammo" aria-label="Choose ammo">
-          <button className={ui.ammo === "coconut" ? "is-active" : ""} disabled={!canControl}
-            onClick={() => controllerRef.current?.setAmmo("coconut")}><span className="reef-icon reef-icon-coconut" /><b>∞</b></button>
-          <button className={ui.ammo === "pineapple" ? "is-active" : ""} disabled={!canControl || ui.pineapple <= 0}
-            onClick={() => controllerRef.current?.setAmmo("pineapple")}><span className="reef-icon reef-icon-pineapple" /><b>{ui.pineapple}</b></button>
-          <button className={ui.ammo === "volley" ? "is-active" : ""} disabled={!canControl || ui.volley <= 0}
-            onClick={() => controllerRef.current?.setAmmo("volley")}><span className="reef-icon reef-icon-volley" /><b>{ui.volley}</b></button>
+        <div className="kq-ammo reef-ammo" aria-label="Choose ammo">
+          <button
+            className={ui.ammo === "coconut" ? "is-active" : ""}
+            disabled={!canControl}
+            onClick={() => controllerRef.current?.setAmmo("coconut")}
+          >
+            <span className="kq-icon reef-icon kq-icon-coconut reef-icon-coconut" />
+            <b>∞</b>
+          </button>
+          <button
+            className={ui.ammo === "pineapple" ? "is-active" : ""}
+            disabled={!canControl || ui.pineapple <= 0}
+            onClick={() => controllerRef.current?.setAmmo("pineapple")}
+          >
+            <span className="kq-icon reef-icon kq-icon-pineapple reef-icon-pineapple" />
+            <b>{ui.pineapple}</b>
+          </button>
+          <button
+            className={ui.ammo === "volley" ? "is-active" : ""}
+            disabled={!canControl || ui.volley <= 0}
+            onClick={() => controllerRef.current?.setAmmo("volley")}
+          >
+            <span className="kq-icon reef-icon kq-icon-volley reef-icon-volley" />
+            <b>{ui.volley}</b>
+          </button>
         </div>
-        <button className="reef-fire" disabled={!canControl} onClick={() => controllerRef.current?.fire()}>
-          <span>FIRE!</span><small>SPACE</small>
+        <button
+          className="kq-fire reef-fire"
+          disabled={!canControl}
+          onClick={() => controllerRef.current?.fire()}
+        >
+          <span>FIRE!</span>
+          <small>SPACE</small>
         </button>
       </section>
-      <div className="reef-credit">BROUGHT TO YOU BY MINT</div>
+      <div className="kq-credit reef-credit">KRAKEN'S QUAY · 3D BATTLE ENGINE</div>
     </main>
   );
 }
