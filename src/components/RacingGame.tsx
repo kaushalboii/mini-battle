@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { initRacingGame, type GameInstance, type TelemetryData } from "../game/racing-engine/initGame";
-import { CIRCUITS, type CircuitDefinition } from "../game/racing-engine/Track";
-import { CAMERA_MODES } from "../game/racing-engine/Camera";
+import { initRacingGame, CAMERA_MODES, type GameInstance, type TelemetryData } from "../game/racing-engine/initGame";
+import { CIRCUITS_METADATA as CIRCUITS } from "../game/racing-engine/TrackGenerator";
 import "../styles/racing.css";
 
 const VEHICLE_OPTIONS = [
-  { key: "vehicle-truck-yellow", label: "Amber Bull", team: "Red Bull", color: "#f59e0b" },
-  { key: "vehicle-truck-red", label: "Scarlet Scuderia", team: "Ferrari", color: "#ef4444" },
-  { key: "vehicle-truck-green", label: "Emerald GP", team: "Aston / Mercedes", color: "#10b981" },
-  { key: "vehicle-truck-purple", label: "Cobalt Racing", team: "McLaren / Alpine", color: "#8b5cf6" },
+  { key: "#f59e0b", label: "Amber Bull", team: "Red Bull", color: "#f59e0b" },
+  { key: "#ef4444", label: "Scarlet Scuderia", team: "Ferrari", color: "#ef4444" },
+  { key: "#10b981", label: "Emerald GP", team: "Aston / Mercedes", color: "#10b981" },
+  { key: "#8b5cf6", label: "Cobalt Racing", team: "McLaren / Alpine", color: "#8b5cf6" },
 ];
 
 const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string }> = [
@@ -37,7 +36,7 @@ export default function RacingGame() {
   const [showCircuitPicker, setShowCircuitPicker] = useState(false);
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
-  const [selectedColor, setSelectedColor] = useState<string>("vehicle-truck-yellow");
+  const [selectedColor, setSelectedColor] = useState<string>("#f59e0b");
 
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
