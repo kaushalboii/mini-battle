@@ -228,3 +228,4 @@ export class CrashFX {
     this.smokeMat.dispose();
   }
 }
+

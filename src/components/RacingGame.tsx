@@ -31,13 +31,8 @@ export default function RacingGame() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadLabel, setLoadLabel] = useState("Initializing circuit & shaders");
   
-  // Game Lifecycle & Cinematic Flow State: 'intro' -> 'menu' -> 'lights' -> 'racing'
-  type FlowPhase = 'intro' | 'menu' | 'lights' | 'racing';
-  const [flowPhase, setFlowPhase] = useState<FlowPhase>('intro');
-  const [lightsCount, setLightsCount] = useState<number>(0);
-  const [isLightsOut, setIsLightsOut] = useState<boolean>(false);
-
   // Grand Prix Hub & Circuit Selection State
+  const [showLanding, setShowLanding] = useState(true);
   const [showCircuitPicker, setShowCircuitPicker] = useState(false);
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
@@ -53,7 +48,8 @@ export default function RacingGame() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Orientation state
-  const [isPortrait, setIsPortrait] = useState(false);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [isPortraitHintDismissed, setIsPortraitHintDismissed] = useState(false);
 
   // Multi-touch pedals state
   const [activeSteer, setActiveSteer] = useState<-1 | 0 | 1>(0);
@@ -85,9 +81,10 @@ export default function RacingGame() {
   // Track viewport orientation
   useEffect(() => {
     const handleViewportChange = () => {
-      const portrait = window.innerHeight > window.innerWidth;
-      setIsPortrait(portrait);
-      if (portrait) {
+      const isMobile = window.innerWidth < 850 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isPortrait = window.innerHeight > window.innerWidth;
+      setIsMobilePortrait(isMobile && isPortrait);
+      if (isMobile && isPortrait) {
         setShowF1Tower(false);
       }
     };
@@ -100,17 +97,6 @@ export default function RacingGame() {
       window.removeEventListener("orientationchange", handleViewportChange);
     };
   }, []);
-
-  const handleRequestLandscape = async () => {
-    try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      }
-      if (screen.orientation && (screen.orientation as any).lock) {
-        await (screen.orientation as any).lock("landscape");
-      }
-    } catch {}
-  };
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -242,33 +228,14 @@ export default function RacingGame() {
         gameRef.current.setLightingTheme(c.recommendedTheme);
         setLightingTheme(c.recommendedTheme);
       }
-      gameRef.current.resetPosition();
     }
-
-    setFlowPhase("lights");
-    setLightsCount(0);
-    setIsLightsOut(false);
-
-    // Official Formula 1 5-Red-Lights Sequence
-    const lightDelays = [600, 1200, 1800, 2400, 3000];
-    lightDelays.forEach((delay, idx) => {
-      setTimeout(() => {
-        setLightsCount(idx + 1);
-        gameRef.current?.playStartBeep(false);
-      }, delay);
-    });
-
-    // Random lights out hold (3.8s - 4.5s)
-    const lightsOutDelay = 3800 + Math.random() * 700;
-    setTimeout(() => {
-      setIsLightsOut(true);
-      gameRef.current?.playStartBeep(true);
-      setTimeout(() => {
-        setFlowPhase("racing");
-        setToastMessage("LIGHTS OUT AND AWAY WE GO!");
-        setTimeout(() => setToastMessage(null), 2000);
-      }, 700);
-    }, lightsOutDelay);
+    setShowLanding(false);
+    setToastMessage(
+      isPracticeMode
+        ? `Grand Prix Started • Practice Grid on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+        : `Grand Prix Started • Live Solo on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+    );
+    setTimeout(() => setToastMessage(null), 1800);
   };
 
   const handleCycleCamera = () => {
@@ -302,7 +269,9 @@ export default function RacingGame() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      if (e.code === "KeyC") {
+      if (e.code === "Escape") {
+        setShowLanding((prev) => !prev);
+      } else if (e.code === "KeyC") {
         handleCycleCamera();
       } else if (e.code === "KeyR") {
         handleReset();
@@ -360,94 +329,8 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* FULLSCREEN ROTATE TO LANDSCAPE BLOCKER */}
-      {isPortrait && (
-        <div className="revsector-rotate-screen">
-          <div className="rotate-screen-card">
-            <div className="rotate-badge">
-              <span className="rotate-f1-pill">F1 GP</span>
-              <span className="rotate-brand-text">RevSector 3D</span>
-            </div>
-
-            {/* Animated Rotating Phone Graphic */}
-            <div className="rotate-phone-anim">
-              <div className="phone-device-box">
-                <div className="phone-notch" />
-                <div className="phone-screen-display">
-                  <div className="phone-racing-track" />
-                  <div className="phone-racing-car">🏎️</div>
-                </div>
-              </div>
-              <svg className="rotate-arc-arrows" viewBox="0 0 80 80">
-                <path d="M 15 40 A 25 25 0 0 1 65 25" fill="none" stroke="var(--accent)" strokeWidth="3" strokeDasharray="4 2" />
-                <polygon points="63,18 72,25 64,32" fill="var(--accent)" />
-              </svg>
-            </div>
-
-            <h2 className="rotate-title">Rotate Your Device</h2>
-            <p className="rotate-desc">
-              RevSector 3D is engineered for widescreen landscape view. Please turn your device horizontally to access circuit telemetry and racing controls.
-            </p>
-
-            <div className="rotate-actions">
-              <button className="btn-force-landscape" onClick={handleRequestLandscape}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
-                </svg>
-                <span>Full Screen Landscape</span>
-              </button>
-            </div>
-
-            <span className="rotate-subnote">Author & Lead Engineer: Kaushal</span>
-          </div>
-        </div>
-      )}
-
-      {/* 1. CINEMATIC LOGO INTRO SCREEN (Phase: 'intro') */}
-      {!isLoading && flowPhase === 'intro' && !isPortrait && (
-        <div className="revsector-intro-backdrop">
-          <div className="revsector-intro-modal">
-            <div className="intro-badge-row">
-              <span className="intro-f1-badge">F1 GP</span>
-              <span className="intro-live-badge">
-                <span className="mesh-live-dot" />
-                ONLINE MESH
-              </span>
-            </div>
-
-            <div className="intro-logo-group">
-              <svg className="intro-logo-glyph" viewBox="0 0 48 48" width="56" height="56" fill="none">
-                <path d="M8 38 L22 10 L28 10 L14 38 Z" fill="var(--accent)" />
-                <path d="M20 38 L34 10 L40 10 L26 38 Z" fill="#ffffff" fillOpacity="0.9" />
-              </svg>
-              <h1 className="intro-title">RevSector 3D</h1>
-              <p className="intro-tagline">Formula 1 Real-Time Circuit Racing Simulator</p>
-              <span className="intro-credits">Engineered & Developed by Kaushal</span>
-            </div>
-
-            <div className="intro-action-group">
-              <button
-                className="btn-enter-paddock"
-                onClick={() => {
-                  gameRef.current?.unlockAudio();
-                  gameRef.current?.playIgnition();
-                  setFlowPhase('menu');
-                }}
-              >
-                <span className="btn-engine-icon">🏎️</span>
-                <span>START ENGINE & ENTER PADDOCK</span>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-              <span className="intro-audio-note">🔊 Audio Context Activated on Ignition</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. GRAND PRIX PADDOCK MENU / CIRCUIT SELECTOR (Phase: 'menu') */}
-      {!isLoading && flowPhase === 'menu' && !isPortrait && (
+      {/* GRAND PRIX LANDING SCREEN & CIRCUIT SELECTOR */}
+      {!isLoading && showLanding && (
         <div className="revsector-landing-backdrop">
           <div className="revsector-landing-hub">
             {/* Header */}
@@ -455,10 +338,10 @@ export default function RacingGame() {
               <div className="landing-brand-col">
                 <div className="landing-gp-badge">
                   <span className="landing-f1-pill">F1 GP</span>
-                  <h1 className="landing-title">Grand Prix Paddock</h1>
+                  <h1 className="landing-title">RevSector 3D</h1>
                 </div>
                 <span className="landing-subtitle">
-                  RevSector 3D • Author & Lead Engineer: Kaushal
+                  Engineered by Kaushal • Real-Time WebGPU Multi-Car Circuit Racing
                 </span>
               </div>
               <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
@@ -648,39 +531,8 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* 3. OFFICIAL FORMULA 1 STARTING LIGHTS GANTRY (Phase: 'lights') */}
-      {!isLoading && flowPhase === 'lights' && !isPortrait && (
-        <div className="f1-starting-gantry-overlay">
-          <div className="f1-gantry-housing">
-            <div className="f1-gantry-header">
-              <span className="f1-gp-tag">F1</span>
-              <span>REVSECTOR GRAND PRIX START</span>
-            </div>
-            <div className="f1-gantry-lights-row">
-              {[1, 2, 3, 4, 5].map((lightNum) => {
-                const isLit = lightsCount >= lightNum;
-                return (
-                  <div key={lightNum} className="f1-gantry-light-unit">
-                    <div className={`f1-gantry-bulb ${isLit ? (isLightsOut ? 'green' : 'lit') : ''}`} />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="f1-gantry-status">
-              {isLightsOut ? (
-                <span className="f1-lights-out-text">LIGHTS OUT AND AWAY WE GO!</span>
-              ) : lightsCount > 0 ? (
-                <span className="f1-lights-waiting">GRID FORMATION • LIGHT {lightsCount}/5</span>
-              ) : (
-                <span className="f1-lights-waiting">HOLDING REVS ON GRID...</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Top Navigation Bar */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && (
+      {!isLoading && !showLanding && (
         <header className="racing-top-bar">
           {/* Brand Identifier */}
           <div className="racing-brand">
@@ -696,12 +548,12 @@ export default function RacingGame() {
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
-            {/* Paddock Menu Button */}
+            {/* Paddock / Grand Prix Hub Button */}
             <button
-              className="racing-btn"
-              onClick={() => setFlowPhase('menu')}
-              title="Return to Grand Prix Paddock Menu"
-              aria-label="Paddock Menu"
+              className="racing-btn paddock-btn"
+              onClick={() => setShowLanding(true)}
+              title="Open Grand Prix Hub / Paddock (Esc)"
+              aria-label="Paddock Hub"
             >
               <span style={{ fontSize: '13px' }}>🏁</span>
               <span className="racing-btn-text">Paddock</span>
@@ -860,8 +712,25 @@ export default function RacingGame() {
         </header>
       )}
 
+      {/* Mobile Portrait Orientation Recommendation Banner */}
+      {!isLoading && !showLanding && isMobilePortrait && !isPortraitHintDismissed && (
+        <div className="racing-orientation-banner">
+          <div className="orientation-banner-content">
+            <span className="orientation-icon">🔄</span>
+            <span>Rotate to <strong>Landscape</strong> for wide F1 cockpit view</span>
+          </div>
+          <button
+            className="orientation-banner-close"
+            onClick={() => setIsPortraitHintDismissed(true)}
+            aria-label="Dismiss orientation notice"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* FORMULA 1 OFFICIAL TIMING TOWER / DYNAMIC RIVAL LEADERBOARD (Left Side) */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && showF1Tower && (
+      {!isLoading && !showLanding && showF1Tower && (
         <aside className="f1-timing-tower" aria-label="F1 Grand Prix Leaderboard">
           {/* Header */}
           <div className="f1-tower-header">
@@ -912,7 +781,7 @@ export default function RacingGame() {
       )}
 
       {/* UNIFIED MOTORSPORT LAP TIMING CONSOLE (Top-Center) */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && (
+      {!isLoading && !showLanding && (
         <section className={`racing-timing-console ${telemetry.isFlash ? (telemetry.isNewBest ? "new-best" : "lap-flash") : ""}`}>
           <div className="racing-timing-header">
             <span className="racing-lap-badge">LAP {telemetry.lap}</span>
@@ -937,7 +806,7 @@ export default function RacingGame() {
       )}
 
       {/* DRIFT SCORE TOAST (Cleanly Below Timing Console — NO OVERLAP!) */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && telemetry.currentDriftPoints > 0 && (
+      {!isLoading && !showLanding && telemetry.currentDriftPoints > 0 && (
         <div className="racing-drift-toast">
           <span className="racing-drift-flame">🔥</span>
           <span className="racing-drift-label">DRIFT POWER</span>
@@ -945,8 +814,8 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* COCKPIT TELEMETRY INSTRUMENT PANEL (Bottom-Center Steering Dash) */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && (
+      {/* COCKPIT TELEMETRY INSTRUMENT PANEL (Bottom-Left / Steering Dash) */}
+      {!isLoading && !showLanding && (
         <aside className="racing-telemetry-panel">
           {/* F1 15-LED Shift Light Bar */}
           <div className="f1-shift-cluster">
@@ -1001,7 +870,7 @@ export default function RacingGame() {
       )}
 
       {/* TOUCH CONTROLS FOR MOBILE / TABLET */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && (
+      {!isLoading && !showLanding && (
         <div className="racing-touch-cluster">
           {/* Left Wing: Steering Paddles */}
           <div className="racing-steer-wing">
@@ -1180,7 +1049,7 @@ export default function RacingGame() {
       )}
 
       {/* Desktop Hint Footer */}
-      {!isLoading && flowPhase === 'racing' && !isPortrait && (
+      {!isLoading && !showLanding && (
         <div className="racing-footer-hint">
           <span>Drive: WASD / Arrows • Nitro: Space / Shift • Circuits: M • Standings: L • Reset: R • RevSector 3D by Kaushal</span>
         </div>
