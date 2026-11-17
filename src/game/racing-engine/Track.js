@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Modular Circuit & Environmental Grid
+ * RevSector 3D - Modular Circuit & Environmental Grid
  * Instantiates the circuit segments, environmental forest canopy, trackside paddock, and rigid physics colliders.
+ * Engineered by Kaushal.
  */
 
 import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';

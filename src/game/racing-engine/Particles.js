@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Particle FX Systems
+ * RevSector 3D - Particle FX Systems
  * Manages tire smoke plumes during slides and electric-cyan nitrous flame exhaust.
+ * Engineered by Kaushal.
  */
 
 import { Vector3 } from '@pixi/3d';

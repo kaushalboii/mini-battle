@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Multi-Input Controller
+ * RevSector 3D - Multi-Input Controller
  * Coordinates keyboard (WASD/Arrows/Shift/Space), HTML5 Gamepad API, and high-performance Touch Controls.
+ * Engineered by Kaushal.
  */
 
 import { clamp } from './MathUtils';

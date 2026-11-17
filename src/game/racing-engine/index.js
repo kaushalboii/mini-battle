@@ -1,7 +1,8 @@
 /**
- * Apex Drift 3D - Standalone Arcade Grand Prix Runner
+ * RevSector 3D - Standalone Arcade Grand Prix Runner
  * High-performance 3D racer with cascaded directional shadows, ACES tone mapping,
  * multi-gear synthesized audio, and dynamic follow cameras.
+ * Engineered by Kaushal.
  */
 
 import {

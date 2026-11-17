@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Vehicle Dynamics & Physics Controller
+ * RevSector 3D - Vehicle Dynamics & Physics Controller
  * Handles arcade chassis dynamics, steering grip, nitrous injection, wheel rotation, and suspension roll.
+ * Engineered by Kaushal.
  */
 
 import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';

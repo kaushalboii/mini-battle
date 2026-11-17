@@ -1,6 +1,7 @@
 /**
- * Apex Drift 3D - Multi-Gear WebAudio Sound Engine
+ * RevSector 3D - Multi-Gear WebAudio Sound Engine
  * Synthesizes engine RPM curves, 3-speed gear transmission shifts, tire screech, and collision impacts.
+ * Engineered by Kaushal.
  */
 
 import { sound } from './manifest';
