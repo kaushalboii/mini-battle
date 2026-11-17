@@ -11,6 +11,7 @@ import {
   Material3D,
   Mesh3D,
   PlaneGeometry,
+  SpotLight,
   Vector3,
   View3D,
 } from '@pixi/3d';
@@ -265,6 +266,51 @@ export async function initRacingGame(
   let vehicle = new Vehicle(sources[currentKey], physics);
   view3d.root.addChild(vehicle.container);
 
+  // High-Intensity Vehicle Headlight System (Night & Sunset Driving)
+  const headlightBeam = new SpotLight({
+    color: 0xfffaed,
+    intensity: 0, // Inactive during bright daylight
+    range: 48,
+    coneAngle: 34,
+    penumbra: 0.38,
+    castShadow: false,
+  });
+  headlightBeam.position.set(0, 0.45, 0.85);
+  headlightBeam.lookAt({ x: 0, y: 0.05, z: 25 });
+
+  const lensGeo = new CubeGeometry({ width: 0.16, height: 0.10, depth: 0.04 });
+  const headlightLensMat = new Material3D({
+    baseColor: 0xd1d5db,
+    metallic: 0.1,
+    roughness: 0.2,
+  });
+  const lensLeft = new Mesh3D({ geometry: lensGeo, material: headlightLensMat });
+  lensLeft.position.set(-0.35, 0.32, 0.96);
+
+  const lensRight = new Mesh3D({ geometry: lensGeo, material: headlightLensMat });
+  lensRight.position.set(0.35, 0.32, 0.96);
+
+  const tailLensMat = new Material3D({
+    baseColor: 0xdc2626,
+    metallic: 0.2,
+    roughness: 0.4,
+  });
+  const tailLeft = new Mesh3D({ geometry: lensGeo, material: tailLensMat });
+  tailLeft.position.set(-0.35, 0.32, -0.96);
+
+  const tailRight = new Mesh3D({ geometry: lensGeo, material: tailLensMat });
+  tailRight.position.set(0.35, 0.32, -0.96);
+
+  function attachVehicleLights(targetContainer: any) {
+    targetContainer.addChild(headlightBeam);
+    targetContainer.addChild(lensLeft);
+    targetContainer.addChild(lensRight);
+    targetContainer.addChild(tailLeft);
+    targetContainer.addChild(tailRight);
+  }
+
+  attachVehicleLights(vehicle.container);
+
   (physics as any).listener = {
     onContactAdded(bodyA: any, bodyB: any) {
       if (bodyA !== physics.sphereBody && bodyB !== physics.sphereBody) return;
@@ -345,12 +391,20 @@ export async function initRacingGame(
     if (telemetryTimer >= 0.033 && onTelemetry) {
       telemetryTimer = 0;
       const speedKmh = Math.round(Math.abs(vehicle.linearSpeed) * 85);
-      const gear = (audio as any)._gear + 1;
+      let gear: string | number = (audio as any)._gear + 1;
+      if (vehicle.isBoosting) {
+        gear = 'NOS';
+      } else if (vehicle.linearSpeed < -0.05) {
+        gear = 'R';
+      } else if (Math.abs(vehicle.linearSpeed) < 0.02 && input.z === 0) {
+        gear = 'N';
+      }
+
       const rpm = (audio as any)._rpm;
 
       onTelemetry({
         speedKmh,
-        gear: vehicle.isBoosting ? 'NOS' : gear,
+        gear,
         rpm,
         nitro: Math.round(vehicle.nitroAmount),
         isBoosting: vehicle.isBoosting,
@@ -385,6 +439,7 @@ export async function initRacingGame(
       const oldYaw = vehicle.yaw;
       vehicle = new Vehicle(sources[newKey], physics);
       vehicle.yaw = oldYaw;
+      attachVehicleLights(vehicle.container);
       view3d.root.addChild(vehicle.container);
     },
     setCameraMode(mode: string) {
@@ -400,12 +455,16 @@ export async function initRacingGame(
         view3d.background = 0x581c87;
         view3d.fog = { type: 'linear', color: 0x8b5cf6, near: 40, far: 85 };
         view3d.environment = { skyColor: 0xf97316, groundColor: 0x2e1065, intensity: 1.3 };
+        headlightBeam.intensity = 12;
+        headlightLensMat.baseColor = 0xffffff;
       } else if (theme === 'night') {
         sun.color = 0xdbeafe;
-        sun.intensity = 1.6;
+        sun.intensity = 1.3;
         view3d.background = 0x070b14;
         view3d.fog = { type: 'linear', color: 0x070b14, near: 35, far: 70 };
         view3d.environment = { skyColor: 0x1e293b, groundColor: 0x020617, intensity: 0.85 };
+        headlightBeam.intensity = 26; // High-Intensity Xenon Headlights at Night
+        headlightLensMat.baseColor = 0xffffff;
       } else {
         // High-contrast Grand Prix Daylight
         sun.color = 0xfffaed;
@@ -413,6 +472,8 @@ export async function initRacingGame(
         view3d.background = 0x60a5fa;
         view3d.fog = { type: 'linear', color: 0x7cb5ec, near: 45, far: 105 };
         view3d.environment = { skyColor: 0x93c5fd, groundColor: 0x1c3a19, intensity: 1.15 };
+        headlightBeam.intensity = 0; // Headlights off during bright daylight
+        headlightLensMat.baseColor = 0xd1d5db;
       }
     },
     setSteer(val: number) {
@@ -434,6 +495,7 @@ export async function initRacingGame(
     },
     resetPosition() {
       vehicle.reset();
+      lapTimer.reset();
     },
     destroy() {
       app.ticker.remove(tickerFn);

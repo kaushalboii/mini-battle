@@ -158,7 +158,22 @@ export default function RacingGame() {
 
   const handleReset = () => {
     gameRef.current?.resetPosition();
-    setToastMessage("Vehicle repositioned to grid");
+    setTelemetry((prev) => ({
+      ...prev,
+      speedKmh: 0,
+      linearSpeed: 0,
+      gear: "N",
+      currentLapTime: 0,
+      lastLapTime: null,
+      lap: 1,
+      currentDriftPoints: 0,
+      totalDriftScore: 0,
+      nitro: 100,
+      isBoosting: false,
+      sector: 1,
+      trackProgress: 0,
+    }));
+    setToastMessage("Starting grid reset • Hot lap ready");
     setTimeout(() => setToastMessage(null), 1400);
   };
 
@@ -621,25 +636,31 @@ export default function RacingGame() {
         </aside>
       )}
 
-      {/* ON-SCREEN RACING TOUCH CONTROLS (Mobile Landscape First + Web Keycaps) */}
+      {/* ON-SCREEN RACING TOUCH CONTROLS (Handy Ergonomic Placement) */}
       {!isLoading && (
         <nav className="racing-touch-cluster" aria-label="Racing Controls">
           {/* Left Wing: Steering Paddles */}
           <div className="racing-steer-wing">
             <button
               className={`racing-steer-paddle ${activeSteer === -1 ? "active" : ""}`}
-              onPointerDown={() => handleSteerStart(-1)}
-              onPointerUp={handleSteerEnd}
+              onPointerDown={(e) => {
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                handleSteerStart(-1);
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleSteerEnd();
+              }}
               onPointerCancel={handleSteerEnd}
-              onPointerLeave={handleSteerEnd}
-              aria-label="Steer Left"
+              aria-label="Steer Left (A)"
+              title="Steer Left (A)"
             >
               <div className="racing-paddle-ridges">
                 <span />
                 <span />
                 <span />
               </div>
-              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
               <kbd className="racing-pedal-keycap">A</kbd>
@@ -647,14 +668,20 @@ export default function RacingGame() {
 
             <button
               className={`racing-steer-paddle ${activeSteer === 1 ? "active" : ""}`}
-              onPointerDown={() => handleSteerStart(1)}
-              onPointerUp={handleSteerEnd}
+              onPointerDown={(e) => {
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                handleSteerStart(1);
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleSteerEnd();
+              }}
               onPointerCancel={handleSteerEnd}
-              onPointerLeave={handleSteerEnd}
-              aria-label="Steer Right"
+              aria-label="Steer Right (D)"
+              title="Steer Right (D)"
             >
               <kbd className="racing-pedal-keycap">D</kbd>
-              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="racing-paddle-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18l6-6-6-6" />
               </svg>
               <div className="racing-paddle-ridges">
@@ -665,32 +692,44 @@ export default function RacingGame() {
             </button>
           </div>
 
-          {/* Right Wing: Drive Pedal, Brake Pedal & Nitrous */}
+          {/* Right Wing: Drive Pedal, Brake / Reverse Pedal & Nitrous */}
           <div className="racing-pedal-wing">
-            {/* Nitrous Ignition Button */}
+            {/* Nitrous Boost Button */}
             <button
               className={`racing-nos-trigger ${isNosActive || telemetry.isBoosting ? "firing" : ""}`}
-              onPointerDown={handleNosStart}
-              onPointerUp={handleNosEnd}
+              onPointerDown={(e) => {
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                handleNosStart();
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleNosEnd();
+              }}
               onPointerCancel={handleNosEnd}
-              onPointerLeave={handleNosEnd}
-              aria-label="Nitrous Boost"
+              aria-label="Nitrous Boost (Shift)"
+              title="Nitrous Boost (Shift)"
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
-              <span>NOS</span>
+              <span>BOOST</span>
               <kbd className="racing-pedal-keycap">Shift</kbd>
             </button>
 
-            {/* Brake & Reverse Pedal */}
+            {/* Brake & Reverse Pedal (Smooth Braking + Backward Drive) */}
             <button
               className={`racing-pedal racing-pedal-brake ${activeThrottle === -1 ? "depressed" : ""}`}
-              onPointerDown={() => handleThrottleStart(-1)}
-              onPointerUp={handleThrottleEnd}
+              onPointerDown={(e) => {
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                handleThrottleStart(-1);
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleThrottleEnd();
+              }}
               onPointerCancel={handleThrottleEnd}
-              onPointerLeave={handleThrottleEnd}
-              aria-label="Brake and Reverse"
+              aria-label="Brake and Reverse (S)"
+              title="Brake / Reverse (S)"
             >
               <div className="racing-pedal-tread">
                 <span />
@@ -698,18 +737,24 @@ export default function RacingGame() {
                 <span />
                 <span />
               </div>
-              <span className="racing-pedal-tag">Brake</span>
+              <span className="racing-pedal-tag">REV / BRAKE</span>
               <kbd className="racing-pedal-keycap">S</kbd>
             </button>
 
             {/* Accelerator Gas Pedal */}
             <button
               className={`racing-pedal racing-pedal-gas ${activeThrottle === 1 ? "depressed" : ""}`}
-              onPointerDown={() => handleThrottleStart(1)}
-              onPointerUp={handleThrottleEnd}
+              onPointerDown={(e) => {
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                handleThrottleStart(1);
+              }}
+              onPointerUp={(e) => {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                handleThrottleEnd();
+              }}
               onPointerCancel={handleThrottleEnd}
-              onPointerLeave={handleThrottleEnd}
-              aria-label="Accelerate Throttle"
+              aria-label="Drive Forward (W)"
+              title="Drive / Accelerate (W)"
             >
               <div className="racing-pedal-tread">
                 <span />
@@ -719,7 +764,7 @@ export default function RacingGame() {
                 <span />
                 <span />
               </div>
-              <span className="racing-pedal-tag">Drive</span>
+              <span className="racing-pedal-tag">DRIVE</span>
               <kbd className="racing-pedal-keycap">W</kbd>
             </button>
           </div>

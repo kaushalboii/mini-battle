@@ -55,6 +55,17 @@ export class LapTimer {
     // Canvas sizing handled by WebGPU viewport; HTML HUD scales natively
   }
 
+  reset() {
+    this._lap = 1;
+    this._currentLapTime = 0;
+    this._lastLap = null;
+    this._running = false;
+    this._prevForwardProj = null;
+    this._visited.clear();
+    this._flashTime = 0;
+    this._isNewBest = false;
+  }
+
   update(dt, position, hasInput) {
     if (!this._running && !hasInput) return;
     this._running = true;

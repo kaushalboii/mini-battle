@@ -111,6 +111,9 @@ export class Vehicle {
     this.acceleration = 0;
     this.yaw = 0;
     this.isBoosting = false;
+    this.currentDriftPoints = 0;
+    this.driftScore = 0;
+    this.nitroAmount = 100;
     this.container.position.set(SPAWN[0], SPAWN[1] - 0.5, SPAWN[2]);
     this._prevModelPos.set(SPAWN[0], 0, SPAWN[2]);
   }
@@ -128,40 +131,41 @@ export class Vehicle {
       this.nitroAmount = Math.min(100, this.nitroAmount + dt * 10);
     }
 
-    if (input.touchActive && (this.inputX !== 0 || this.inputZ !== 0)) {
-      const targetAngle = Math.atan2(this.inputX, this.inputZ);
-      const slerpT = 1 - Math.exp(-3 * dt);
+    // Direction & Steering Dynamics
+    // When moving forward: direction = 1; when reversing: direction = -1
+    let direction = 1;
+    if (this.linearSpeed < -0.05) {
+      direction = -1;
+    }
 
-      this.yaw = lerpAngle(this.yaw, targetAngle, slerpT);
+    // Steering grip scales with speed, with minimum response when stationary
+    const speedRatio = Math.abs(this.linearSpeed) / MAX_SPEED;
+    const steeringGrip = clamp(speedRatio * 1.2, 0.35, 1.0);
+    const targetAngular = -this.inputX * steeringGrip * 3.8 * direction;
 
-      _forward.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
-      const cross = _forward.x * this.inputZ - _forward.z * this.inputX;
+    this.angularSpeed = lerp(this.angularSpeed, targetAngular, dt * 6);
+    this.yaw += this.angularSpeed * dt;
 
-      this.inputX = clamp(-cross * 2, -1, 1);
-      const topSpeed = wantsNitro ? MAX_SPEED * 1.55 : MAX_SPEED;
-      this.linearSpeed = lerp(this.linearSpeed, topSpeed, dt * (wantsNitro ? 3.0 : 1.5));
-    } else {
-      let direction = Math.sign(this.linearSpeed);
-      if (direction === 0)
-        direction = Math.abs(this.inputZ) > 0.1 ? Math.sign(this.inputZ) : 1;
+    // Unified Forward, Braking & Reversing Physics
+    const topForwardSpeed = wantsNitro ? MAX_SPEED * 1.55 : MAX_SPEED;
+    const topReverseSpeed = -MAX_SPEED * 0.45; // Smooth reverse ratio (~38 km/h)
 
-      const steeringGrip = clamp(Math.abs(this.linearSpeed), 0.2, 1.0);
-      const targetAngular = -this.inputX * steeringGrip * 4 * direction;
-
-      this.angularSpeed = lerp(this.angularSpeed, targetAngular, dt * 4);
-      this.yaw += this.angularSpeed * dt;
-
-      const targetSpeed = this.inputZ;
-
-      if (targetSpeed < 0 && this.linearSpeed > 0.01) {
-        this.linearSpeed = lerp(this.linearSpeed, 0, dt * 8);
-      } else if (targetSpeed < 0) {
-        this.linearSpeed = lerp(this.linearSpeed, targetSpeed / 2, dt * 2);
+    if (this.inputZ > 0) {
+      // Accelerating Forward
+      const accelRate = wantsNitro ? dt * 3.8 : dt * 1.8;
+      this.linearSpeed = lerp(this.linearSpeed, this.inputZ * topForwardSpeed, accelRate);
+    } else if (this.inputZ < 0) {
+      // Braking while moving forward, or accelerating backwards into reverse
+      if (this.linearSpeed > 0.05) {
+        // High-friction disc braking
+        this.linearSpeed = lerp(this.linearSpeed, 0, dt * 9.0);
       } else {
-        const topSpeed = wantsNitro ? MAX_SPEED * 1.55 : MAX_SPEED;
-        const accelRate = wantsNitro ? dt * 3.5 : dt * 1.5;
-        this.linearSpeed = lerp(this.linearSpeed, targetSpeed * topSpeed, accelRate);
+        // Smoothly drive backwards in reverse
+        this.linearSpeed = lerp(this.linearSpeed, topReverseSpeed, dt * 2.8);
       }
+    } else {
+      // Coasting / Neutral Engine Braking
+      this.linearSpeed = lerp(this.linearSpeed, 0, dt * 2.2);
     }
 
     this.linearSpeed *= Math.max(0, 1 - LINEAR_DAMP * dt);

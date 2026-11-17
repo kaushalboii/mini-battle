@@ -1010,9 +1010,10 @@ html, body {
 
 .racing-steer-paddle:active,
 .racing-steer-paddle.active {
-  background-color: var(--surface-raised-hover);
+  background-color: rgba(245, 158, 11, 0.18);
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
   transform: translateY(2px);
 }
 
@@ -1133,17 +1134,19 @@ html, body {
   border-radius: 1px;
 }
 
-/* Brake Pedal */
+/* Brake & Reverse Pedal */
 .racing-pedal-brake {
-  width: 68px;
+  width: 72px;
   height: 84px;
   border-radius: var(--radius-card);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .racing-pedal-brake:active,
 .racing-pedal-brake.depressed {
-  background-color: var(--surface-raised-hover);
+  background-color: rgba(239, 68, 68, 0.22);
   border-color: var(--semantic-error);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45);
   transform: translateY(3px);
 }
 .racing-pedal-brake:active .racing-pedal-tag,
@@ -1153,20 +1156,22 @@ html, body {
 
 /* Gas / Accelerator Pedal */
 .racing-pedal-gas {
-  width: 58px;
+  width: 62px;
   height: 104px;
   border-radius: var(--radius-card);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .racing-pedal-gas:active,
 .racing-pedal-gas.depressed {
-  background-color: var(--surface-raised-hover);
-  border-color: var(--accent);
+  background-color: rgba(16, 185, 129, 0.22);
+  border-color: var(--semantic-success);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
   transform: translateY(3px);
 }
 .racing-pedal-gas:active .racing-pedal-tag,
 .racing-pedal-gas.depressed .racing-pedal-tag {
-  color: var(--accent);
+  color: var(--semantic-success);
 }
 
 /* ==========================================================================
@@ -1564,15 +1569,15 @@ html, body {
   }
 
   .racing-pedal-brake {
-    width: 58px;
-    height: 72px;
+    width: 64px;
+    height: 74px;
     border-radius: 8px;
     padding: 6px 4px;
   }
 
   .racing-pedal-gas {
-    width: 50px;
-    height: 88px;
+    width: 52px;
+    height: 90px;
     border-radius: 8px;
     padding: 6px 4px;
   }
