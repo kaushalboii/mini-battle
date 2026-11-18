@@ -427,13 +427,15 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   Motorsport Cockpit Telemetry HUD (Desktop: Top-Left / Left Wing)
+   Motorsport Cockpit Telemetry HUD (Desktop: Top-Right / Right Wing)
+   Zero collision with F1 Standings Leaderboard (Left) & Lap Timer (Center)
    ========================================================================== */
 .racing-telemetry-panel {
   position: absolute;
-  top: 64px;
+  top: 72px;
   bottom: auto;
-  left: max(16px, env(safe-area-inset-left));
+  left: auto;
+  right: max(16px, env(safe-area-inset-right));
   width: 175px;
   display: flex;
   flex-direction: column;
@@ -1548,11 +1550,12 @@ html, body, #root {
     padding: 4px 10px;
   }
 
-  /* Cockpit Telemetry in Landscape: Top-Left under Top Bar */
+  /* Cockpit Telemetry in Landscape: Top-Right under Top Bar */
   .racing-telemetry-panel {
     top: 44px;
     bottom: auto;
-    left: max(8px, env(safe-area-inset-left));
+    left: auto;
+    right: max(8px, env(safe-area-inset-right));
     transform: none;
     width: 135px;
     padding: 6px 8px;
@@ -1719,11 +1722,12 @@ html, body, #root {
     border-radius: 6px;
   }
 
-  /* Telemetry Panel in Portrait: Top-Left under Top Bar */
+  /* Telemetry Panel in Portrait: Top-Right under Top Bar */
   .racing-telemetry-panel {
     top: 50px;
     bottom: auto;
-    left: max(8px, env(safe-area-inset-left));
+    left: auto;
+    right: max(8px, env(safe-area-inset-right));
     transform: none;
     width: 130px;
     padding: 6px 8px;
@@ -2067,6 +2071,76 @@ html, body, #root {
 
 .circuit-stat-item strong {
   color: var(--text-primary);
+}
+
+/* Landing Race Timing & Atmosphere Selection */
+.landing-timing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landing-timing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.landing-timing-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.landing-timing-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.landing-timing-card.selected {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 16px -4px rgba(245, 158, 11, 0.25);
+}
+
+.timing-card-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.timing-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.timing-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timing-card-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Landing Mode Selection (Live Peer vs AI Practice Grid) */
@@ -2506,6 +2580,36 @@ html, body, #root {
     justify-content: space-between !important;
   }
 
+  /* Race Timing Selector on Mobile Portrait */
+  .landing-timing-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 5px !important;
+  }
+
+  .landing-timing-card {
+    padding: 5px 6px !important;
+    border-radius: 7px !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+  }
+
+  .timing-card-icon {
+    font-size: 13px !important;
+  }
+
+  .timing-card-label {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .timing-card-desc {
+    display: none !important;
+  }
+
   /* Racing Mode Selection: 2 Columns Side by Side on Mobile */
   .landing-mode-grid {
     display: grid !important;
@@ -2714,6 +2818,36 @@ html, body, #root {
 
   /* HIDE BENCHMARK TO SAVE 120px WIDTH */
   .circuit-stat-bench {
+    display: none !important;
+  }
+
+  /* 3-Column Timing selector in landscape */
+  .landing-timing-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  .landing-timing-card {
+    padding: 3px 5px !important;
+    border-radius: 5px !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+  }
+
+  .timing-card-icon {
+    font-size: 11px !important;
+  }
+
+  .timing-card-label {
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .timing-card-desc {
     display: none !important;
   }
 

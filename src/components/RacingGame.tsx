@@ -10,10 +10,10 @@ const VEHICLE_OPTIONS = [
   { key: "vehicle-truck-purple", label: "Cobalt Racing", team: "McLaren / Alpine", color: "#8b5cf6" },
 ];
 
-const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string }> = [
-  { key: 'day', label: 'Daylight' },
-  { key: 'sunset', label: 'Dusk' },
-  { key: 'night', label: 'Night' },
+const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string; icon: string; desc: string }> = [
+  { key: 'day', label: 'Daylight GP', icon: '☀️', desc: 'Clear natural sunlight' },
+  { key: 'sunset', label: 'Sunset / Dusk', icon: '🌅', desc: 'Golden hour amber glow' },
+  { key: 'night', label: 'Night Grand Prix', icon: '🌙', desc: 'Floodlit track with headlights' },
 ];
 
 function formatLapTime(seconds: number | null | undefined): string {
@@ -33,7 +33,6 @@ export default function RacingGame() {
   
   // Grand Prix Hub & Circuit Selection State
   const [showLanding, setShowLanding] = useState(true);
-  const [showCircuitPicker, setShowCircuitPicker] = useState(false);
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
   const [selectedColor, setSelectedColor] = useState<string>("vehicle-truck-yellow");
@@ -203,31 +202,13 @@ export default function RacingGame() {
     gameRef.current?.setVehicleColor(key);
   };
 
-  const handleSelectCircuit = (circuitId: string) => {
-    setSelectedCircuit(circuitId);
-    if (gameRef.current) {
-      gameRef.current.setCircuit(circuitId);
-      const c = CIRCUITS[circuitId];
-      if (c?.recommendedTheme) {
-        setLightingTheme(c.recommendedTheme);
-      }
-      setToastMessage(`Switched to ${c?.name || circuitId} • Grid Ready`);
-      setTimeout(() => setToastMessage(null), 1500);
-    }
-    setShowCircuitPicker(false);
-  };
-
   const handleStartGrandPrix = () => {
     if (gameRef.current) {
       gameRef.current.setCircuit(selectedCircuit);
       gameRef.current.setVehicleColor(selectedColor);
       gameRef.current.setDriverName(driverName || "Kaushal");
       gameRef.current.setPracticeMode(isPracticeMode);
-      const c = CIRCUITS[selectedCircuit];
-      if (c?.recommendedTheme) {
-        gameRef.current.setLightingTheme(c.recommendedTheme);
-        setLightingTheme(c.recommendedTheme);
-      }
+      gameRef.current.setLightingTheme(lightingTheme);
     }
     setShowLanding(false);
     setToastMessage(
@@ -269,14 +250,12 @@ export default function RacingGame() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      if (e.code === "Escape") {
+      if (e.code === "Escape" || e.code === "KeyM") {
         setShowLanding((prev) => !prev);
       } else if (e.code === "KeyC") {
         handleCycleCamera();
       } else if (e.code === "KeyR") {
         handleReset();
-      } else if (e.code === "KeyM") {
-        setShowCircuitPicker((prev) => !prev);
       } else if (e.code === "KeyT") {
         handleCycleLighting();
       } else if (e.code === "KeyL") {
@@ -416,7 +395,13 @@ export default function RacingGame() {
                     <div
                       key={circuit.id}
                       className={`circuit-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedCircuit(circuit.id)}
+                      onClick={() => {
+                        setSelectedCircuit(circuit.id);
+                        if (circuit.recommendedTheme) {
+                          setLightingTheme(circuit.recommendedTheme);
+                          gameRef.current?.setLightingTheme(circuit.recommendedTheme);
+                        }
+                      }}
                     >
                       <div className="circuit-card-top">
                         <span className="circuit-flag">{circuit.flag}</span>
@@ -431,6 +416,34 @@ export default function RacingGame() {
                         <span className="circuit-stat-item circuit-stat-bench">Benchmark <strong>{circuit.benchmarkLap}s</strong></span>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Race Timing & Atmosphere Selection */}
+            <div className="landing-timing-section">
+              <label className="landing-section-title">Race Timing & Atmosphere</label>
+              <div className="landing-timing-grid">
+                {LIGHTING_THEMES.map((theme) => {
+                  const isSelected = lightingTheme === theme.key;
+                  return (
+                    <button
+                      key={theme.key}
+                      type="button"
+                      className={`landing-timing-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        setLightingTheme(theme.key);
+                        gameRef.current?.setLightingTheme(theme.key);
+                      }}
+                    >
+                      <span className="timing-card-icon">{theme.icon}</span>
+                      <div className="timing-card-info">
+                        <span className="timing-card-label">{theme.label}</span>
+                        <span className="timing-card-desc">{theme.desc}</span>
+                      </div>
+                      {isSelected && <span className="mode-check">✓</span>}
+                    </button>
                   );
                 })}
               </div>
@@ -523,48 +536,6 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* IN-GAME CIRCUIT PICKER MODAL */}
-      {!isLoading && showCircuitPicker && (
-        <div className="racing-modal-backdrop" onClick={() => setShowCircuitPicker(false)}>
-          <div className="racing-card racing-modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="racing-modal-header">
-              <h3 className="racing-modal-title">Switch Grand Prix Circuit</h3>
-              <button
-                className="racing-btn racing-btn-icon"
-                onClick={() => setShowCircuitPicker(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="circuit-cards-grid" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
-              {Object.values(CIRCUITS).map((circuit) => {
-                const isSelected = selectedCircuit === circuit.id;
-                return (
-                  <div
-                    key={circuit.id}
-                    className={`circuit-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => handleSelectCircuit(circuit.id)}
-                    style={{ padding: '12px' }}
-                  >
-                    <div className="circuit-card-top" style={{ marginBottom: '4px' }}>
-                      <span style={{ fontSize: '16px' }}>{circuit.flag} {circuit.name}</span>
-                      <span className="circuit-diff-badge">{circuit.difficulty}</span>
-                    </div>
-                    <div className="circuit-card-loc" style={{ marginBottom: '6px' }}>{circuit.location}</div>
-                    <div className="circuit-card-stats">
-                      <span><strong>{circuit.sectorsCount}</strong> Sectors</span>
-                      <span><strong>{circuit.drsZones}</strong> DRS Zones</span>
-                      <span>Target: <strong>{circuit.benchmarkLap}s</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Floating Notification Toast */}
       {toastMessage && (
         <div className="racing-toast">
@@ -589,7 +560,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar — Clean, Non-Duplicate Motorsport Toolbar */}
       {!isLoading && !showLanding && (
         <header className="racing-top-bar">
           {/* Brand Identifier */}
@@ -600,84 +571,47 @@ export default function RacingGame() {
             </svg>
             <div className="racing-brand-text">
               <span className="racing-brand-name">RevSector 3D</span>
-              <span className="racing-brand-sub">By Kaushal • {currentCircuitDef.name}</span>
+              <span className="racing-brand-sub">By Kaushal • {currentCircuitDef.flag} {currentCircuitDef.name}</span>
             </div>
           </div>
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
-            {/* Paddock / Grand Prix Hub Button */}
+            {/* Grand Prix Paddock Hub Button */}
             <button
               className="racing-btn paddock-btn"
               onClick={() => setShowLanding(true)}
-              title="Open Grand Prix Hub / Paddock (Esc)"
+              title="Open Grand Prix Paddock Hub (Esc or M)"
               aria-label="Paddock Hub"
             >
               <span style={{ fontSize: '13px' }}>🏁</span>
-              <span className="racing-btn-text">Paddock</span>
+              <span className="racing-btn-text">Paddock Hub</span>
+              <kbd className="racing-keycap">Esc</kbd>
             </button>
 
-            {/* Circuits Switcher Button */}
-            <button
-              className="racing-btn"
-              onClick={() => setShowCircuitPicker(true)}
-              title="Change Circuit / Grand Prix Track (M)"
-              aria-label="Change Circuit"
-            >
-              <span style={{ fontSize: '13px' }}>{currentCircuitDef.flag}</span>
-              <span className="racing-btn-text">{currentCircuitDef.name}</span>
-              <kbd className="racing-keycap">M</kbd>
-            </button>
-
-            {/* F1 Tower Toggle */}
+            {/* F1 Standings Leaderboard Toggle */}
             <button
               className={`racing-btn f1-toggle-btn ${showF1Tower ? 'active' : ''}`}
               onClick={() => setShowF1Tower((prev) => !prev)}
-              title="Toggle F1 Live Leaderboard (L)"
-              aria-label="Toggle F1 Leaderboard"
+              title="Toggle F1 Standings Leaderboard (L)"
+              aria-label="Toggle F1 Standings"
             >
               <span className="f1-pill-badge">F1</span>
               <span className="racing-btn-text">Standings</span>
               <kbd className="racing-keycap">L</kbd>
             </button>
 
-            {/* Mode Switcher (Solo / Live Mesh vs AI Practice Grid) */}
-            <div className="racing-mode-pill-group" title="Toggle Race Mode: Live Peer (Solo) / Practice Grid (P)">
-              <button
-                type="button"
-                className={`racing-mode-pill ${!isPracticeMode ? 'active' : ''}`}
-                onClick={() => handleTogglePracticeMode(false)}
-                title="Solo Live Mode (Clean track, real humans only)"
-              >
-                <span className="mode-live-dot" />
-                <span className="racing-btn-text">Solo / Live</span>
-              </button>
-              <button
-                type="button"
-                className={`racing-mode-pill ${isPracticeMode ? 'active' : ''}`}
-                onClick={() => handleTogglePracticeMode(true)}
-                title="AI Practice Mode (3 Sparring Bots)"
-              >
-                <span className="racing-btn-text">🤖 Practice</span>
-              </button>
-              <kbd className="racing-keycap">P</kbd>
-            </div>
-
-            {/* Vehicle Palette Group */}
-            <div className="racing-palette-group" title="Select Vehicle Team">
-              {VEHICLE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.key}
-                  className={`racing-palette-dot ${selectedColor === opt.key ? "selected" : ""}`}
-                  style={{ "--dot-color": opt.color } as React.CSSProperties}
-                  title={opt.label}
-                  aria-label={opt.label}
-                  onClick={() => handleColorChange(opt.key)}
-                >
-                  <span className="racing-dot-core" style={{ backgroundColor: opt.color }} />
-                </button>
-              ))}
-            </div>
+            {/* Race Timing & Atmosphere Switcher */}
+            <button
+              className="racing-btn"
+              onClick={handleCycleLighting}
+              title="Race Timing / Lighting Atmosphere (T)"
+              aria-label="Toggle Lighting Condition"
+            >
+              <span style={{ fontSize: '13px' }}>{currentThemeInfo.icon}</span>
+              <span className="racing-btn-text">{currentThemeInfo.label}</span>
+              <kbd className="racing-keycap">T</kbd>
+            </button>
 
             <div className="racing-divider" />
 
@@ -685,7 +619,7 @@ export default function RacingGame() {
             <button
               className="racing-btn"
               onClick={handleCycleCamera}
-              title="Camera angle (C)"
+              title="Camera Angle (C)"
               aria-label="Switch camera angle"
             >
               <svg className="racing-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
