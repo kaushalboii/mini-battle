@@ -1,7 +1,8 @@
 /**
  * RevSector 3D - Live Rival Grid & Zero-Connect Multiplayer Engine
  * Manages autonomous competitor racecars on the circuit with dynamic speed control,
- * wheel rotation, and zero-setup cross-client multiplayer mesh (BroadcastChannel + WebSocket).
+ * independent racing lines (no overlapping), smart overtaking, realistic car crash physics,
+ * and zero-setup cross-client multiplayer mesh (BroadcastChannel).
  * Engineered by Kaushal.
  */
 
@@ -16,6 +17,7 @@ export interface RivalDriver {
   colorHex: string;
   tireCompound: 'S' | 'M' | 'H';
   isHuman: boolean;
+  laneOffset: number; // Lateral offset perpendicular to track (prevents cars from overlapping!)
   x: number;
   y: number;
   z: number;
@@ -55,6 +57,7 @@ const DEFAULT_RIVALS: Array<Omit<RivalDriver, 'model' | 'wheels' | 'lastPacketTi
     colorHex: '#ef4444',
     tireCompound: 'M',
     isHuman: false,
+    laneOffset: -0.75, // Inside line
     topSpeed: 21.5,
     cornerSpeed: 12.0,
   },
@@ -67,6 +70,7 @@ const DEFAULT_RIVALS: Array<Omit<RivalDriver, 'model' | 'wheels' | 'lastPacketTi
     colorHex: '#10b981',
     tireCompound: 'S',
     isHuman: false,
+    laneOffset: 0.0, // Center line
     topSpeed: 20.8,
     cornerSpeed: 11.5,
   },
@@ -79,6 +83,7 @@ const DEFAULT_RIVALS: Array<Omit<RivalDriver, 'model' | 'wheels' | 'lastPacketTi
     colorHex: '#8b5cf6',
     tireCompound: 'H',
     isHuman: false,
+    laneOffset: 0.75, // Outside line
     topSpeed: 20.2,
     cornerSpeed: 11.8,
   },
@@ -149,11 +154,12 @@ export class RivalGrid {
     }
     this.rivals = [];
 
+    // In Live mode: keep track completely blank unless peer humans connect!
     if (!this.isPracticeMode) {
       return;
     }
 
-    // Filter available rival colors to avoid duplicating player's color
+    // In Practice mode: spawn 3 distinct AI rivals with non-overlapping lines
     const availableColors = ['vehicle-truck-red', 'vehicle-truck-green', 'vehicle-truck-purple', 'vehicle-truck-yellow']
       .filter((c) => c !== this.localPlayerColor);
 
@@ -201,7 +207,7 @@ export class RivalGrid {
   }
 
   private initMultiplayerMesh() {
-    // 1. Instant zero-setup cross-tab broadcast
+    // Instant zero-setup cross-tab broadcast (Peer mesh)
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.broadcastChannel = new BroadcastChannel('revsector_live_mesh');
@@ -220,24 +226,60 @@ export class RivalGrid {
     }
 
     const now = performance.now();
-    // Check if this remote player is already tracked
     let targetRival = this.rivals.find((r) => r.id === data.id);
 
+    // If not found, dynamically spawn this remote human car!
     if (!targetRival) {
-      // Pick first non-human slot
-      targetRival = this.rivals.find((r) => !r.isHuman);
-    }
+      const colorKey = data.color || 'vehicle-truck-red';
+      const source = this.sources[colorKey] || this.sources['vehicle-truck-red'];
+      let model: Model3D | null = null;
+      const wheels: any[] = [];
 
-    if (targetRival) {
-      targetRival.isHuman = true;
-      targetRival.id = data.id;
-      targetRival.name = data.name || targetRival.name;
-      targetRival.code = (data.name ? data.name.substring(0, 3) : targetRival.code).toUpperCase();
+      if (source) {
+        model = new Model3D(source);
+        model.scale.set(0.5, 0.5, 0.5);
+        model.position.set(data.x, -0.15, data.z);
+        _q.setFromAxisAngle(_yAxis, data.yaw || 0);
+        model.quaternion.copyFrom(_q);
+        this.root.addChild(model);
+
+        model.traverse((child: any) => {
+          if (child.name && child.name.toLowerCase().includes('wheel')) {
+            wheels.push(child);
+          }
+        });
+      }
+
+      targetRival = {
+        id: data.id,
+        name: data.name || 'Live Peer',
+        code: (data.name ? data.name.substring(0, 3) : 'PEE').toUpperCase(),
+        team: 'Live Peer Mesh',
+        colorKey,
+        colorHex: data.color === 'vehicle-truck-green' ? '#10b981' : data.color === 'vehicle-truck-purple' ? '#8b5cf6' : '#ef4444',
+        tireCompound: 'S',
+        isHuman: true,
+        laneOffset: 0,
+        x: data.x,
+        y: -0.15,
+        z: data.z,
+        yaw: data.yaw || 0,
+        speed: data.speed || 0,
+        targetSpeed: 21.0,
+        topSpeed: 21.0,
+        cornerSpeed: 12.0,
+        waypointIndex: 0,
+        lap: data.lap || 1,
+        lapProgress: data.lapProgress || 0,
+        model,
+        wheels,
+        lastPacketTime: now,
+      };
+      this.rivals.push(targetRival);
+    } else {
       targetRival.lastPacketTime = now;
-
-      // Smooth interpolation target
-      targetRival.x = targetRival.x * 0.4 + data.x * 0.6;
-      targetRival.z = targetRival.z * 0.4 + data.z * 0.6;
+      targetRival.x = targetRival.x * 0.35 + data.x * 0.65;
+      targetRival.z = targetRival.z * 0.35 + data.z * 0.65;
       targetRival.yaw = data.yaw;
       targetRival.speed = data.speed;
       targetRival.lap = data.lap || targetRival.lap;
@@ -269,6 +311,66 @@ export class RivalGrid {
     this.initRivals();
   }
 
+  /**
+   * High-Impact Car-to-Car Crash Reaction
+   * Triggers realistic deflection, momentum transfer, suspension shock, audio impact, and camera shake
+   */
+  public checkVehicleCollisions(vehicle: any, audio: any, camera: any) {
+    if (!vehicle || !vehicle.container) return;
+
+    const pX = vehicle.container.position.x;
+    const pZ = vehicle.container.position.z;
+    const COLLISION_RADIUS = 1.45;
+
+    for (const rival of this.rivals) {
+      const dx = pX - rival.x;
+      const dz = pZ - rival.z;
+      const dist = Math.hypot(dx, dz);
+
+      if (dist < COLLISION_RADIUS && dist > 0.01) {
+        // Car Crash Reaction!
+        const penetration = COLLISION_RADIUS - dist;
+        const nx = dx / dist;
+        const nz = dz / dist;
+
+        // 1. Deflect player away along impact normal
+        vehicle.spherePos.x += nx * penetration * 0.65;
+        vehicle.spherePos.z += nz * penetration * 0.65;
+        vehicle.container.position.x = vehicle.spherePos.x;
+        vehicle.container.position.z = vehicle.spherePos.z;
+
+        // 2. Deflect rival away in opposite direction
+        rival.x -= nx * penetration * 0.65;
+        rival.z -= nz * penetration * 0.65;
+        if (rival.model) {
+          rival.model.position.set(rival.x, -0.15, rival.z);
+        }
+
+        // 3. Momentum loss from impact
+        const relSpeed = Math.abs(vehicle.linearSpeed * 20 - rival.speed) + 4;
+        vehicle.linearSpeed *= 0.72; // Player loses momentum
+        rival.speed *= 0.70;         // Rival knocked back
+
+        // 4. Violent chassis disturbance (pitch & roll shock)
+        vehicle._bodyRoll = (vehicle._bodyRoll || 0) + (nx * 0.35);
+        vehicle._bodyPitch = (vehicle._bodyPitch || 0) + 0.30;
+
+        // 5. Rival swerve
+        rival.yaw += (-nx * 0.35);
+
+        // 6. Impact audio
+        if (audio && typeof audio.playImpact === 'function') {
+          audio.playImpact(Math.max(6, relSpeed));
+        }
+
+        // 7. Screen/camera shake
+        if (camera && typeof camera.triggerShake === 'function') {
+          camera.triggerShake(Math.min(0.8, relSpeed * 0.05 + 0.25));
+        }
+      }
+    }
+  }
+
   public update(
     dt: number,
     playerX: number,
@@ -289,16 +391,29 @@ export class RivalGrid {
 
     if (!this.waypoints || this.waypoints.length === 0) return;
 
-    // 2. Update rival racecars
+    // 2. Handle remote player timeouts
+    for (let i = this.rivals.length - 1; i >= 0; i--) {
+      const rival = this.rivals[i];
+      if (rival.isHuman && now - rival.lastPacketTime > 4000) {
+        if (!this.isPracticeMode) {
+          // Despawn disconnected human: remove model and remove from array so track remains blank
+          if (rival.model && rival.model.parent) {
+            rival.model.parent.removeChild(rival.model);
+          }
+          this.rivals.splice(i, 1);
+          continue;
+        } else {
+          // In practice mode, revert to AI bot
+          rival.isHuman = false;
+          rival.name = DEFAULT_RIVALS[i]?.name || rival.name;
+          rival.code = DEFAULT_RIVALS[i]?.code || rival.code;
+        }
+      }
+    }
+
+    // 3. Update rival racecars
     for (let i = 0; i < this.rivals.length; i++) {
       const rival = this.rivals[i];
-
-      // If remote player disconnected (>4s without packet), resume AI control
-      if (rival.isHuman && now - rival.lastPacketTime > 4000) {
-        rival.isHuman = false;
-        rival.name = DEFAULT_RIVALS[i]?.name || rival.name;
-        rival.code = DEFAULT_RIVALS[i]?.code || rival.code;
-      }
 
       if (rival.isHuman) {
         // Human positions are updated from packets, just spin wheels
@@ -308,11 +423,65 @@ export class RivalGrid {
         continue;
       }
 
-      // AI Waypoint Steering & Navigation
+      // AI Waypoint Steering & Navigation with distinct Lane Offsets (no overlapping!)
       const targetWp = this.waypoints[rival.waypointIndex];
-      const dx = targetWp.x - rival.x;
-      const dz = targetWp.z - rival.z;
-      const distToWp = Math.hypot(dx, dz);
+      const nextWp = this.waypoints[(rival.waypointIndex + 1) % this.waypoints.length];
+
+      const segX = nextWp.x - targetWp.x;
+      const segZ = nextWp.z - targetWp.z;
+      const segLen = Math.hypot(segX, segZ) || 1;
+      const normX = -segZ / segLen;
+      const normZ = segX / segLen;
+
+      let targetX = targetWp.x + normX * rival.laneOffset;
+      let targetZ = targetWp.z + normZ * rival.laneOffset;
+
+      // Smart Overtaking: When player stops, bots DO NOT stop! They steer around and zoom past!
+      const toPlayerX = playerX - rival.x;
+      const toPlayerZ = playerZ - rival.z;
+      const distToPlayer = Math.hypot(toPlayerX, toPlayerZ);
+      const forwardDot = toPlayerX * Math.sin(rival.yaw) + toPlayerZ * Math.cos(rival.yaw);
+
+      if (distToPlayer < 5.0 && forwardDot > 0) {
+        if (playerSpeed < 0.25) {
+          // Player is stopped or very slow — steer into the open lane and accelerate past!
+          const lateralToPlayer = -toPlayerX * Math.cos(rival.yaw) + toPlayerZ * Math.sin(rival.yaw);
+          const overtakeSide = lateralToPlayer >= 0 ? -1 : 1;
+          targetX += normX * overtakeSide * 1.5;
+          targetZ += normZ * overtakeSide * 1.5;
+          rival.targetSpeed = rival.topSpeed;
+        } else if (distToPlayer < 2.2) {
+          // Player is moving forward right in front, ease off slightly to avoid rear-ending
+          rival.speed *= 0.92;
+        }
+      }
+
+      // Inter-Rival Distance-Keeping: prevent AI bots from clipping/overlapping each other
+      for (let j = 0; j < this.rivals.length; j++) {
+        if (i === j) continue;
+        const other = this.rivals[j];
+        const rdx = rival.x - other.x;
+        const rdz = rival.z - other.z;
+        const rDist = Math.hypot(rdx, rdz);
+
+        if (rDist < 1.7 && rDist > 0.001) {
+          const rnx = rdx / rDist;
+          const rnz = rdz / rDist;
+          const push = (1.7 - rDist) * 0.45;
+          rival.x += rnx * push;
+          rival.z += rnz * push;
+          other.x -= rnx * push;
+          other.z -= rnz * push;
+
+          if (rival.speed > other.speed) {
+            rival.speed *= 0.90;
+          }
+        }
+      }
+
+      const dx = targetX - rival.x;
+      const dz = targetZ - rival.z;
+      const distToWp = Math.hypot(targetWp.x - rival.x, targetWp.z - rival.z);
 
       // Target steering angle
       const targetAngle = Math.atan2(dx, dz);
@@ -332,12 +501,6 @@ export class RivalGrid {
         rival.speed = Math.max(rival.targetSpeed, rival.speed - dt * 8.0);
       }
 
-      // Avoid colliding directly with player from behind
-      const pDist = Math.hypot(playerX - rival.x, playerZ - rival.z);
-      if (pDist < 2.8) {
-        rival.speed *= 0.88;
-      }
-
       // Move car
       rival.x += Math.sin(rival.yaw) * rival.speed * dt;
       rival.z += Math.cos(rival.yaw) * rival.speed * dt;
@@ -355,7 +518,7 @@ export class RivalGrid {
       }
 
       // Check waypoint progression
-      if (distToWp < 3.8) {
+      if (distToWp < 4.0) {
         rival.waypointIndex = (rival.waypointIndex + 1) % this.waypoints.length;
         if (rival.waypointIndex === 0) {
           rival.lap += 1;

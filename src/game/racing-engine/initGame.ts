@@ -404,6 +404,9 @@ export async function initRacingGame(
       lapState.trackProgress
     );
 
+    // Car-to-Car Crash Physics: impulse deflection, momentum transfer, suspension shock, audio impact & screen shake
+    rivalGrid.checkVehicleCollisions(vehicle, audio, followCamera);
+
     // Telemetry dispatch at ~30Hz
     telemetryTimer += dt;
     if (telemetryTimer >= 0.033 && onTelemetry) {
