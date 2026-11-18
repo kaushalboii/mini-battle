@@ -346,7 +346,8 @@ export default function RacingGame() {
               </div>
               <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
                 <span className="mesh-live-dot" />
-                <span>Zero-Connect Mesh Active</span>
+                <span className="mesh-badge-text-full">Zero-Connect Mesh Active</span>
+                <span className="mesh-badge-text-short">Live Grid</span>
               </div>
             </div>
 
