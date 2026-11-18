@@ -66,6 +66,7 @@ export interface GameInstance {
   setVehicleColor: (colorKey: string) => void;
   setDriverName: (name: string) => void;
   setCircuit: (circuitId: string) => void;
+  setGameMode: (mode: 'friends' | 'bots' | 'solo') => void;
   setPracticeMode: (active: boolean) => void;
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
@@ -196,37 +197,6 @@ export async function initRacingGame(
     slot.position.set(gx, -0.11, gz);
     view3d.root.addChild(slot);
   }
-
-  // Formula 1 Start/Finish Electronic Timing Gantry
-  const gantryMat = new Material3D({ baseColor: 0x18181b, metallic: 0.8, roughness: 0.25 });
-  const pillarGeo = new CubeGeometry({ width: 0.35, height: 3.8, depth: 0.35 });
-
-  const pillarLeft = new Mesh3D({ geometry: pillarGeo, material: gantryMat });
-  pillarLeft.position.set(0.4, 1.8, 3.75);
-  view3d.root.addChild(pillarLeft);
-
-  const pillarRight = new Mesh3D({ geometry: pillarGeo, material: gantryMat });
-  pillarRight.position.set(7.1, 1.8, 3.75);
-  view3d.root.addChild(pillarRight);
-
-  const beamGeo = new CubeGeometry({ width: 7.0, height: 0.5, depth: 0.4 });
-  const crossBeam = new Mesh3D({ geometry: beamGeo, material: gantryMat });
-  crossBeam.position.set(3.75, 3.6, 3.75);
-  view3d.root.addChild(crossBeam);
-
-  // Red RevSector FIA Timing Board
-  const boardGeo = new CubeGeometry({ width: 4.8, height: 0.9, depth: 0.12 });
-  const boardMat = new Material3D({ baseColor: 0xdc2626, metallic: 0.3, roughness: 0.5 });
-  const timingBoard = new Mesh3D({ geometry: boardGeo, material: boardMat });
-  timingBoard.position.set(3.75, 3.4, 3.75);
-  view3d.root.addChild(timingBoard);
-
-  // Pitlane Armco Barrier (separates main straight from paddock)
-  const barrierGeo = new CubeGeometry({ width: 0.3, height: 0.65, depth: 22.0 });
-  const barrierMat = new Material3D({ baseColor: 0x3f3f46, metallic: 0.6, roughness: 0.35 });
-  const pitBarrier = new Mesh3D({ geometry: barrierGeo, material: barrierMat });
-  pitBarrier.position.set(7.5, 0.25, 10.0);
-  view3d.root.addChild(pitBarrier);
 
   // Circuit Generator & Rigid Colliders
   let currentCircuitId = initialCircuitId || 'monza';
@@ -528,6 +498,9 @@ export async function initRacingGame(
       if (track.circuit?.recommendedTheme) {
         applyLightingTheme(track.circuit.recommendedTheme);
       }
+    },
+    setGameMode(mode: 'friends' | 'bots' | 'solo') {
+      rivalGrid.setGameMode(mode);
     },
     setPracticeMode(active: boolean) {
       rivalGrid.setPracticeMode(active);

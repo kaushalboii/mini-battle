@@ -1979,8 +1979,31 @@ html, body, #root {
 
 .circuit-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.circuit-level-pill {
+  font-size: 8px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.circuit-obstacle-badge {
+  font-size: 8px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 .circuit-card {
@@ -2152,8 +2175,30 @@ html, body, #root {
 
 .landing-mode-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mode-badge-friends {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mode-badge-solo {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .landing-mode-card {
@@ -2610,21 +2655,24 @@ html, body, #root {
     display: none !important;
   }
 
-  /* Racing Mode Selection: 2 Columns Side by Side on Mobile */
+  /* Racing Mode Selection: 3 Columns on Mobile Portrait */
   .landing-mode-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 5px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
   }
 
   .landing-mode-card {
-    padding: 6px 8px !important;
+    padding: 5px 6px !important;
     border-radius: 7px !important;
     gap: 2px !important;
+    min-width: 0 !important;
   }
 
   .mode-badge-live,
-  .mode-badge-ai {
+  .mode-badge-ai,
+  .mode-badge-friends,
+  .mode-badge-solo {
     font-size: 7px !important;
     padding: 1px 3px !important;
   }
@@ -2754,10 +2802,10 @@ html, body, #root {
     line-height: 1 !important;
   }
 
-  /* 3-Column horizontal grid in landscape — minmax(0, 1fr) prevents blowing past container */
+  /* 4-Column horizontal grid in landscape — minmax(0, 1fr) prevents blowing past container */
   .circuit-cards-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 4px !important;
     width: 100% !important;
     box-sizing: border-box !important;
@@ -2851,15 +2899,15 @@ html, body, #root {
     display: none !important;
   }
 
-  /* 2-Column mode selector in landscape */
+  /* 3-Column mode selector in landscape */
   .landing-mode-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 4px !important;
   }
 
   .landing-mode-card {
-    padding: 3px 6px !important;
+    padding: 3px 5px !important;
     border-radius: 5px !important;
     gap: 1px !important;
     min-width: 0 !important;
@@ -2867,7 +2915,9 @@ html, body, #root {
   }
 
   .mode-badge-live,
-  .mode-badge-ai {
+  .mode-badge-ai,
+  .mode-badge-friends,
+  .mode-badge-solo {
     font-size: 7px !important;
     padding: 1px 3px !important;
     line-height: 1 !important;

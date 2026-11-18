@@ -16,6 +16,42 @@ const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string; i
   { key: 'night', label: 'Night Grand Prix', icon: '🌙', desc: 'Floodlit track with headlights' },
 ];
 
+export type GameModeOption = 'friends' | 'bots' | 'solo';
+
+const GAME_MODES: Array<{
+  id: GameModeOption;
+  badge: string;
+  badgeClass: string;
+  title: string;
+  desc: string;
+  icon: string;
+}> = [
+  {
+    id: 'friends',
+    badge: '🌐 SAME WI-FI / MESH',
+    badgeClass: 'mode-badge-friends',
+    title: 'Connect with Friends (Same Wi-Fi)',
+    desc: 'Race together with friends on the same local network or nearby tabs. Zero-setup live multiplayer sync!',
+    icon: '👥',
+  },
+  {
+    id: 'bots',
+    badge: '🤖 3 SPARRING BOTS',
+    badgeClass: 'mode-badge-ai',
+    title: 'Play with AI Grid (3 Bots)',
+    desc: 'Battle 3 competitive AI racers (Verstappen, Hamilton & Norris) on independent lines with car crash physics.',
+    icon: '🏎️',
+  },
+  {
+    id: 'solo',
+    badge: '⏱️ SOLO HOT LAPS',
+    badgeClass: 'mode-badge-solo',
+    title: 'Play Solo & Practice',
+    desc: 'Completely clear circuit for solo hot-lap time trials, benchmark lap chasing, and high-speed drift training.',
+    icon: '🎯',
+  },
+];
+
 function formatLapTime(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || isNaN(seconds)) return "--:--.--";
   const mins = Math.floor(seconds / 60);
@@ -36,7 +72,7 @@ export default function RacingGame() {
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
   const [selectedColor, setSelectedColor] = useState<string>("vehicle-truck-yellow");
-  const [isPracticeMode, setIsPracticeMode] = useState<boolean>(false);
+  const [gameMode, setGameMode] = useState<GameModeOption>("friends");
 
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
@@ -189,12 +225,18 @@ export default function RacingGame() {
     setTimeout(() => setToastMessage(null), 1400);
   };
 
-  const handleTogglePracticeMode = (forceState?: boolean) => {
-    const nextState = forceState !== undefined ? forceState : !isPracticeMode;
-    setIsPracticeMode(nextState);
-    gameRef.current?.setPracticeMode(nextState);
-    setToastMessage(nextState ? "AI Practice Grid Active • 3 Sparring Bots" : "Live Peer Mode • Solo Blank Track");
-    setTimeout(() => setToastMessage(null), 1800);
+  const handleSelectGameMode = (mode: GameModeOption) => {
+    setGameMode(mode);
+    gameRef.current?.setGameMode(mode);
+    const m = GAME_MODES.find((item) => item.id === mode);
+    setToastMessage(`Mode: ${m?.title || mode}`);
+    setTimeout(() => setToastMessage(null), 1500);
+  };
+
+  const handleToggleGameMode = () => {
+    const modes: GameModeOption[] = ['friends', 'bots', 'solo'];
+    const nextIdx = (modes.indexOf(gameMode) + 1) % modes.length;
+    handleSelectGameMode(modes[nextIdx]);
   };
 
   const handleColorChange = (key: string) => {
@@ -207,15 +249,12 @@ export default function RacingGame() {
       gameRef.current.setCircuit(selectedCircuit);
       gameRef.current.setVehicleColor(selectedColor);
       gameRef.current.setDriverName(driverName || "Kaushal");
-      gameRef.current.setPracticeMode(isPracticeMode);
+      gameRef.current.setGameMode(gameMode);
       gameRef.current.setLightingTheme(lightingTheme);
     }
     setShowLanding(false);
-    setToastMessage(
-      isPracticeMode
-        ? `Grand Prix Started • Practice Grid on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
-        : `Grand Prix Started • Live Solo on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
-    );
+    const m = GAME_MODES.find((item) => item.id === gameMode);
+    setToastMessage(`Grand Prix Started • ${m?.title || 'Race'} on ${CIRCUITS[selectedCircuit]?.name || "Circuit"}!`);
     setTimeout(() => setToastMessage(null), 1800);
   };
 
@@ -261,13 +300,13 @@ export default function RacingGame() {
       } else if (e.code === "KeyL") {
         setShowF1Tower((prev) => !prev);
       } else if (e.code === "KeyP") {
-        handleTogglePracticeMode();
+        handleToggleGameMode();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [cameraMode, lightingTheme, isMuted, isPracticeMode]);
+  }, [cameraMode, lightingTheme, isMuted, gameMode]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -405,7 +444,13 @@ export default function RacingGame() {
                     >
                       <div className="circuit-card-top">
                         <span className="circuit-flag">{circuit.flag}</span>
-                        <span className="circuit-diff-badge">{circuit.difficulty}</span>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <span className="circuit-level-pill">LVL {circuit.level}</span>
+                          {circuit.hasObstacles && (
+                            <span className="circuit-obstacle-badge">⚠️ Obstacles</span>
+                          )}
+                          <span className="circuit-diff-badge">{circuit.difficulty}</span>
+                        </div>
                       </div>
                       <div className="circuit-card-name">{circuit.name}</div>
                       <div className="circuit-card-loc">{circuit.location} • {circuit.country}</div>
@@ -449,39 +494,28 @@ export default function RacingGame() {
               </div>
             </div>
 
-            {/* Race Mode Selector (Live Peer vs AI Practice Grid) */}
+            {/* Race Mode Selector (Connect with Friends / AI Bots / Solo Practice) */}
             <div className="landing-mode-section">
               <label className="landing-section-title">Select Racing Mode</label>
               <div className="landing-mode-grid">
-                <button
-                  type="button"
-                  className={`landing-mode-card ${!isPracticeMode ? 'selected' : ''}`}
-                  onClick={() => setIsPracticeMode(false)}
-                >
-                  <div className="mode-card-top">
-                    <span className="mode-badge-live">🌐 ZERO-CONNECT MESH</span>
-                    {!isPracticeMode && <span className="mode-check">✓ Active</span>}
-                  </div>
-                  <div className="mode-card-title">Pure Live Peer (Solo Hot Laps)</div>
-                  <div className="mode-card-desc">
-                    Clean, blank 2km circuit with zero bots. Drive solo hot laps or alongside live users visiting RevSector in real time.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className={`landing-mode-card ${isPracticeMode ? 'selected' : ''}`}
-                  onClick={() => setIsPracticeMode(true)}
-                >
-                  <div className="mode-card-top">
-                    <span className="mode-badge-ai">🤖 AI SPARRING GRID</span>
-                    {isPracticeMode && <span className="mode-check">✓ Active</span>}
-                  </div>
-                  <div className="mode-card-title">Practice Grid (3 Sparring Bots)</div>
-                  <div className="mode-card-desc">
-                    Race against 3 independent AI bots (Verstappen, Hamilton, Norris) on separate lines. Full car-to-car crash physics.
-                  </div>
-                </button>
+                {GAME_MODES.map((mode) => {
+                  const isSelected = gameMode === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      className={`landing-mode-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleSelectGameMode(mode.id)}
+                    >
+                      <div className="mode-card-top">
+                        <span className={mode.badgeClass}>{mode.badge}</span>
+                        {isSelected && <span className="mode-check">✓ Active</span>}
+                      </div>
+                      <div className="mode-card-title">{mode.title}</div>
+                      <div className="mode-card-desc">{mode.desc}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -521,9 +555,9 @@ export default function RacingGame() {
             {/* Footer with Action Button */}
             <div className="landing-hub-footer">
               <span className="landing-tip-text">
-                {!isPracticeMode
-                  ? "🏎️ Solo Live Mode Active • Clean blank track unless live players join!"
-                  : "🏎️ AI Grid Active • Sparring with Verstappen, Hamilton & Norris!"}
+                {gameMode === 'friends' && "🌐 Live Wi-Fi Mesh • Open other tabs or phones on same Wi-Fi to race together!"}
+                {gameMode === 'bots' && "🤖 AI Grid Active • Sparring with Verstappen, Hamilton & Norris with crash physics!"}
+                {gameMode === 'solo' && "⏱️ Solo Hot Laps Active • Track is 100% clean for apex, lap time & drift practice!"}
               </span>
               <button className="btn-launch-gp" onClick={handleStartGrandPrix}>
                 <span>START GRAND PRIX</span>
@@ -601,16 +635,20 @@ export default function RacingGame() {
               <kbd className="racing-keycap">L</kbd>
             </button>
 
-            {/* Race Timing & Atmosphere Switcher */}
+            {/* Mode Switcher */}
             <button
               className="racing-btn"
-              onClick={handleCycleLighting}
-              title="Race Timing / Lighting Atmosphere (T)"
-              aria-label="Toggle Lighting Condition"
+              onClick={handleToggleGameMode}
+              title="Switch Game Mode (P): Friends / Bots / Solo"
+              aria-label="Toggle Game Mode"
             >
-              <span style={{ fontSize: '13px' }}>{currentThemeInfo.icon}</span>
-              <span className="racing-btn-text">{currentThemeInfo.label}</span>
-              <kbd className="racing-keycap">T</kbd>
+              <span style={{ fontSize: '12px' }}>
+                {gameMode === 'friends' ? '👥' : gameMode === 'bots' ? '🏎️' : '🎯'}
+              </span>
+              <span className="racing-btn-text">
+                {gameMode === 'friends' ? 'Friends Wi-Fi' : gameMode === 'bots' ? 'AI Bots' : 'Solo Hot Laps'}
+              </span>
+              <kbd className="racing-keycap">P</kbd>
             </button>
 
             <div className="racing-divider" />
@@ -629,17 +667,14 @@ export default function RacingGame() {
               <kbd className="racing-keycap">C</kbd>
             </button>
 
-            {/* Lighting Atmosphere */}
+            {/* Race Timing & Atmosphere */}
             <button
               className="racing-btn"
               onClick={handleCycleLighting}
-              title="Lighting condition (T)"
+              title="Race Timing / Lighting Atmosphere (T)"
               aria-label="Toggle lighting"
             >
-              <svg className="racing-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="5" />
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-              </svg>
+              <span style={{ fontSize: '13px' }}>{currentThemeInfo.icon}</span>
               <span className="racing-btn-text">{currentThemeInfo.label}</span>
               <kbd className="racing-keycap">T</kbd>
             </button>
