@@ -196,6 +196,9 @@ export class RivalManager {
     try {
       const wsUrl = 'wss://echo.websocket.events/.ws';
       this.peerSocket = new WebSocket(wsUrl);
+      this.peerSocket.onerror = () => {
+        // Silently swallow public echo server unavailability without console errors
+      };
       this.peerSocket.onmessage = (event) => {
         try {
           const packet = JSON.parse(event.data);

@@ -373,7 +373,7 @@ export default function RacingGame() {
                       <div className="circuit-card-stats">
                         <span className="circuit-stat-item"><strong>{circuit.sectorsCount}</strong> Sectors</span>
                         <span className="circuit-stat-item"><strong>{circuit.drsZones}</strong> DRS Zones</span>
-                        <span className="circuit-stat-item">Benchmark <strong>{circuit.benchmarkLap}s</strong></span>
+                        <span className="circuit-stat-item circuit-stat-bench">Benchmark <strong>{circuit.benchmarkLap}s</strong></span>
                       </div>
                     </div>
                   );
@@ -439,9 +439,11 @@ export default function RacingGame() {
                       key={opt.key}
                       className={`livery-pill-opt ${selectedColor === opt.key ? 'selected' : ''}`}
                       onClick={() => handleColorChange(opt.key)}
+                      title={opt.label}
                     >
                       <span className="livery-color-sample" style={{ backgroundColor: opt.color }} />
-                      <span>{opt.label}</span>
+                      <span className="livery-name-full">{opt.label}</span>
+                      <span className="livery-name-short">{opt.label.split(' ')[0]}</span>
                     </button>
                   ))}
                 </div>
