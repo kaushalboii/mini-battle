@@ -298,6 +298,15 @@ export default function RacingGame() {
     }
   };
 
+  const handleRotateToLandscape = () => {
+    toggleFullscreen();
+    try {
+      if (screen.orientation && 'lock' in screen.orientation) {
+        (screen.orientation as any).lock('landscape').catch(() => {});
+      }
+    } catch {}
+  };
+
   const currentCamInfo = CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
   const currentThemeInfo = LIGHTING_THEMES.find((t) => t.key === lightingTheme) || LIGHTING_THEMES[0];
   const currentCircuitDef = CIRCUITS[selectedCircuit] || CIRCUITS.monza;
@@ -329,8 +338,54 @@ export default function RacingGame() {
         </div>
       )}
 
+      {/* ROTATE TO LANDSCAPE FULLSCREEN SCREEN (MOBILE PORTRAIT INITIAL VIEW) */}
+      {!isLoading && showLanding && isMobilePortrait && !isPortraitHintDismissed && (
+        <div className="revsector-rotate-backdrop">
+          <div className="revsector-rotate-card">
+            <div className="landing-gp-badge" style={{ justifyContent: "center" }}>
+              <span className="landing-f1-pill">F1 GP</span>
+              <h2 className="landing-title" style={{ fontSize: "18px" }}>RevSector 3D</h2>
+            </div>
+
+            <div className="rotate-device-anim-wrapper">
+              <div className="rotate-phone-anim">
+                <div className="rotate-phone-notch" />
+                <div className="rotate-phone-screen">
+                  <span className="rotate-car-icon">🏎️</span>
+                </div>
+              </div>
+              <svg className="rotate-arrow-svg" viewBox="0 0 100 100">
+                <path d="M 22,50 A 28,28 0 1,1 50,78" fill="none" stroke="#f59e0b" strokeWidth="4" strokeDasharray="6,4" />
+                <polygon points="50,86 60,78 50,70" fill="#f59e0b" />
+              </svg>
+            </div>
+
+            <h3 className="rotate-prompt-title">ROTATE DEVICE TO PLAY</h3>
+            <p className="rotate-prompt-desc">
+              RevSector 3D is engineered for widescreen landscape simulation. Turn your phone horizontally to access full circuit view, cockpit telemetry & steering controls.
+            </p>
+
+            <button
+              type="button"
+              className="btn-launch-gp rotate-enter-btn"
+              onClick={handleRotateToLandscape}
+            >
+              <span>🔄 Turn to Landscape / Fullscreen</span>
+            </button>
+
+            <button
+              type="button"
+              className="rotate-bypass-link"
+              onClick={() => setIsPortraitHintDismissed(true)}
+            >
+              Continue in Portrait Anyway →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* GRAND PRIX LANDING SCREEN & CIRCUIT SELECTOR */}
-      {!isLoading && showLanding && (
+      {!isLoading && showLanding && (!isMobilePortrait || isPortraitHintDismissed) && (
         <div className="revsector-landing-backdrop">
           <div className="revsector-landing-hub">
             {/* Header */}

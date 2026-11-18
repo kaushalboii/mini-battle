@@ -99,7 +99,6 @@ export class RivalManager {
 
   private rivals: RivalDriverState[] = [];
   private broadcastChannel: BroadcastChannel | null = null;
-  private peerSocket: WebSocket | null = null;
   private localPlayerId: string;
   private localPlayerName: string = 'Kaushal';
   private localPlayerColor: string = '#f59e0b';
@@ -191,20 +190,6 @@ export class RivalManager {
           this.handleNetworkPacket(event.data);
         };
       }
-    } catch {}
-
-    try {
-      const wsUrl = 'wss://echo.websocket.events/.ws';
-      this.peerSocket = new WebSocket(wsUrl);
-      this.peerSocket.onerror = () => {
-        // Silently swallow public echo server unavailability without console errors
-      };
-      this.peerSocket.onmessage = (event) => {
-        try {
-          const packet = JSON.parse(event.data);
-          this.handleNetworkPacket(packet);
-        } catch {}
-      };
     } catch {}
   }
 
@@ -451,9 +436,6 @@ export class RivalManager {
     if (this.broadcastChannel) {
       try { this.broadcastChannel.postMessage(packet); } catch {}
     }
-    if (this.peerSocket && this.peerSocket.readyState === WebSocket.OPEN) {
-      try { this.peerSocket.send(JSON.stringify(packet)); } catch {}
-    }
   }
 
   public getStandings(
@@ -529,10 +511,6 @@ export class RivalManager {
     if (this.broadcastChannel) {
       try { this.broadcastChannel.close(); } catch {}
       this.broadcastChannel = null;
-    }
-    if (this.peerSocket) {
-      try { this.peerSocket.close(); } catch {}
-      this.peerSocket = null;
     }
     for (const r of this.rivals) {
       if (r.car.root.parent) {
