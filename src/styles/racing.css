@@ -427,13 +427,13 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   Motorsport Cockpit Telemetry HUD (Bottom-Center Steering Wheel Dash)
+   Motorsport Cockpit Telemetry HUD (Desktop: Top-Left / Left Wing)
    ========================================================================== */
 .racing-telemetry-panel {
   position: absolute;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
+  top: 64px;
+  bottom: auto;
+  left: max(16px, env(safe-area-inset-left));
   width: 175px;
   display: flex;
   flex-direction: column;
@@ -1548,15 +1548,15 @@ html, body, #root {
     padding: 4px 10px;
   }
 
-  /* Cockpit Telemetry in Landscape: F1 Steering Wheel Center Dash */
+  /* Cockpit Telemetry in Landscape: Top-Left under Top Bar */
   .racing-telemetry-panel {
-    bottom: max(10px, env(safe-area-inset-bottom));
-    top: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 145px;
-    padding: 6px 10px;
-    gap: 4px;
+    top: 44px;
+    bottom: auto;
+    left: max(8px, env(safe-area-inset-left));
+    transform: none;
+    width: 135px;
+    padding: 6px 8px;
+    gap: 3px;
     border-radius: 8px;
   }
 
@@ -1719,15 +1719,15 @@ html, body, #root {
     border-radius: 6px;
   }
 
-  /* Telemetry Panel in Portrait: Centered just above touch controls */
+  /* Telemetry Panel in Portrait: Top-Left under Top Bar */
   .racing-telemetry-panel {
-    top: auto;
-    bottom: 84px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 140px;
-    padding: 6px 10px;
-    gap: 4px;
+    top: 50px;
+    bottom: auto;
+    left: max(8px, env(safe-area-inset-left));
+    transform: none;
+    width: 130px;
+    padding: 6px 8px;
+    gap: 3px;
     border-radius: 8px;
   }
 
