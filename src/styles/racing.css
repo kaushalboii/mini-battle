@@ -1,10 +1,28 @@
+/* ==========================================================================
+   GRAND THEFT AUTO / GTA V RACING UI STYLES
+   ========================================================================== */
+
+:root {
+  --gta-font-heading: 'Bebas Neue', 'Montserrat', Impact, -apple-system, sans-serif;
+  --gta-font-tech: 'Chakra Petch', 'Courier New', monospace;
+  --gta-font-body: 'Montserrat', system-ui, -apple-system, sans-serif;
+
+  --gta-bg-glass: rgba(10, 12, 16, 0.85);
+  --gta-bg-panel: rgba(14, 18, 24, 0.9);
+  --gta-gold: #facc15;
+  --gta-green: #2ecc71;
+  --gta-cyan: #00e5ff;
+  --gta-red: #ef4444;
+  --gta-border: rgba(255, 255, 255, 0.2);
+}
+
 .racing-root {
   position: relative;
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  background: #adb2ba;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #111418;
+  font-family: var(--gta-font-body);
   user-select: none;
   touch-action: none;
 }
@@ -17,40 +35,41 @@
   display: block;
 }
 
-/* Loading Overlay */
-.racing-loading-overlay {
+/* ==========================================================================
+   GTA LOADING SCREEN
+   ========================================================================== */
+.gta-loading-overlay {
   position: absolute;
   inset: 0;
   z-index: 100;
-  background: rgba(20, 24, 30, 0.88);
-  backdrop-filter: blur(12px);
+  background: radial-gradient(circle at center, rgba(20, 24, 32, 0.92) 0%, rgba(5, 7, 10, 0.98) 100%);
+  backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
 }
 
-.racing-loading-card {
-  background: rgba(30, 36, 46, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 32px 40px;
-  width: min(90vw, 420px);
+.gta-loading-card {
+  background: rgba(12, 15, 20, 0.88);
+  border: 1px solid var(--gta-border);
+  padding: 40px 48px;
+  width: min(90vw, 460px);
   text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.racing-spinner {
-  width: 44px;
-  height: 44px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #facc15;
+.gta-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--gta-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 @keyframes spin {
@@ -59,160 +78,876 @@
   }
 }
 
-.racing-loading-title {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
+.gta-loading-title {
+  font-family: var(--gta-font-heading);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
   margin: 0 0 6px;
-  color: #facc15;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 
-.racing-loading-subtitle {
+.gta-loading-subtitle {
+  font-family: var(--gta-font-tech);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  margin: 0 0 20px;
+  letter-spacing: 2px;
+  color: var(--gta-gold);
+  margin: 0 0 24px;
+  text-transform: uppercase;
 }
 
-.racing-progress-bar-bg {
+.gta-progress-track {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.racing-progress-bar-fill {
+.gta-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #facc15, #f59e0b);
-  border-radius: 999px;
+  background: linear-gradient(90deg, #facc15, #ffffff);
   transition: width 0.15s ease-out;
 }
 
-.racing-progress-label {
+.gta-progress-label {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   GTA MENU OVERLAY (GTA V PAUSE & MAIN MENU STYLE)
+   ========================================================================== */
+.gta-menu-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: auto;
+  overflow: hidden;
+  animation: gtaFadeIn 0.25s ease-out;
+}
+
+@keyframes gtaFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Vignette and scanline texture */
+.gta-backdrop-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(10, 14, 20, 0.45) 0%, rgba(5, 7, 10, 0.85) 100%),
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 100%, 100% 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Top GTA Header Bar */
+.gta-header-bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 36px;
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.95) 0%, rgba(8, 10, 14, 0.82) 80%, transparent 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.gta-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gta-logo-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.gta-logo-main {
+  font-family: var(--gta-font-heading);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  line-height: 1;
+}
+
+.gta-logo-sub {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--gta-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gta-header-pill {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
+}
+
+/* GTA Category Tabs */
+.gta-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gta-tab-btn {
+  font-family: var(--gta-font-heading);
+  font-size: 17px;
+  letter-spacing: 1.5px;
+  padding: 8px 18px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.gta-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gta-tab-btn.active {
+  color: #000000;
+  background: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+/* Header Right: Wanted Level & Cash */
+.gta-header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.gta-wanted-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.gta-wanted-stars .star {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.2);
+  transition: color 0.2s;
+}
+
+.gta-wanted-stars .star.active {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+.gta-wanted-stars .star.pulse {
+  animation: starBlink 0.9s infinite ease-in-out;
+}
+
+@keyframes starBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+}
+
+.gta-cash-display {
+  font-family: var(--gta-font-heading);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--gta-green);
+  text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+}
+
+.gta-header-meta {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gta-dot {
+  color: var(--gta-gold);
+}
+
+/* ==========================================================================
+   GTA MENU CONTENT (LEFT LIST & RIGHT CARD)
+   ========================================================================== */
+.gta-menu-content {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(360px, 500px);
+  gap: 40px;
+  padding: 20px 48px;
+  align-items: start;
+  flex: 1;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+/* Left: Menu Items List */
+.gta-menu-list-wrapper {
+  background: var(--gta-bg-panel);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+}
+
+.gta-menu-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: #000000;
+  border-bottom: 2px solid var(--gta-gold);
+}
+
+.gta-menu-list-header h3 {
+  font-family: var(--gta-font-heading);
+  font-size: 18px;
+  letter-spacing: 1.5px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.gta-menu-list-header span {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  color: var(--gta-gold);
+  font-weight: 700;
+}
+
+.gta-menu-items {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Exact GTA V Selected Item Highlight (Solid White Bar, Black Bold Text) */
+.gta-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: rgba(10, 12, 16, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.gta-menu-item .gta-item-text {
+  font-family: var(--gta-font-heading);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+}
+
+.gta-menu-item .gta-item-badge {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Active GTA Highlight State */
+.gta-menu-item.selected {
+  background: #ffffff !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.gta-menu-item.selected .gta-item-text {
+  color: #000000 !important;
+  font-weight: 900;
+}
+
+.gta-menu-item.selected .gta-item-badge {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+.gta-menu-list-footer {
+  padding: 8px 16px;
+  background: rgba(5, 7, 10, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gta-menu-list-footer span {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Right Side: Detail / Preview Card */
+.gta-detail-card {
+  background: var(--gta-bg-panel);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  padding: 24px;
+}
+
+.gta-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+}
+
+.gta-card-header h4 {
+  font-family: var(--gta-font-heading);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.gta-badge-pill {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: var(--gta-gold);
+  color: #000000;
+}
+
+/* Car Color Preview Box */
+.gta-car-color-preview {
+  height: 90px;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 14px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gta-color-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gta-color-chip .chip-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+.gta-color-chip span {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.gta-wireframe-text {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+}
+
+/* Performance Stat Bars */
+.gta-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gta-stat-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-label {
+  font-family: var(--gta-font-heading);
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+}
+
+.stat-bar-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-bar-fill.speed {
+  background: linear-gradient(90deg, #00e5ff, #ffffff);
+}
+
+.stat-bar-fill.accel {
+  background: linear-gradient(90deg, #facc15, #ffffff);
+}
+
+.stat-bar-fill.handling {
+  background: linear-gradient(90deg, #2ecc71, #ffffff);
+}
+
+.stat-bar-fill.braking {
+  background: linear-gradient(90deg, #ef4444, #ffffff);
+}
+
+.stat-val {
+  font-family: var(--gta-font-tech);
   font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: right;
+}
+
+.gta-vehicle-desc {
+  font-size: 13px;
+  line-height: 1.6;
   color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 14px;
+}
+
+/* Camera preview box */
+.gta-camera-preview-box .gta-info-box {
+  padding: 10px 0;
+}
+
+.gta-camera-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.gta-info-box h5 {
+  font-family: var(--gta-font-heading);
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin: 0 0 10px;
+  color: var(--gta-gold);
+}
+
+.gta-info-box p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.gta-badge-keys {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-family: var(--gta-font-tech);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Controls Grid in Detail Card */
+.gta-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gta-key-card {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gta-key-card kbd {
+  font-family: var(--gta-font-tech);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gta-gold);
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  padding: 3px 6px;
+  width: fit-content;
+}
+
+.gta-key-card span {
+  font-family: var(--gta-font-heading);
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+}
+
+.gta-controls-note {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
   margin: 0;
 }
 
-/* Controls Panel (Top Right) */
-.racing-controls-panel {
+/* ==========================================================================
+   GTA BOTTOM ACTION LEGEND
+   ========================================================================== */
+.gta-action-legend {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: linear-gradient(0deg, rgba(8, 10, 14, 0.95) 0%, rgba(8, 10, 14, 0.85) 80%, transparent 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.legend-item:hover {
+  opacity: 0.8;
+}
+
+.legend-badge {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  font-weight: 800;
+  background: #ffffff;
+  color: #000000;
+  padding: 2px 7px;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.legend-label {
+  font-family: var(--gta-font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   IN-GAME GTA HUD BUTTONS & OVERLAYS
+   ========================================================================== */
+
+/* Top-Left: Menu Trigger Button */
+.gta-hud-top-left {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 50;
+  top: 16px;
+  left: 16px;
+  z-index: 40;
+}
+
+.gta-hud-btn {
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.gta-hud-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #ffffff;
+}
+
+.gta-hud-btn:active {
+  transform: scale(0.97);
+}
+
+.gta-btn-key {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  font-weight: 800;
+  background: #ffffff;
+  color: #000000;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+.gta-btn-label {
+  font-family: var(--gta-font-heading);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.gta-hud-btn-danger:hover {
+  border-color: var(--gta-red);
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.gta-hud-btn-sq {
+  font-family: var(--gta-font-heading);
+  font-size: 16px;
+  font-weight: 900;
+  color: #ffffff;
+  padding: 6px 12px;
+}
+
+/* Top-Right: GTA HUD Status & Action Buttons */
+.gta-hud-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.gta-hud-status-card {
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gta-hud-clock-row {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gta-hud-action-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.racing-truck-palette {
+/* Truck Palette in GTA HUD */
+.gta-hud-palette {
   display: flex;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
   padding: 4px 8px;
   gap: 6px;
 }
 
-.racing-color-dot {
+.gta-color-badge {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
+  background: transparent;
+  border: 1px solid transparent;
   padding: 0;
-}
-
-.racing-color-dot:hover {
-  transform: scale(1.15);
-}
-
-.racing-color-dot.active {
-  border-color: #ffffff;
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
-}
-
-.racing-icon-btn {
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  padding: 6px 14px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  transition: background 0.15s, transform 0.1s;
+  justify-content: center;
+  transition: transform 0.15s, border-color 0.15s;
 }
 
-.racing-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.gta-color-badge .color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
 }
 
-.racing-icon-btn:active {
-  transform: scale(0.96);
+.gta-color-badge:hover {
+  transform: scale(1.15);
 }
 
-/* Camera Switcher Button */
-.racing-cam-btn {
-  background: rgba(250, 204, 21, 0.22);
-  border-color: rgba(250, 204, 21, 0.55);
-  color: #fef08a;
+.gta-color-badge.active {
+  border-color: #ffffff;
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
-.racing-cam-btn:hover {
-  background: rgba(250, 204, 21, 0.35);
+/* Bottom Right: GTA Speedometer */
+.gta-hud-speedometer {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 40;
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 130px;
 }
 
-.racing-kbd-inline {
-  margin-left: 4px;
-  font-size: 10px;
-  padding: 1px 5px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.gta-speed-value {
+  font-family: var(--gta-font-heading);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 0.9;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Camera Toast Notification */
-.racing-camera-toast {
+.gta-speed-unit {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gta-gold);
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.gta-gear-badge {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-bottom: 8px;
+}
+
+.gta-speed-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.gta-speed-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e5ff, #facc15, #ef4444);
+  transition: width 0.08s ease-out;
+}
+
+/* Bottom Legend Hint Bar */
+.gta-hud-bottom-bar {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-border);
+  padding: 6px 18px;
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Camera Mode Toast */
+.gta-camera-toast {
   position: absolute;
   top: 75px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(250, 204, 21, 0.6);
+  background: var(--gta-bg-glass);
+  border: 1px solid var(--gta-gold);
   backdrop-filter: blur(8px);
-  border-radius: 999px;
-  padding: 8px 22px;
+  padding: 8px 24px;
   color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  font-family: var(--gta-font-heading);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
-  gap: 8px;
-  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 10px;
+  animation: gtaPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
-.racing-toast-icon {
-  font-size: 16px;
+.gta-toast-icon {
+  font-size: 18px;
 }
 
-@keyframes popIn {
+@keyframes gtaPopIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -8px) scale(0.95);
+    transform: translate(-50%, -10px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -220,117 +955,151 @@
   }
 }
 
-/* Bottom Hint Bar */
-.racing-hint-bar {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  padding: 6px 18px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* Help Modal */
-.racing-help-modal {
+/* Modal Overlay */
+.gta-modal-overlay {
   position: absolute;
   inset: 0;
   z-index: 120;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
 }
 
-.racing-help-card {
-  background: #1e242e;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 24px;
-  max-width: 440px;
+.gta-modal-card {
+  background: var(--gta-bg-panel);
+  border: 1px solid var(--gta-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  padding: 28px;
+  max-width: 480px;
   width: 100%;
   color: #ffffff;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 
-.racing-help-header {
+.gta-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid var(--gta-gold);
+  padding-bottom: 12px;
   margin-bottom: 16px;
 }
 
-.racing-help-header h3 {
+.gta-modal-header h3 {
+  font-family: var(--gta-font-heading);
+  font-size: 20px;
+  letter-spacing: 1.5px;
   margin: 0;
-  font-size: 17px;
-  color: #facc15;
+  color: #ffffff;
 }
 
-.racing-help-header button {
+.gta-modal-header button {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
 }
 
-.racing-help-body p {
+.gta-modal-body p {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   margin: 6px 0;
   color: rgba(255, 255, 255, 0.85);
 }
 
-.racing-help-body hr {
+.gta-modal-body hr {
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   margin: 14px 0;
 }
 
-.racing-help-body h4 {
+.gta-modal-body h4 {
+  font-family: var(--gta-font-heading);
+  font-size: 16px;
+  letter-spacing: 1px;
   margin: 10px 0 6px;
-  font-size: 14px;
+  color: var(--gta-gold);
 }
 
-.racing-help-body ul {
+.gta-modal-body ul {
   padding-left: 20px;
   margin: 6px 0;
 }
 
-.racing-help-body li {
+.gta-modal-body li {
   font-size: 12px;
   line-height: 1.8;
   color: rgba(255, 255, 255, 0.8);
 }
 
 kbd {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
+  font-family: var(--gta-font-tech);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 2px 6px;
   font-size: 11px;
-  font-family: inherit;
   font-weight: 700;
   color: #ffffff;
 }
 
-.racing-btn {
-  background: #facc15;
-  color: #000;
+.gta-btn {
+  font-family: var(--gta-font-heading);
+  font-size: 16px;
+  letter-spacing: 1.5px;
   border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-weight: 700;
+  padding: 10px 22px;
+  font-weight: 800;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.gta-btn-primary {
+  background: #ffffff;
+  color: #000000;
+}
+
+.gta-btn-primary:hover {
+  background: var(--gta-gold);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .gta-header-bar {
+    padding: 10px 14px;
+  }
+  .gta-logo-main {
+    font-size: 20px;
+  }
+  .gta-tabs-nav {
+    display: none;
+  }
+  .gta-menu-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px 14px;
+  }
+  .gta-hud-top-right {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+  .gta-hud-status-card {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+  .gta-hud-speedometer {
+    bottom: 14px;
+    right: 14px;
+    min-width: 90px;
+    padding: 8px 12px;
+  }
+  .gta-speed-value {
+    font-size: 28px;
+  }
+  .gta-hud-bottom-bar {
+    display: none;
+  }
 }
