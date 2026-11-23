@@ -39,7 +39,6 @@ export class FollowCamera {
   _smoothedCamPos = new Vector3();
   _smoothedLookPos = new Vector3();
   _initialized = false;
-  _shakeAmount = 0;
 
   constructor(camera) {
     this.camera = camera;
@@ -49,10 +48,6 @@ export class FollowCamera {
 
     this.camRightXZ.set(this.offset.z, 0, -this.offset.x).normalize();
     this.camForwardXZ.set(-this.offset.x, 0, -this.offset.z).normalize();
-  }
-
-  triggerShake(amount = 0.5) {
-    this._shakeAmount = Math.max(this._shakeAmount, amount);
   }
 
   setMode(newMode) {
@@ -85,13 +80,6 @@ export class FollowCamera {
     } else {
       // Default: chase
       this._updateChase(dt, target, velocity, yaw, speed, 4.4, 2.1, 48, 2.0, 0.5);
-    }
-
-    if (this._shakeAmount > 0.01) {
-      this.camera.position.x += (Math.random() - 0.5) * this._shakeAmount;
-      this.camera.position.y += (Math.random() - 0.5) * this._shakeAmount;
-      this.camera.position.z += (Math.random() - 0.5) * this._shakeAmount;
-      this._shakeAmount = Math.max(0, this._shakeAmount - dt * 3.5);
     }
   }
 
