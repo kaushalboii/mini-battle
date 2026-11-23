@@ -20,13 +20,19 @@ import { PhysicsWorld } from './Physics';
 import { TouchJoystick } from './TouchJoystick';
 import { buildTrack } from './Track';
 import { MAX_SPEED, Vehicle } from './Vehicle';
+import { MultiplayerMesh, type PeerRacerInfo } from './MultiplayerMesh';
 
 export interface GameInstance {
   app: Application;
   audio: GameAudio;
   vehicle: Vehicle;
   camera: FollowCamera;
+  multiplayerMesh: MultiplayerMesh;
   setVehicleColor: (colorKey: string) => void;
+  setDriverName: (name: string) => void;
+  setRoomCode: (room: string) => void;
+  getPeersList: () => PeerRacerInfo[];
+  getConnectedCount: () => number;
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
   resetPosition: () => void;
@@ -35,7 +41,11 @@ export interface GameInstance {
 
 export async function initRacingGame(
   canvas: HTMLCanvasElement,
-  onProgress?: (progress: number, label: string) => void
+  onProgress?: (progress: number, label: string) => void,
+  onPeersUpdated?: (peers: PeerRacerInfo[]) => void,
+  initialDriverName = 'Kaushal',
+  initialColorKey = 'vehicle-truck-yellow',
+  initialRoomCode = 'WIFI-MESH'
 ): Promise<GameInstance> {
   const app = new Application();
 
@@ -188,6 +198,20 @@ export async function initRacingGame(
   const driftMarks = new DriftMarks(view3d.root);
   const particles = new SmokeTrails(view3d.root, smokeTexture);
 
+  // Same-Wi-Fi Multiplayer Mesh
+  const multiplayerMesh = new MultiplayerMesh(
+    view3d.root,
+    sources,
+    initialDriverName,
+    currentKey,
+    initialRoomCode
+  );
+  if (onPeersUpdated) {
+    multiplayerMesh.onPeersUpdated = onPeersUpdated;
+  }
+
+  let meshBroadcastTimer = 0;
+
   const tickerFn = () => {
     joystick.resize(app.screen.width, app.screen.height);
 
@@ -221,6 +245,24 @@ export async function initRacingGame(
       input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
 
     lapTimer.update(dt, vehicle.container.position, hasInput);
+
+    // Broadcast local state across mesh at ~25Hz
+    meshBroadcastTimer += dt;
+    if (meshBroadcastTimer >= 0.04) {
+      meshBroadcastTimer = 0;
+      const lt = lapTimer as any;
+      multiplayerMesh.broadcastLocalState(
+        vehicle.container.position,
+        vehicle.yaw,
+        vehicle.linearSpeed,
+        lt._lap || 1,
+        lt._currentLapTime || 0,
+        lt._bestLap ?? null
+      );
+    }
+
+    // Animate & interpolate remote players
+    multiplayerMesh.update(dt);
   };
 
   app.ticker.add(tickerFn);
@@ -232,6 +274,7 @@ export async function initRacingGame(
     audio,
     vehicle,
     camera: followCamera,
+    multiplayerMesh,
     setVehicleColor(newKey: string) {
       if (!sources[newKey] || newKey === currentKey) return;
       currentKey = newKey;
@@ -240,6 +283,25 @@ export async function initRacingGame(
       vehicle = new Vehicle(sources[newKey], physics);
       vehicle.yaw = oldYaw;
       view3d.root.addChild(vehicle.container);
+      multiplayerMesh.setVehicleColor(newKey);
+    },
+    setDriverName(name: string) {
+      multiplayerMesh.setDriverName(name);
+    },
+    setRoomCode(room: string) {
+      multiplayerMesh.setRoomCode(room);
+    },
+    getPeersList() {
+      const lt = lapTimer as any;
+      return multiplayerMesh.getPeersList(
+        lt._lap || 1,
+        lt._currentLapTime || 0,
+        lt._bestLap ?? null,
+        vehicle.linearSpeed
+      );
+    },
+    getConnectedCount() {
+      return multiplayerMesh.getConnectedCount();
     },
     setCameraMode(mode: string) {
       followCamera.setMode(mode);
@@ -256,6 +318,7 @@ export async function initRacingGame(
       window.removeEventListener('pointerdown', unlockAudio);
       controls.destroy();
       audio.destroy();
+      multiplayerMesh.destroy();
       app.destroy(true, { children: true });
     },
   };

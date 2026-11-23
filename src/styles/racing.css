@@ -334,3 +334,768 @@ kbd {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ============================================================
+ * CONTROL CONSOLE & WI-FI MESH MULTIPLAYER STYLING
+ * ============================================================ */
+
+/* Top Console Bar */
+.racing-console-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.console-bar-left,
+.console-bar-center,
+.console-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Brand Badge */
+.console-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 20, 28, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 14px 5px 8px;
+  color: #ffffff;
+}
+
+.console-brand-icon {
+  font-size: 16px;
+}
+
+.console-brand-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.console-brand-name {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #facc15;
+}
+
+.console-brand-sub {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.3px;
+}
+
+/* Driver Badge */
+.console-driver-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 20, 28, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.driver-avatar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+}
+
+/* Mesh Status Pill */
+.mesh-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 16, 24, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.18);
+  border-radius: 999px;
+  padding: 6px 16px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.mesh-status-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.3);
+}
+
+.mesh-radar-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  animation: radar-pulse 1.8s infinite;
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.mesh-status-label {
+  color: #34d399;
+  letter-spacing: 0.6px;
+}
+
+.mesh-pill-divider {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.mesh-peers-count {
+  color: #ffffff;
+}
+
+.mesh-room-tag {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.15);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+}
+
+/* Quick Palette */
+.console-quick-palette {
+  display: flex;
+  background: rgba(15, 20, 28, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px 8px;
+  gap: 6px;
+}
+
+.console-color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  padding: 0;
+}
+
+.console-color-dot:hover {
+  transform: scale(1.18);
+}
+
+.console-color-dot.active {
+  border-color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+/* HUD Buttons */
+.console-hud-btn {
+  background: rgba(15, 20, 28, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.console-hud-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.console-hud-btn:active {
+  transform: scale(0.96);
+}
+
+.console-icon-only-btn {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.console-cam-btn {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(250, 204, 21, 0.45);
+  color: #fef08a;
+}
+
+.console-cam-btn:hover {
+  background: rgba(250, 204, 21, 0.28);
+}
+
+.console-drawer-toggle {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(245, 158, 11, 0.25));
+  border-color: rgba(250, 204, 21, 0.6);
+  color: #fef08a;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+}
+
+.console-drawer-toggle:hover,
+.console-drawer-toggle.active {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.4), rgba(245, 158, 11, 0.4));
+  border-color: #facc15;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.console-kbd {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.console-toggle-arrow {
+  font-size: 9px;
+  margin-left: 2px;
+}
+
+/* ============================================================
+ * FULL EXPANDABLE CONSOLE DRAWER MODAL
+ * ============================================================ */
+.console-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: rgba(8, 11, 16, 0.72);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.console-modal-window {
+  background: rgba(20, 26, 36, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  max-width: 820px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #ffffff;
+  animation: scaleUp 0.18s ease-out;
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.console-window-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 20, 28, 0.6);
+}
+
+.console-window-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.console-window-icon {
+  font-size: 26px;
+}
+
+.console-window-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #facc15;
+}
+
+.console-window-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.console-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.console-close-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fff;
+}
+
+/* Body */
+.console-window-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cards */
+.console-card {
+  background: rgba(15, 20, 28, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.console-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #facc15;
+}
+
+.console-card-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+}
+
+.mesh-indicator-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.console-live-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  border-radius: 4px;
+  padding: 2px 6px;
+  letter-spacing: 0.5px;
+}
+
+.console-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 14px;
+}
+
+/* Forms & Inputs */
+.console-room-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.console-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.console-input-group label,
+.console-label-block {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.console-text-input {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.console-text-input:focus {
+  border-color: #facc15;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.25);
+}
+
+.console-text-input.uppercase {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.console-btn-primary {
+  background: #facc15;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.console-btn-primary:hover {
+  background: #fde047;
+}
+
+.console-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.console-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.console-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Truck Selection Grid */
+.console-truck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.console-truck-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.console-truck-card:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.console-truck-card.selected {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.25);
+}
+
+.truck-card-color-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.truck-card-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.truck-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.truck-card-status {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.console-truck-card.selected .truck-card-status {
+  color: #facc15;
+  font-weight: 700;
+}
+
+/* Leaderboard Table */
+.console-table-wrapper {
+  overflow-x: auto;
+}
+
+.console-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.console-grid-table th {
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.console-grid-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.console-grid-table tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.row-local-player td {
+  background: rgba(250, 204, 21, 0.06);
+}
+
+.cell-pos {
+  font-weight: 800;
+  color: #facc15;
+  width: 44px;
+}
+
+.cell-driver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.driver-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.you-pill {
+  font-size: 9px;
+  background: #facc15;
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+.cell-truck,
+.cell-lap,
+.cell-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.status-badge.local {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.status-badge.remote {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+/* Camera Pills */
+.console-cam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.console-cam-pill {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.console-cam-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.console-cam-pill.active {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: #facc15;
+}
+
+.cam-pill-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cam-pill-desc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Controls Guide */
+.console-controls-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.guide-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Footer */
+.console-window-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 20, 28, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.console-footer-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 820px) {
+  .console-brand-sub,
+  .mesh-room-tag {
+    display: none;
+  }
+
+  .racing-console-bar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .console-window-body {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .console-driver-badge,
+  .console-cam-btn,
+  .console-quick-palette {
+    display: none;
+  }
+
+  .mesh-status-label {
+    display: none;
+  }
+}
