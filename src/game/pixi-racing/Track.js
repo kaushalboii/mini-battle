@@ -1,9 +1,3 @@
-/**
- * RevSector 3D - Modular Circuit & Environmental Grid
- * Instantiates the circuit segments, environmental forest canopy, trackside paddock, and rigid physics colliders.
- * Engineered by Kaushal.
- */
-
 import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';
 
 const ORIENT_DEG = { 0: 0, 10: 180, 16: 90, 22: 270 };
@@ -12,59 +6,164 @@ const CELL_RAW = 9.99;
 const GRID_SCALE = 0.75;
 
 const TRACK_CELLS = [
-  // --- Sector 1: Main Pit Straight & Curva Grande ---
-  [0, 0, 'track-finish', 0],      // Start/Finish Line & Timing Gantry
-  [0, 1, 'track-straight', 0],    // Pit Straight Acceleration
-  [0, 2, 'track-straight', 0],    // Main Straight DRS Speed Trap
-  [0, 3, 'track-corner', 22],     // Turn 1: Hard Braking into Right Curve
-  [-1, 3, 'track-straight', 16],  // Curva Grande High-Speed Arc
-  [-2, 3, 'track-straight', 16],  // Curva Grande Apex
-  [-3, 3, 'track-straight', 16],  // Curva Grande Exit
-  [-4, 3, 'track-corner', 10],    // Turn 2: Sweeping Hairpin into Sector 2
-
-  // --- Sector 2: High-Velocity Back Straight ---
-  [-4, 2, 'track-straight', 0],   // Back Straight DRS Zone
-  [-4, 1, 'track-straight', 0],   // Full Throttle Run
-  [-4, 0, 'track-straight', 0],   // Sector 2 Speed Trap
-  [-4, -1, 'track-straight', 0],  // High-Speed Straightaway
-  [-4, -2, 'track-straight', 0],  // Heavy Braking Zone
-
-  // --- Sector 3: Ascari Chicane & Parabolica ---
-  [-4, -3, 'track-corner', 16],   // Turn 3: Ascari Chicane Entry
-  [-3, -3, 'track-straight', 16], // Chicane High-Speed Transition
-  [-2, -3, 'track-corner', 0],    // Turn 4: Chicane Apex into Infield
-  [-2, -2, 'track-straight', 0],  // Infield Stadium Straight
-  [-2, -1, 'track-corner', 10],   // Turn 5: Technical S-Curve
-  [-1, -1, 'track-straight', 16], // Parabolica Approach
-  [0, -1, 'track-corner', 0],     // Final Turn: Parabolica onto Main Straight
+  [-3, -3, 'track-corner', 16],
+  [-2, -3, 'track-straight', 22],
+  [-1, -3, 'track-straight', 22],
+  [0, -3, 'track-corner', 0],
+  [-3, -2, 'track-straight', 0],
+  [0, -2, 'track-straight', 0],
+  [-3, -1, 'track-corner', 10],
+  [-2, -1, 'track-corner', 0],
+  [0, -1, 'track-straight', 0],
+  [-2, 0, 'track-straight', 10],
+  [0, 0, 'track-finish', 0],
+  [-2, 1, 'track-straight', 10],
+  [0, 1, 'track-straight', 0],
+  [-2, 2, 'track-corner', 10],
+  [-1, 2, 'track-straight', 16],
+  [0, 2, 'track-corner', 22],
 ];
 
 const DECO_CELLS = [
-  // Team Paddock Tents along Main Straight Pitlane
-  [1, 0, 'decoration-tents', 22],
-  [1, 1, 'decoration-tents', 22],
-  [1, 2, 'decoration-tents', 22],
-
-  // Infield Paddock & Festival Area
-  [-1, 1, 'decoration-tents', 0],
-  [-2, 1, 'decoration-tents', 16],
-  [-3, 1, 'decoration-tents', 10],
-  [-3, 0, 'decoration-tents', 0],
-
-  // Infield Green Spaces
+  [-4, -2, 'decoration-tents', 10],
+  [-1, -4, 'decoration-tents', 22],
+  [-1, 1, 'decoration-tents', 22],
+  [-8, -9, 'decoration-forest', 0],
+  [-7, -9, 'decoration-forest', 0],
+  [-6, -9, 'decoration-forest', 0],
+  [-5, -9, 'decoration-forest', 0],
+  [-4, -9, 'decoration-forest', 0],
+  [-3, -9, 'decoration-forest', 0],
+  [-2, -9, 'decoration-forest', 0],
+  [-1, -9, 'decoration-forest', 0],
+  [0, -9, 'decoration-forest', 0],
+  [1, -9, 'decoration-forest', 0],
+  [2, -9, 'decoration-forest', 0],
+  [-8, -8, 'decoration-forest', 0],
+  [-7, -8, 'decoration-forest', 0],
+  [-6, -8, 'decoration-forest', 0],
+  [-5, -8, 'decoration-forest', 0],
+  [-4, -8, 'decoration-forest', 0],
+  [-3, -8, 'decoration-forest', 0],
+  [-2, -8, 'decoration-forest', 0],
+  [-1, -8, 'decoration-forest', 0],
+  [0, -8, 'decoration-forest', 0],
+  [1, -8, 'decoration-forest', 0],
+  [2, -8, 'decoration-forest', 0],
+  [-8, -7, 'decoration-forest', 0],
+  [-7, -7, 'decoration-forest', 0],
+  [-6, -7, 'decoration-forest', 0],
+  [-5, -7, 'decoration-forest', 0],
+  [-4, -7, 'decoration-forest', 0],
+  [-3, -7, 'decoration-forest', 0],
+  [-2, -7, 'decoration-forest', 0],
+  [-1, -7, 'decoration-forest', 0],
+  [0, -7, 'decoration-forest', 0],
+  [1, -7, 'decoration-forest', 0],
+  [2, -7, 'decoration-forest', 0],
+  [-8, -6, 'decoration-forest', 0],
+  [-7, -6, 'decoration-forest', 0],
+  [-6, -6, 'decoration-forest', 0],
+  [-5, -6, 'decoration-forest', 0],
+  [-4, -6, 'decoration-forest', 0],
+  [-3, -6, 'decoration-empty', 0],
+  [-2, -6, 'decoration-empty', 0],
+  [-1, -6, 'decoration-empty', 0],
+  [0, -6, 'decoration-empty', 0],
+  [1, -6, 'decoration-forest', 0],
+  [2, -6, 'decoration-forest', 0],
+  [-8, -5, 'decoration-forest', 0],
+  [-7, -5, 'decoration-forest', 0],
+  [-6, -5, 'decoration-forest', 0],
+  [-5, -5, 'decoration-forest', 0],
+  [-4, -5, 'decoration-empty', 0],
+  [-3, -5, 'decoration-empty', 0],
+  [-2, -5, 'decoration-empty', 0],
+  [-1, -5, 'decoration-empty', 0],
+  [0, -5, 'decoration-empty', 0],
+  [1, -5, 'decoration-forest', 0],
+  [2, -5, 'decoration-forest', 0],
+  [-8, -4, 'decoration-forest', 0],
+  [-7, -4, 'decoration-forest', 0],
+  [-6, -4, 'decoration-forest', 0],
+  [-5, -4, 'decoration-forest', 0],
+  [-4, -4, 'decoration-empty', 0],
+  [1, -4, 'decoration-forest', 0],
+  [2, -4, 'decoration-forest', 0],
+  [-8, -3, 'decoration-forest', 0],
+  [-7, -3, 'decoration-forest', 0],
+  [-6, -3, 'decoration-forest', 0],
+  [-5, -3, 'decoration-forest', 0],
+  [-4, -3, 'decoration-empty', 0],
+  [1, -3, 'decoration-forest', 0],
+  [2, -3, 'decoration-forest', 0],
+  [-8, -2, 'decoration-forest', 0],
+  [-7, -2, 'decoration-forest', 0],
+  [-6, -2, 'decoration-forest', 0],
+  [-5, -2, 'decoration-forest', 0],
+  [1, -2, 'decoration-forest', 0],
+  [2, -2, 'decoration-forest', 0],
+  [-8, -1, 'decoration-forest', 0],
+  [-7, -1, 'decoration-forest', 0],
+  [-6, -1, 'decoration-forest', 0],
+  [-5, -1, 'decoration-forest', 0],
+  [-4, -1, 'decoration-empty', 0],
+  [-1, -1, 'decoration-empty', 0],
+  [1, -1, 'decoration-forest', 0],
+  [2, -1, 'decoration-forest', 0],
+  [-8, 0, 'decoration-forest', 0],
+  [-7, 0, 'decoration-forest', 0],
+  [-6, 0, 'decoration-forest', 0],
+  [-5, 0, 'decoration-forest', 0],
+  [-4, 0, 'decoration-empty', 0],
+  [-3, 0, 'decoration-empty', 0],
   [-1, 0, 'decoration-empty', 0],
-  [-1, 2, 'decoration-empty', 0],
-  [-2, 0, 'decoration-empty', 0],
-  [-2, 2, 'decoration-empty', 0],
-  [-3, -1, 'decoration-empty', 0],
-  [-3, -2, 'decoration-empty', 0],
+  [1, 0, 'decoration-forest', 0],
+  [2, 0, 'decoration-forest', 0],
+  [-8, 1, 'decoration-forest', 0],
+  [-7, 1, 'decoration-forest', 0],
+  [-6, 1, 'decoration-forest', 0],
+  [-5, 1, 'decoration-forest', 0],
+  [-4, 1, 'decoration-empty', 0],
+  [-3, 1, 'decoration-empty', 0],
+  [1, 1, 'decoration-forest', 0],
+  [2, 1, 'decoration-forest', 0],
+  [-8, 2, 'decoration-forest', 0],
+  [-7, 2, 'decoration-forest', 0],
+  [-6, 2, 'decoration-forest', 0],
+  [-5, 2, 'decoration-forest', 0],
+  [-4, 2, 'decoration-empty', 0],
   [-3, 2, 'decoration-empty', 0],
+  [1, 2, 'decoration-forest', 0],
+  [2, 2, 'decoration-forest', 0],
+  [-8, 3, 'decoration-forest', 0],
+  [-7, 3, 'decoration-forest', 0],
+  [-6, 3, 'decoration-forest', 0],
+  [-5, 3, 'decoration-forest', 0],
+  [-4, 3, 'decoration-forest', 0],
+  [-3, 3, 'decoration-forest', 0],
+  [-2, 3, 'decoration-forest', 0],
+  [-1, 3, 'decoration-forest', 0],
+  [0, 3, 'decoration-forest', 0],
+  [1, 3, 'decoration-forest', 0],
+  [2, 3, 'decoration-forest', 0],
+  [-8, 4, 'decoration-forest', 0],
+  [-7, 4, 'decoration-forest', 0],
+  [-6, 4, 'decoration-forest', 0],
+  [-5, 4, 'decoration-forest', 0],
+  [-4, 4, 'decoration-forest', 0],
+  [-3, 4, 'decoration-forest', 0],
+  [-2, 4, 'decoration-forest', 0],
+  [-1, 4, 'decoration-forest', 0],
+  [0, 4, 'decoration-forest', 0],
+  [1, 4, 'decoration-forest', 0],
+  [2, 4, 'decoration-forest', 0],
 ];
 
 const NPC_TRUCKS = [
-  { key: 'vehicle-truck-green', x: 8.5, y: -0.01, z: 8.0, rotDeg: 180.0 },
-  { key: 'vehicle-truck-purple', x: -14.0, y: -0.14, z: 7.5, rotDeg: 90.0 },
-  { key: 'vehicle-truck-red', x: -28.5, y: -0.15, z: 0.0, rotDeg: 270.0 },
+  { key: 'vehicle-truck-green', x: -3.51, y: -0.01, z: 12.7, rotDeg: 98.0 },
+  { key: 'vehicle-truck-purple', x: -23.78, y: -0.14, z: -13.56, rotDeg: 0.0 },
+  { key: 'vehicle-truck-red', x: -1.36, y: -0.15, z: -23.8, rotDeg: 155.9 },
 ];
 
 function pieceWorldPosition(gx, gz) {

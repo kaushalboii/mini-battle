@@ -1,9 +1,3 @@
-/**
- * RevSector 3D - Virtual Touch Joystick
- * Touchscreen steering and acceleration interface with dynamic analog deadzones.
- * Engineered by Kaushal.
- */
-
 import { Container, Graphics } from 'pixi.js';
 
 const STEER_RANGE = 40;

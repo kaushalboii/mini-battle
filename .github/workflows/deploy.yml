@@ -58,21 +58,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tagger.outputs.tag }}
-          name: "Release ${{ steps.tagger.outputs.tag }} - RevSector 3D Grand Prix Edition"
+          name: "Release ${{ steps.tagger.outputs.tag }} - Starter Kit Racing 3D"
           body: |
-            ## 🏎️ RevSector 3D (${{ steps.tagger.outputs.tag }})
-            Engineered by **Kaushal**.
+            ## 🏎️ Starter Kit Racing 3D (${{ steps.tagger.outputs.tag }})
 
             🎮 **Play Live Game on GitHub Pages**:
             👉 [https://kaushalboii.github.io/mini-battle/](https://kaushalboii.github.io/mini-battle/)
 
-            ### 🏁 RevSector 3D Motorsport Engine:
-            - **Formula 1 Live Timing Tower**: Broadcast-grade field leaderboard with live driver intervals, tyre compounds (Soft, Medium, Hard), and S1/S2/S3 sector trackers
-            - **15-LED Shift Light Bar**: 5 Green, 5 Red, 5 Blue LEDs with redline upshift flashing (>92% RPM)
-            - **Grand Prix 20-Tile Circuit**: Authentic 20-cell circuit with high-speed Curva Grande, 6-cell Back Straight, Ascari Chicane, and Parabolica
-            - **Trackside 3D Architecture**: Overhead FIA Start/Finish timing gantry, alternating grid slots (P1-P6), and pitwall armco barriers
-            - **Dual-Thumb Mobile Architecture**: Responsive landscape steering paddles and progressive acceleration/braking pedals
-            - **Dynamic Drift Physics**: Clean repositioned drift HUD with real-time tire smoke particle trails and rubber skid ribbons
+            ### 🚀 Kenney's Starter Kit Racing 3D Port:
+            - **3D Vehicle Physics**: Arcade truck driving model with steering, drifting, and suspension roll
+            - **Dynamic Drift Marks**: Streaming real-time tire skid ribbons on the asphalt
+            - **Particle Smoke Trails**: World-space drift smoke puffs emitted from rear wheels
+            - **Multi-Gear Procedural Audio**: 3-speed transmission, RPM curves, lowpass throttle filter, and skid screech
+            - **2D Lap Timer HUD**: Lap counter, current lap time, last lap, and persistent best lap
+            - **Follow Camera**: Dynamic lead vector, smoothing, and look-at target
+            - **Touch & Gamepad Controls**: Mobile on-screen joystick and steering pedals
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
