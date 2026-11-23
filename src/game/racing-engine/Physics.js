@@ -75,7 +75,7 @@ export class PhysicsWorld {
   }
 
   addStaticBox(spec) {
-    return rigidBody.create(this.world, {
+    rigidBody.create(this.world, {
       shape: box.create({ halfExtents: spec.halfExtents }),
       motionType: MotionType.STATIC,
       objectLayer: this.OL_STATIC,
@@ -84,16 +84,6 @@ export class PhysicsWorld {
       friction: 0.0,
       restitution: 0.1,
     });
-  }
-
-  removeBody(body) {
-    if (body) {
-      try {
-        rigidBody.remove(this.world, body);
-      } catch {
-        // Silently ignore if already removed
-      }
-    }
   }
 
   step(dt) {
