@@ -105,8 +105,6 @@ function angleLerp(current: number, target: number, t: number): number {
   return current + diff * t;
 }
 
-export type GameMode = 'friends' | 'bots' | 'solo';
-
 export class RivalGrid {
   private root: Container3D;
   private sources: Record<string, any>;
@@ -115,7 +113,6 @@ export class RivalGrid {
   private rivals: RivalDriver[] = [];
   private broadcastChannel: BroadcastChannel | null = null;
   private localPlayerId: string;
-  public gameMode: GameMode = 'friends';
   public isPracticeMode: boolean = false;
   private localPlayerName: string = 'Kaushal';
   private localPlayerColor: string = 'vehicle-truck-yellow';
@@ -137,22 +134,14 @@ export class RivalGrid {
     this.localPlayerColor = playerColor;
     this.localPlayerName = playerName;
     this.isPracticeMode = initialPracticeMode;
-    this.gameMode = initialPracticeMode ? 'bots' : 'friends';
     this.localPlayerId = 'p_' + Math.random().toString(36).substring(2, 8);
 
     this.initRivals();
     this.initMultiplayerMesh();
   }
 
-  public setGameMode(mode: GameMode) {
-    this.gameMode = mode;
-    this.isPracticeMode = mode === 'bots';
-    this.initRivals();
-  }
-
   public setPracticeMode(active: boolean) {
     this.isPracticeMode = active;
-    this.gameMode = active ? 'bots' : 'friends';
     this.initRivals();
   }
 
@@ -233,10 +222,6 @@ export class RivalGrid {
 
   private handleNetworkPacket(data: any) {
     if (!data || data.id === this.localPlayerId || data.circuitId !== this.circuitId) {
-      return;
-    }
-    // In Solo Practice mode, ignore remote packets so circuit remains completely clear
-    if (this.gameMode === 'solo') {
       return;
     }
 
@@ -553,10 +538,6 @@ export class RivalGrid {
     progress: number,
     isInit: boolean = false
   ) {
-    if (this.gameMode !== 'friends') {
-      return;
-    }
-
     const packet = {
       id: this.localPlayerId,
       name: this.localPlayerName,

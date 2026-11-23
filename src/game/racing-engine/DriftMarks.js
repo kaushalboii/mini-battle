@@ -1,5 +1,7 @@
-import { Material3D, Geometry3D, Mesh3D, Vector3 } from '@pixi/3d';
+import { FlatMaterial, Geometry3D, Mesh3D, Vector3 } from '@pixi/3d';
+
 import { Buffer as PixiBuffer, BufferUsage } from 'pixi.js';
+
 import { clamp } from './MathUtils';
 
 const MAX_SEGMENTS = 4096;
@@ -12,10 +14,11 @@ const COLOR_FLOATS_PER_SEGMENT = VERTS_PER_SEGMENT * FLOATS_PER_COLOR;
 const POSITION_BYTES_PER_SEGMENT = POSITION_FLOATS_PER_SEGMENT * 4;
 const COLOR_BYTES_PER_SEGMENT = COLOR_FLOATS_PER_SEGMENT * 4;
 
-const WIDTH = 0.22;
+const WIDTH = 0.08;
+const Y_OFFSET = 0.05;
 const MIN_SEGMENT_LENGTH = 0.02;
-const INTENSITY_MIN = 0.2;
-const INTENSITY_MAX = 1.8;
+const INTENSITY_MIN = 0.5;
+const INTENSITY_MAX = 2.0;
 const INV_INTENSITY_RANGE = 1 / (INTENSITY_MAX - INTENSITY_MIN);
 
 const _wheelPos = new Vector3();
@@ -42,13 +45,15 @@ class DriftTrail {
     );
     this._colors = new Float32Array(MAX_SEGMENTS * COLOR_FLOATS_PER_SEGMENT);
 
-    // RGB stays at dark charcoal rubber tint for lifetime of trail
+    // RGB stays at 1 for the lifetime of the trail — only alpha is per-segment.
+    // Alpha starts at 0 so unwritten slots are invisible (positions are also
+    // zero, so triangles are degenerate either way; this is a belt-and-braces).
     for (let i = 0; i < TOTAL_VERTS; i++) {
       const o = i * FLOATS_PER_COLOR;
-      this._colors[o] = 0.12;
-      this._colors[o + 1] = 0.12;
-      this._colors[o + 2] = 0.12;
-      this._colors[o + 3] = 0.0;
+
+      this._colors[o] = 1;
+      this._colors[o + 1] = 1;
+      this._colors[o + 2] = 1;
     }
 
     this._positionsBuffer = new PixiBuffer({
@@ -97,9 +102,9 @@ class DriftTrail {
   track(curr, intensity, emit) {
     if (emit && this._active) {
       const alpha = clamp(
-        0.35 + (intensity - INTENSITY_MIN) * INV_INTENSITY_RANGE * 0.55,
-        0.25,
-        0.90,
+        (intensity - INTENSITY_MIN) * INV_INTENSITY_RANGE,
+        0,
+        1,
       );
 
       this._writeSegment(this._prev, curr, alpha);
@@ -187,13 +192,15 @@ export class DriftMarks {
   _material;
 
   constructor(parent) {
-    this._material = new Material3D({
-      baseColor: [0.08, 0.08, 0.08, 0.88],
+    this._material = new FlatMaterial({
+      baseColor: [0.07, 0.07, 0.07, 1],
       alphaMode: 'blend',
       doubleSided: true,
-      roughness: 0.95,
-      metallic: 0.05,
     });
+
+    // WebGL applies the polygon offset; WebGPU ignores it, so there the
+    // per-segment Y_OFFSET alone keeps the marks from fighting the road.
+    this._material.state.polygonOffset = -4;
 
     this._trails = [
       new DriftTrail(parent, this._material),
@@ -202,41 +209,32 @@ export class DriftMarks {
   }
 
   update(_dt, vehicle) {
-    if (!vehicle || !vehicle.container) return;
+    const emit =
+      vehicle.driftIntensity > 0.5 && Math.abs(vehicle.linearSpeed) > 0.15;
+    const intensity = vehicle.driftIntensity;
+    const groundY = vehicle.container.position.y + Y_OFFSET;
 
-    // Detect drifting, hard steering, or active boost slip
-    const speed = Math.abs(vehicle.linearSpeed);
-    const isSlipping =
-      (Math.abs(vehicle.angularSpeed) > 0.30 ||
-       Math.abs(vehicle.inputX) > 0.20 ||
-       vehicle.driftIntensity > 0.20 ||
-       vehicle.isBoosting) &&
-      speed > 0.12;
+    if (vehicle.wheelBL) {
+      readWheelGroundPosition(
+        vehicle.wheelBL.worldTransform,
+        groundY,
+        _wheelPos,
+      );
+      this._trails[0].track(_wheelPos, intensity, emit);
+    }
 
-    const emit = isSlipping;
-    const intensity = Math.max(0.6, vehicle.driftIntensity + Math.abs(vehicle.angularSpeed) * 0.5);
-
-    // World road height: road tiles sit at Y=0.5
-    const groundY = 0.512;
-
-    const cx = vehicle.container.position.x;
-    const cz = vehicle.container.position.z;
-    const yaw = vehicle.yaw;
-
-    // Rear axle vector (-0.65m behind vehicle center)
-    const backX = -Math.sin(yaw) * 0.65;
-    const backZ = -Math.cos(yaw) * 0.65;
-
-    // Lateral tire separation vector (+/- 0.44m from vehicle centerline)
-    const rightX = Math.cos(yaw) * 0.44;
-    const rightZ = -Math.sin(yaw) * 0.44;
-
-    // Left Rear Tire Contact Point
-    _wheelPos.set(cx + backX - rightX, groundY, cz + backZ - rightZ);
-    this._trails[0].track(_wheelPos, intensity, emit);
-
-    // Right Rear Tire Contact Point
-    _wheelPos.set(cx + backX + rightX, groundY, cz + backZ + rightZ);
-    this._trails[1].track(_wheelPos, intensity, emit);
+    if (vehicle.wheelBR) {
+      readWheelGroundPosition(
+        vehicle.wheelBR.worldTransform,
+        groundY,
+        _wheelPos,
+      );
+      this._trails[1].track(_wheelPos, intensity, emit);
+    }
   }
+}
+
+function readWheelGroundPosition(worldTransform, groundY, out) {
+  worldTransform.extractPosition(out);
+  out.y = groundY;
 }

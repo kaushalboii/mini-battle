@@ -16,42 +16,6 @@ const LIGHTING_THEMES: Array<{ key: 'day' | 'sunset' | 'night'; label: string; i
   { key: 'night', label: 'Night Grand Prix', icon: '🌙', desc: 'Floodlit track with headlights' },
 ];
 
-export type GameModeOption = 'friends' | 'bots' | 'solo';
-
-const GAME_MODES: Array<{
-  id: GameModeOption;
-  badge: string;
-  badgeClass: string;
-  title: string;
-  desc: string;
-  icon: string;
-}> = [
-  {
-    id: 'friends',
-    badge: '🌐 SAME WI-FI / MESH',
-    badgeClass: 'mode-badge-friends',
-    title: 'Connect with Friends (Same Wi-Fi)',
-    desc: 'Race together with friends on the same local network or nearby tabs. Zero-setup live multiplayer sync!',
-    icon: '👥',
-  },
-  {
-    id: 'bots',
-    badge: '🤖 3 SPARRING BOTS',
-    badgeClass: 'mode-badge-ai',
-    title: 'Play with AI Grid (3 Bots)',
-    desc: 'Battle 3 competitive AI racers (Verstappen, Hamilton & Norris) on independent lines with car crash physics.',
-    icon: '🏎️',
-  },
-  {
-    id: 'solo',
-    badge: '⏱️ SOLO HOT LAPS',
-    badgeClass: 'mode-badge-solo',
-    title: 'Play Solo & Practice',
-    desc: 'Completely clear circuit for solo hot-lap time trials, benchmark lap chasing, and high-speed drift training.',
-    icon: '🎯',
-  },
-];
-
 function formatLapTime(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || isNaN(seconds)) return "--:--.--";
   const mins = Math.floor(seconds / 60);
@@ -59,12 +23,7 @@ function formatLapTime(seconds: number | null | undefined): string {
   return `${mins}:${secs.toFixed(2).padStart(5, "0")}`;
 }
 
-export interface RacingGameProps {
-  onSwitchToMeltdown?: () => void;
-  onReturnToMenu?: () => void;
-}
-
-export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: RacingGameProps = {}) {
+export default function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameInstance | null>(null);
 
@@ -77,7 +36,7 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
   const [selectedCircuit, setSelectedCircuit] = useState<string>("monza");
   const [driverName, setDriverName] = useState<string>("Kaushal");
   const [selectedColor, setSelectedColor] = useState<string>("vehicle-truck-yellow");
-  const [gameMode, setGameMode] = useState<GameModeOption>("friends");
+  const [isPracticeMode, setIsPracticeMode] = useState<boolean>(false);
 
   const [cameraMode, setCameraMode] = useState("chase");
   const [lightingTheme, setLightingTheme] = useState<'day' | 'sunset' | 'night'>('day');
@@ -230,18 +189,12 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
     setTimeout(() => setToastMessage(null), 1400);
   };
 
-  const handleSelectGameMode = (mode: GameModeOption) => {
-    setGameMode(mode);
-    gameRef.current?.setGameMode(mode);
-    const m = GAME_MODES.find((item) => item.id === mode);
-    setToastMessage(`Mode: ${m?.title || mode}`);
-    setTimeout(() => setToastMessage(null), 1500);
-  };
-
-  const handleToggleGameMode = () => {
-    const modes: GameModeOption[] = ['friends', 'bots', 'solo'];
-    const nextIdx = (modes.indexOf(gameMode) + 1) % modes.length;
-    handleSelectGameMode(modes[nextIdx]);
+  const handleTogglePracticeMode = (forceState?: boolean) => {
+    const nextState = forceState !== undefined ? forceState : !isPracticeMode;
+    setIsPracticeMode(nextState);
+    gameRef.current?.setPracticeMode(nextState);
+    setToastMessage(nextState ? "AI Practice Grid Active • 3 Sparring Bots" : "Live Peer Mode • Solo Blank Track");
+    setTimeout(() => setToastMessage(null), 1800);
   };
 
   const handleColorChange = (key: string) => {
@@ -254,12 +207,15 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
       gameRef.current.setCircuit(selectedCircuit);
       gameRef.current.setVehicleColor(selectedColor);
       gameRef.current.setDriverName(driverName || "Kaushal");
-      gameRef.current.setGameMode(gameMode);
+      gameRef.current.setPracticeMode(isPracticeMode);
       gameRef.current.setLightingTheme(lightingTheme);
     }
     setShowLanding(false);
-    const m = GAME_MODES.find((item) => item.id === gameMode);
-    setToastMessage(`Grand Prix Started • ${m?.title || 'Race'} on ${CIRCUITS[selectedCircuit]?.name || "Circuit"}!`);
+    setToastMessage(
+      isPracticeMode
+        ? `Grand Prix Started • Practice Grid on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+        : `Grand Prix Started • Live Solo on ${CIRCUITS[selectedCircuit]?.name || "Monza"}!`
+    );
     setTimeout(() => setToastMessage(null), 1800);
   };
 
@@ -305,13 +261,13 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
       } else if (e.code === "KeyL") {
         setShowF1Tower((prev) => !prev);
       } else if (e.code === "KeyP") {
-        handleToggleGameMode();
+        handleTogglePracticeMode();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [cameraMode, lightingTheme, isMuted, gameMode]);
+  }, [cameraMode, lightingTheme, isMuted, isPracticeMode]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -422,60 +378,10 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
                   Engineered by Kaushal • Real-Time WebGPU Multi-Car Circuit Racing
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {onReturnToMenu && (
-                  <button
-                    type="button"
-                    onClick={onReturnToMenu}
-                    className="landing-menu-pill"
-                    title="Return to Master Arcade Portal"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      color: '#f4f4f5',
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>🏠</span>
-                    <span>Game Menu</span>
-                  </button>
-                )}
-                {onSwitchToMeltdown && (
-                  <button
-                    type="button"
-                    onClick={onSwitchToMeltdown}
-                    className="landing-toxic-pill"
-                    title="Play Toxic Meltdown® Inflatable Sweeper Game"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(34, 197, 94, 0.18)',
-                      border: '1px solid #22c55e',
-                      color: '#4ade80',
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>☣️</span>
-                    <span>Toxic Meltdown® Game →</span>
-                  </button>
-                )}
-                <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
-                  <span className="mesh-live-dot" />
-                  <span className="mesh-badge-text-full">Zero-Connect Mesh Active</span>
-                  <span className="mesh-badge-text-short">Live Grid</span>
-                </div>
+              <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
+                <span className="mesh-live-dot" />
+                <span className="mesh-badge-text-full">Zero-Connect Mesh Active</span>
+                <span className="mesh-badge-text-short">Live Grid</span>
               </div>
             </div>
 
@@ -543,28 +449,39 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
               </div>
             </div>
 
-            {/* Race Mode Selector (Connect with Friends / AI Bots / Solo Practice) */}
+            {/* Race Mode Selector (Live Peer vs AI Practice Grid) */}
             <div className="landing-mode-section">
               <label className="landing-section-title">Select Racing Mode</label>
               <div className="landing-mode-grid">
-                {GAME_MODES.map((mode) => {
-                  const isSelected = gameMode === mode.id;
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      className={`landing-mode-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleSelectGameMode(mode.id)}
-                    >
-                      <div className="mode-card-top">
-                        <span className={mode.badgeClass}>{mode.badge}</span>
-                        {isSelected && <span className="mode-check">✓ Active</span>}
-                      </div>
-                      <div className="mode-card-title">{mode.title}</div>
-                      <div className="mode-card-desc">{mode.desc}</div>
-                    </button>
-                  );
-                })}
+                <button
+                  type="button"
+                  className={`landing-mode-card ${!isPracticeMode ? 'selected' : ''}`}
+                  onClick={() => setIsPracticeMode(false)}
+                >
+                  <div className="mode-card-top">
+                    <span className="mode-badge-live">🌐 ZERO-CONNECT MESH</span>
+                    {!isPracticeMode && <span className="mode-check">✓ Active</span>}
+                  </div>
+                  <div className="mode-card-title">Pure Live Peer (Solo Hot Laps)</div>
+                  <div className="mode-card-desc">
+                    Clean, blank 2km circuit with zero bots. Drive solo hot laps or alongside live users visiting RevSector in real time.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`landing-mode-card ${isPracticeMode ? 'selected' : ''}`}
+                  onClick={() => setIsPracticeMode(true)}
+                >
+                  <div className="mode-card-top">
+                    <span className="mode-badge-ai">🤖 AI SPARRING GRID</span>
+                    {isPracticeMode && <span className="mode-check">✓ Active</span>}
+                  </div>
+                  <div className="mode-card-title">Practice Grid (3 Sparring Bots)</div>
+                  <div className="mode-card-desc">
+                    Race against 3 independent AI bots (Verstappen, Hamilton, Norris) on separate lines. Full car-to-car crash physics.
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -604,9 +521,9 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
             {/* Footer with Action Button */}
             <div className="landing-hub-footer">
               <span className="landing-tip-text">
-                {gameMode === 'friends' && "🌐 Live Wi-Fi Mesh • Open other tabs or phones on same Wi-Fi to race together!"}
-                {gameMode === 'bots' && "🤖 AI Grid Active • Sparring with Verstappen, Hamilton & Norris with crash physics!"}
-                {gameMode === 'solo' && "⏱️ Solo Hot Laps Active • Track is 100% clean for apex, lap time & drift practice!"}
+                {!isPracticeMode
+                  ? "🏎️ Solo Live Mode Active • Clean blank track unless live players join!"
+                  : "🏎️ AI Grid Active • Sparring with Verstappen, Hamilton & Norris!"}
               </span>
               <button className="btn-launch-gp" onClick={handleStartGrandPrix}>
                 <span>START GRAND PRIX</span>
@@ -660,42 +577,6 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
-            {/* Return to Arcade Menu Portal Button */}
-            {onReturnToMenu && (
-              <button
-                className="racing-btn menu-btn"
-                onClick={onReturnToMenu}
-                title="Return to Master Arcade Portal"
-                style={{
-                  background: 'rgba(24, 24, 27, 0.85)',
-                  borderColor: 'rgba(255, 255, 255, 0.35)',
-                  color: '#f4f4f5',
-                  fontWeight: 800,
-                }}
-              >
-                <span style={{ fontSize: '13px' }}>🏠</span>
-                <span className="racing-btn-text">Game Menu</span>
-              </button>
-            )}
-
-            {/* Switch to Toxic Meltdown Button */}
-            {onSwitchToMeltdown && (
-              <button
-                className="racing-btn toxic-switch-btn"
-                onClick={onSwitchToMeltdown}
-                title="Play Toxic Meltdown® Inflatable Sweeper Game"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(34, 197, 94, 0.35) 100%)',
-                  borderColor: '#22c55e',
-                  color: '#4ade80',
-                  fontWeight: 800,
-                }}
-              >
-                <span style={{ fontSize: '13px' }}>☣️</span>
-                <span className="racing-btn-text">Toxic Meltdown®</span>
-              </button>
-            )}
-
             {/* Grand Prix Paddock Hub Button */}
             <button
               className="racing-btn paddock-btn"
@@ -720,20 +601,16 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
               <kbd className="racing-keycap">L</kbd>
             </button>
 
-            {/* Mode Switcher */}
+            {/* Race Timing & Atmosphere Switcher */}
             <button
               className="racing-btn"
-              onClick={handleToggleGameMode}
-              title="Switch Game Mode (P): Friends / Bots / Solo"
-              aria-label="Toggle Game Mode"
+              onClick={handleCycleLighting}
+              title="Race Timing / Lighting Atmosphere (T)"
+              aria-label="Toggle Lighting Condition"
             >
-              <span style={{ fontSize: '12px' }}>
-                {gameMode === 'friends' ? '👥' : gameMode === 'bots' ? '🏎️' : '🎯'}
-              </span>
-              <span className="racing-btn-text">
-                {gameMode === 'friends' ? 'Friends Wi-Fi' : gameMode === 'bots' ? 'AI Bots' : 'Solo Hot Laps'}
-              </span>
-              <kbd className="racing-keycap">P</kbd>
+              <span style={{ fontSize: '13px' }}>{currentThemeInfo.icon}</span>
+              <span className="racing-btn-text">{currentThemeInfo.label}</span>
+              <kbd className="racing-keycap">T</kbd>
             </button>
 
             <div className="racing-divider" />
@@ -752,14 +629,17 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
               <kbd className="racing-keycap">C</kbd>
             </button>
 
-            {/* Race Timing & Atmosphere */}
+            {/* Lighting Atmosphere */}
             <button
               className="racing-btn"
               onClick={handleCycleLighting}
-              title="Race Timing / Lighting Atmosphere (T)"
+              title="Lighting condition (T)"
               aria-label="Toggle lighting"
             >
-              <span style={{ fontSize: '13px' }}>{currentThemeInfo.icon}</span>
+              <svg className="racing-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="5" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
               <span className="racing-btn-text">{currentThemeInfo.label}</span>
               <kbd className="racing-keycap">T</kbd>
             </button>
