@@ -1,6 +1,7 @@
 export class Controls {
   _keys = Object.create(null);
   _joystick;
+  enabled = true;
 
   constructor(joystick = null) {
     this._joystick = joystick;
@@ -14,7 +15,15 @@ export class Controls {
     window.removeEventListener('keyup', this._onKeyUp);
   }
 
+  reset() {
+    this._keys = Object.create(null);
+  }
+
   update() {
+    if (!this.enabled) {
+      return { x: 0, z: 0, touchActive: false };
+    }
+
     let x = 0;
     let z = 0;
 
@@ -58,6 +67,7 @@ export class Controls {
   }
 
   _onKeyDown = (e) => {
+    if (!this.enabled) return;
     this._keys[e.code] = true;
   };
 

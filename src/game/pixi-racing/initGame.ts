@@ -30,6 +30,7 @@ export interface GameInstance {
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
   resetPosition: () => void;
+  setPaused: (paused: boolean) => void;
   destroy: () => void;
 }
 
@@ -188,10 +189,20 @@ export async function initRacingGame(
   const driftMarks = new DriftMarks(view3d.root);
   const particles = new SmokeTrails(view3d.root, smokeTexture);
 
+  let isGamePaused = false;
+
   const tickerFn = () => {
     joystick.resize(app.screen.width, app.screen.height);
 
     const dt = Math.min(app.ticker.deltaMS / 1000, 1 / 30);
+
+    if (isGamePaused) {
+      audio.update(dt, 0, 0, 0);
+      hudLayer.visible = false;
+      return;
+    }
+
+    hudLayer.visible = true;
     const input = controls.update();
 
     physics.step(dt);
@@ -249,6 +260,17 @@ export async function initRacingGame(
     },
     resetPosition() {
       vehicle.reset();
+    },
+    setPaused(paused: boolean) {
+      isGamePaused = paused;
+      (controls as any).enabled = !paused;
+      if (paused) {
+        (controls as any).reset?.();
+        hudLayer.visible = false;
+        audio.update(0.016, 0, 0, 0);
+      } else {
+        hudLayer.visible = true;
+      }
     },
     destroy() {
       app.ticker.remove(tickerFn);

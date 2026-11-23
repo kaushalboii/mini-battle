@@ -129,10 +129,14 @@
   z-index: 90;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  background: rgba(10, 14, 20, 0.88);
+  backdrop-filter: blur(14px);
   pointer-events: auto;
   overflow: hidden;
-  animation: gtaFadeIn 0.25s ease-out;
+  animation: gtaFadeIn 0.2s ease-out;
 }
 
 @keyframes gtaFadeIn {
@@ -158,17 +162,17 @@
   z-index: 1;
 }
 
-/* Top GTA Header Bar */
+/* Top Header Bar */
 .gta-header-bar {
+  flex-shrink: 0;
   position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 36px;
-  background: linear-gradient(180deg, rgba(8, 10, 14, 0.95) 0%, rgba(8, 10, 14, 0.82) 80%, transparent 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: rgba(8, 10, 14, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .gta-header-left {
@@ -296,15 +300,15 @@
    GTA MENU CONTENT (LEFT LIST & RIGHT CARD)
    ========================================================================== */
 .gta-menu-content {
+  flex: 1;
+  min-height: 0;
   position: relative;
   z-index: 10;
   display: grid;
   grid-template-columns: minmax(320px, 420px) minmax(360px, 500px);
-  gap: 40px;
-  padding: 20px 48px;
+  gap: 36px;
+  padding: 24px 48px;
   align-items: start;
-  flex: 1;
-  max-height: calc(100vh - 160px);
   overflow-y: auto;
 }
 
@@ -664,20 +668,47 @@
   margin: 0;
 }
 
+.gta-card-action-btn {
+  font-family: var(--gta-font-heading);
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  padding: 12px 20px;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gta-card-action-btn:hover {
+  background: var(--gta-gold);
+}
+
+.gta-card-action-btn:active {
+  transform: scale(0.98);
+}
+
 /* ==========================================================================
-   GTA BOTTOM ACTION LEGEND
+   MINI BATTLE BOTTOM ACTION LEGEND
    ========================================================================== */
 .gta-action-legend {
+  flex-shrink: 0;
   position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 24px;
-  padding: 12px 24px;
-  background: linear-gradient(0deg, rgba(8, 10, 14, 0.95) 0%, rgba(8, 10, 14, 0.85) 80%, transparent 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
+  padding: 14px 24px;
+  background: rgba(8, 10, 14, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .legend-item {

@@ -15,7 +15,7 @@ export interface GtaMenuProps {
   vehicleOptions: Array<{ key: string; label: string; color: string }>;
 }
 
-export type MenuTab = "HOME" | "VEHICLES" | "CAMERA" | "TRACK" | "CONTROLS" | "SETTINGS";
+export type MenuTab = "HOME" | "VEHICLES" | "CAMERA" | "CONTROLS" | "SETTINGS";
 
 interface VehicleStat {
   topSpeed: number;
@@ -33,31 +33,31 @@ const VEHICLE_STATS: Record<string, VehicleStat> = {
     handling: 90,
     braking: 82,
     classType: "SUPER TRUCK • AWD",
-    desc: "Kenney factory trophy truck with balanced weight distribution, high downforce aerodynamics, and rapid drift stabilization.",
+    desc: "Factory Ken-Tech trophy truck. Balanced center of mass, high downforce aerodynamics, and rapid drift recovery.",
   },
   "vehicle-truck-red": {
-    topSpeed: 93,
-    accel: 91,
+    topSpeed: 94,
+    accel: 92,
     handling: 85,
     braking: 84,
     classType: "SPEED SPEC • RWD",
-    desc: "Crimson racing edition with high-revving gearing. Dominant straight-line acceleration and aggressive counter-steering response.",
+    desc: "Crimson tuned racing edition. High-RPM turbo transmission, explosive straightaways, and responsive counter-steering.",
   },
   "vehicle-truck-green": {
-    topSpeed: 83,
-    accel: 85,
+    topSpeed: 84,
+    accel: 86,
     handling: 95,
     braking: 89,
     classType: "DRIFT SPEC • MID-CHASSIS",
-    desc: "Emerald agile build featuring high steering lock angle and increased tire slip control for precision apex turns.",
+    desc: "Emerald agile build. Extreme steering lock and tuned tire slip angles for continuous cornering drift chains.",
   },
   "vehicle-truck-purple": {
-    topSpeed: 96,
-    accel: 94,
-    handling: 87,
-    braking: 91,
+    topSpeed: 97,
+    accel: 95,
+    handling: 88,
+    braking: 92,
     classType: "PHANTOM PROTOTYPE • AWD",
-    desc: "Custom high-displacement prototype truck. Maximum top-end velocity with wide racing slick footprint.",
+    desc: "Custom high-displacement prototype. Maximum top-end speed with ultra-wide racing slick footprint.",
   },
 };
 
@@ -75,9 +75,9 @@ export default function GtaMenu({
 }: GtaMenuProps) {
   const [activeTab, setActiveTab] = useState<MenuTab>("HOME");
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
-  const [timeStr, setTimeStr] = useState("14:45");
+  const [timeStr, setTimeStr] = useState("14:50");
 
-  const tabs: MenuTab[] = ["HOME", "VEHICLES", "CAMERA", "TRACK", "CONTROLS", "SETTINGS"];
+  const tabs: MenuTab[] = ["HOME", "VEHICLES", "CAMERA", "CONTROLS", "SETTINGS"];
 
   useEffect(() => {
     const updateClock = () => {
@@ -103,7 +103,7 @@ export default function GtaMenu({
     menuItems = [
       {
         id: "start",
-        label: "▶ PLAY NOW / START RACE",
+        label: "▶ START RACE / PLAY NOW",
         badge: "ENTER",
         action: () => {
           GtaAudio.playSelect();
@@ -112,7 +112,7 @@ export default function GtaMenu({
       },
       {
         id: "goto-vehicles",
-        label: "SELECT VEHICLE COLOR",
+        label: "🏎 SELECT VEHICLE COLOR",
         badge: "›",
         action: () => {
           GtaAudio.playTabSwitch();
@@ -122,7 +122,7 @@ export default function GtaMenu({
       },
       {
         id: "goto-camera",
-        label: "CHANGE CAMERA VIEW",
+        label: "📷 CHANGE CAMERA VIEW",
         badge: "›",
         action: () => {
           GtaAudio.playTabSwitch();
@@ -131,18 +131,8 @@ export default function GtaMenu({
         },
       },
       {
-        id: "goto-track",
-        label: "CIRCUIT & TRACK TELEMETRY",
-        badge: "›",
-        action: () => {
-          GtaAudio.playTabSwitch();
-          setActiveTab("TRACK");
-          setSelectedIdx(0);
-        },
-      },
-      {
         id: "goto-controls",
-        label: "HOW TO PLAY & CONTROLS",
+        label: "🎮 HOW TO PLAY & CONTROLS",
         badge: "›",
         action: () => {
           GtaAudio.playTabSwitch();
@@ -160,12 +150,21 @@ export default function GtaMenu({
           onClose();
         },
       },
+      {
+        id: "fullscreen-home",
+        label: "⛶ FULLSCREEN MODE",
+        badge: "F",
+        action: () => {
+          GtaAudio.playSelect();
+          toggleFullscreen();
+        },
+      },
     ];
   } else if (activeTab === "VEHICLES") {
     menuItems = vehicleOptions.map((opt) => ({
       id: opt.key,
       label: opt.label.toUpperCase(),
-      badge: selectedColor === opt.key ? "ACTIVE" : "",
+      badge: selectedColor === opt.key ? "ACTIVE" : "EQUIP",
       action: () => {
         GtaAudio.playSelect();
         onSelectColor(opt.key);
@@ -175,50 +174,32 @@ export default function GtaMenu({
     menuItems = CAMERA_MODES.map((mode) => ({
       id: mode.key,
       label: mode.label.toUpperCase(),
-      badge: selectedCamera === mode.key ? "ACTIVE" : "",
+      badge: selectedCamera === mode.key ? "ACTIVE" : "SELECT",
       action: () => {
         GtaAudio.playSelect();
         onSelectCamera(mode.key);
       },
     }));
-  } else if (activeTab === "TRACK") {
-    menuItems = [
-      {
-        id: "t-name",
-        label: "CIRCUIT: KENNEY GP SPEEDWAY",
-        badge: "1.2 KM",
-        action: () => GtaAudio.playHover(),
-      },
-      {
-        id: "t-surface",
-        label: "SURFACE: ASPHALT & KERBS",
-        badge: "DRY",
-        action: () => GtaAudio.playHover(),
-      },
-      {
-        id: "t-laps",
-        label: "MODE: CONTINUOUS TIME ATTACK",
-        badge: "LIVE HUD",
-        action: () => GtaAudio.playHover(),
-      },
-      {
-        id: "t-physics",
-        label: "PHYSICS: CONTINUOUS CCD COLLIDERS",
-        badge: "CRASHCAT",
-        action: () => GtaAudio.playHover(),
-      },
-    ];
   } else if (activeTab === "CONTROLS") {
     menuItems = [
       {
+        id: "play-from-controls",
+        label: "▶ READY TO DRIVE (PLAY NOW)",
+        badge: "ENTER",
+        action: () => {
+          GtaAudio.playSelect();
+          onStartRace();
+        },
+      },
+      {
         id: "c-steer",
-        label: "STEERING / THROTTLE / BRAKE",
+        label: "STEERING / DRIVE",
         badge: "W A S D / ARROWS",
         action: () => GtaAudio.playHover(),
       },
       {
         id: "c-camera",
-        label: "CYCLE CAMERA MODES",
+        label: "CYCLE CAMERA ANGLE",
         badge: "C",
         action: () => GtaAudio.playHover(),
       },
@@ -232,12 +213,6 @@ export default function GtaMenu({
         id: "c-menu",
         label: "TOGGLE HOME / PAUSE MENU",
         badge: "ESC",
-        action: () => GtaAudio.playHover(),
-      },
-      {
-        id: "c-touch",
-        label: "DYNAMIC TOUCH JOYSTICK",
-        badge: "DRAG SCREEN",
         action: () => GtaAudio.playHover(),
       },
     ];
@@ -254,7 +229,7 @@ export default function GtaMenu({
       },
       {
         id: "respawn-setting",
-        label: "RESET VEHICLE TO START",
+        label: "RESET VEHICLE TO START LINE",
         badge: "R",
         action: () => {
           GtaAudio.playSelect();
@@ -337,7 +312,7 @@ export default function GtaMenu({
 
   return (
     <div className="gta-menu-overlay">
-      {/* Background vignette & subtle scanlines */}
+      {/* Background vignette */}
       <div className="gta-backdrop-vignette" />
 
       {/* Top Header Bar */}
@@ -345,9 +320,9 @@ export default function GtaMenu({
         <div className="gta-header-left">
           <div className="gta-logo-container">
             <span className="gta-logo-main">MINI BATTLE</span>
-            <span className="gta-logo-sub">3D RACING // ARCADE SPEEDWAY</span>
+            <span className="gta-logo-sub">3D RACING SPEEDWAY</span>
           </div>
-          <div className="gta-header-pill">CIRCUIT EDITION</div>
+          <div className="gta-header-pill">OFFICIAL CIRCUIT</div>
         </div>
 
         {/* Top Navigation Tabs */}
@@ -368,23 +343,23 @@ export default function GtaMenu({
           ))}
         </nav>
 
-        {/* Top Right Track Telemetry & Clock (No stars, clean racing header!) */}
+        {/* Top Right Track Status (Clean, no stars, no clutter) */}
         <div className="gta-header-right">
           <div className="gta-track-status-badge">
             <span className="track-status-dot" />
-            <span className="track-status-text">KENNEY GP CIRCUIT</span>
+            <span className="track-status-text">KENNEY SPEEDWAY</span>
           </div>
           <div className="gta-header-meta">
             <span>{timeStr}</span>
             <span className="gta-dot">•</span>
-            <span>CLEAR 78°F</span>
+            <span>CLEAR</span>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="gta-menu-content">
-        {/* Left Side: Vertical Menu Items List */}
+        {/* Left Side: Directory List */}
         <div className="gta-menu-list-wrapper">
           <div className="gta-menu-list-header">
             <h3>{activeTab} DIRECTORY</h3>
@@ -416,7 +391,7 @@ export default function GtaMenu({
           </div>
 
           <div className="gta-menu-list-footer">
-            <span>OFFICIAL PIXI 3D RACING ENGINE • CRASHCAT PHYSICS</span>
+            <span>PIXI 3D RACING ENGINE • CRASHCAT PHYSICS</span>
           </div>
         </div>
 
@@ -501,6 +476,17 @@ export default function GtaMenu({
                 </div>
               </div>
 
+              {/* Action Button: Drive Now */}
+              <button
+                className="gta-card-action-btn"
+                onClick={() => {
+                  GtaAudio.playSelect();
+                  onStartRace();
+                }}
+              >
+                ▶ DRIVE THIS VEHICLE (PRESS ENTER)
+              </button>
+
               <p className="gta-vehicle-desc">{currentVehicleStat.desc}</p>
             </div>
           ) : activeTab === "CAMERA" ? (
@@ -513,45 +499,19 @@ export default function GtaMenu({
                 <div className="gta-camera-icon">📷</div>
                 <h5>{currentCameraInfo.desc}</h5>
                 <p>
-                  Dynamically interpolates yaw, pitch, and linear velocity with speed-based
-                  field-of-view expansion for an intense sense of velocity and high-speed drift angles.
+                  Dynamically follows the vehicle's yaw and linear velocity. Features speed-based
+                  field-of-view expansion for an intense sense of speed and high-speed drift angles.
                 </p>
-                <div className="gta-badge-keys">
-                  <span>SHORTCUT IN RACE:</span>
-                  <kbd>C</kbd>
-                </div>
-              </div>
-            </div>
-          ) : activeTab === "TRACK" ? (
-            <div className="gta-track-preview-box">
-              <div className="gta-card-header">
-                <h4>KENNEY GRAND PRIX SPEEDWAY</h4>
-                <span className="gta-badge-pill">CIRCUIT OVERVIEW</span>
-              </div>
-              <div className="gta-track-stats-grid">
-                <div className="track-stat-tile">
-                  <span className="tile-label">TRACK LENGTH</span>
-                  <span className="tile-value">1.25 KM</span>
-                </div>
-                <div className="track-stat-tile">
-                  <span className="tile-label">TOTAL TURNS</span>
-                  <span className="tile-value">12 CORNERS</span>
-                </div>
-                <div className="track-stat-tile">
-                  <span className="tile-label">SURFACE GRIP</span>
-                  <span className="tile-value">OPTIMAL ASPHALT</span>
-                </div>
-                <div className="track-stat-tile">
-                  <span className="tile-label">LAP TIMING</span>
-                  <span className="tile-value">REAL-TIME HUD</span>
-                </div>
-              </div>
-              <div className="gta-info-box">
-                <h5>CONTINUOUS TIME ATTACK</h5>
-                <p>
-                  Cross the checkered finish line to clock your lap times. The in-game 2D HUD tracks
-                  current lap time, last lap, and your persistent all-time best record.
-                </p>
+                <button
+                  className="gta-card-action-btn"
+                  onClick={() => {
+                    GtaAudio.playSelect();
+                    onStartRace();
+                  }}
+                  style={{ marginTop: "16px" }}
+                >
+                  ▶ APPLY & DRIVE NOW (PRESS ENTER)
+                </button>
               </div>
             </div>
           ) : activeTab === "CONTROLS" ? (
@@ -563,7 +523,7 @@ export default function GtaMenu({
               <div className="gta-controls-grid">
                 <div className="gta-key-card">
                   <kbd>W / ↑</kbd>
-                  <span>THROTTLE (ACCELERATE)</span>
+                  <span>THROTTLE (FORWARD)</span>
                 </div>
                 <div className="gta-key-card">
                   <kbd>S / ↓</kbd>
@@ -571,43 +531,50 @@ export default function GtaMenu({
                 </div>
                 <div className="gta-key-card">
                   <kbd>A / D</kbd>
-                  <span>STEERING & DRIFTING</span>
+                  <span>STEER & DRIFT</span>
                 </div>
                 <div className="gta-key-card">
                   <kbd>C</kbd>
-                  <span>SWITCH CAMERA ANGLE</span>
+                  <span>SWITCH CAMERA</span>
                 </div>
                 <div className="gta-key-card">
                   <kbd>R</kbd>
-                  <span>RESPAWN TRUCK</span>
+                  <span>RESPAWN VEHICLE</span>
                 </div>
                 <div className="gta-key-card">
                   <kbd>ESC</kbd>
-                  <span>TOGGLE HOME / MENU</span>
+                  <span>PAUSE / MENU</span>
                 </div>
               </div>
-              <p className="gta-controls-note">
-                Touch anywhere on mobile or tablet to use the dynamic floating on-screen joystick.
-              </p>
+              <button
+                className="gta-card-action-btn"
+                onClick={() => {
+                  GtaAudio.playSelect();
+                  onStartRace();
+                }}
+                style={{ marginTop: "14px" }}
+              >
+                ▶ START RACING NOW (PRESS ENTER)
+              </button>
             </div>
           ) : (
             <div className="gta-settings-preview-box">
               <div className="gta-card-header">
                 <h4>SETTINGS & SYSTEM</h4>
-                <span className="gta-badge-pill">PIXI 3D CONFIG</span>
+                <span className="gta-badge-pill">PIXI 3D</span>
               </div>
               <div className="gta-info-box">
                 <p>
-                  <strong>Renderer:</strong> PixiJS 3D with WebGPU & WebGL2 fallback
+                  <strong>Renderer:</strong> PixiJS 3D WebGPU & WebGL2
                 </p>
                 <p>
-                  <strong>Physics:</strong> Crashcat Continuous Collision Detection (CCD)
+                  <strong>Physics:</strong> Crashcat Continuous Collision Detection
                 </p>
                 <p>
-                  <strong>Audio:</strong> 3-Speed Procedural Engine Synthesizer & Drift Skid Screech
+                  <strong>Audio:</strong> 3-Speed Procedural Engine Synthesizer
                 </p>
                 <p>
-                  <strong>Resolution:</strong> Dynamic Hi-DPI Auto-density Scaling (1x-2x)
+                  <strong>Resolution:</strong> High-DPI Auto Scaling
                 </p>
               </div>
             </div>
@@ -615,7 +582,7 @@ export default function GtaMenu({
         </div>
       </main>
 
-      {/* Bottom Action Legend Bar */}
+      {/* Bottom Action Legend Bar (Always anchored to bottom) */}
       <footer className="gta-action-legend">
         <div className="legend-item" onClick={() => menuItems[selectedIdx]?.action()}>
           <span className="legend-badge">ENTER</span>

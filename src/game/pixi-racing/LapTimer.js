@@ -82,8 +82,8 @@ export class LapTimer {
     this._bestLap = loadBest(this._storageKey);
 
     this.container = new Container();
-    this.container.x = 12;
-    this.container.y = 12;
+    this.container.x = 16;
+    this.container.y = 56;
 
     this._bg = new Graphics()
       .roundRect(0, 0, 220, 110, 12)
