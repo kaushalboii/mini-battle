@@ -59,7 +59,11 @@ function formatLapTime(seconds: number | null | undefined): string {
   return `${mins}:${secs.toFixed(2).padStart(5, "0")}`;
 }
 
-export default function RacingGame() {
+export interface RacingGameProps {
+  onSwitchToMeltdown?: () => void;
+}
+
+export default function RacingGame({ onSwitchToMeltdown }: RacingGameProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameInstance | null>(null);
 
@@ -417,10 +421,36 @@ export default function RacingGame() {
                   Engineered by Kaushal • Real-Time WebGPU Multi-Car Circuit Racing
                 </span>
               </div>
-              <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
-                <span className="mesh-live-dot" />
-                <span className="mesh-badge-text-full">Zero-Connect Mesh Active</span>
-                <span className="mesh-badge-text-short">Live Grid</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {onSwitchToMeltdown && (
+                  <button
+                    type="button"
+                    onClick={onSwitchToMeltdown}
+                    className="landing-toxic-pill"
+                    title="Play Toxic Meltdown® Inflatable Sweeper Game"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(34, 197, 94, 0.18)',
+                      border: '1px solid #22c55e',
+                      color: '#4ade80',
+                      padding: '5px 12px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>☣️</span>
+                    <span>Toxic Meltdown® Game →</span>
+                  </button>
+                )}
+                <div className="landing-mesh-badge" title="Zero-Connect Live Grid Sync">
+                  <span className="mesh-live-dot" />
+                  <span className="mesh-badge-text-full">Zero-Connect Mesh Active</span>
+                  <span className="mesh-badge-text-short">Live Grid</span>
+                </div>
               </div>
             </div>
 
@@ -611,6 +641,24 @@ export default function RacingGame() {
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
+            {/* Switch to Toxic Meltdown Button */}
+            {onSwitchToMeltdown && (
+              <button
+                className="racing-btn toxic-switch-btn"
+                onClick={onSwitchToMeltdown}
+                title="Play Toxic Meltdown® Inflatable Sweeper Game"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(34, 197, 94, 0.35) 100%)',
+                  borderColor: '#22c55e',
+                  color: '#4ade80',
+                  fontWeight: 800,
+                }}
+              >
+                <span style={{ fontSize: '13px' }}>☣️</span>
+                <span className="racing-btn-text">Toxic Meltdown®</span>
+              </button>
+            )}
+
             {/* Grand Prix Paddock Hub Button */}
             <button
               className="racing-btn paddock-btn"

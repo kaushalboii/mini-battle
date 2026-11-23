@@ -389,6 +389,39 @@ export function buildTrack(parent: any, sources: Record<string, any>, circuitId:
     placeModel(source, trackGroup, px, 0.5, pz, yaw);
   }
 
+  // Generate lush surrounding pine forest & festival tents around the track
+  const pad = 3;
+  for (let gz = minZ - pad; gz <= maxZ + pad; gz++) {
+    for (let gx = minX - pad; gx <= maxX + pad; gx++) {
+      if (occupied.has(`${gx},${gz}`)) continue;
+
+      const distX = gx < minX ? minX - gx : gx > maxX ? gx - maxX : 0;
+      const distZ = gz < minZ ? minZ - gz : gz > maxZ ? gz - maxZ : 0;
+      const dist = Math.max(distX, distZ);
+
+      const px = (gx + 0.5) * CELL_RAW;
+      const pz = (gz + 0.5) * CELL_RAW;
+
+      let key = 'decoration-forest';
+      let yawQuarters = 0;
+
+      if (dist <= 1) {
+        const h = pseudoHash(gx, gz);
+        if (h % 7 === 0) {
+          key = 'decoration-tents';
+          yawQuarters = h % 4;
+        } else {
+          key = 'decoration-empty';
+        }
+      }
+
+      const source = sources[key];
+      if (!source) continue;
+
+      placeModel(source, trackGroup, px, 0.5, pz, (yawQuarters * Math.PI) / 2);
+    }
+  }
+
   // Rigid physics wall colliders
   const walls = buildWallColliders(trackCells);
 
@@ -455,6 +488,12 @@ export function buildTrack(parent: any, sources: Record<string, any>, circuitId:
     circuitId,
     circuit,
   };
+}
+
+function pseudoHash(gx: number, gz: number) {
+  let h = gx * 374761393 + gz * 668265263;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return (h ^ (h >> 16)) >>> 0;
 }
 
 export function generateWaypoints(cells: Array<[number, number, string, number]>) {

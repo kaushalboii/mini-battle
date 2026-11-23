@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import RacingGame from "./components/RacingGame";
+import App from "./App";
 import "./styles/racing.css";
 
-createRoot(document.getElementById("root")!).render(<RacingGame />);
+createRoot(document.getElementById("root")!).render(<App />);
