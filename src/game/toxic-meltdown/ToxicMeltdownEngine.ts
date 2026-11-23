@@ -39,6 +39,10 @@ export interface MeltdownPlayerState {
 }
 
 export interface MeltdownEngineState {
+  phase: 'lobby' | 'countdown' | 'playing' | 'gameover';
+  countdown: number;
+  activePrompt: 'jump' | 'duck' | null;
+  reactionFeedback: string | null;
   survivorsCount: number;
   totalPlayers: number;
   roundTime: number;
@@ -91,6 +95,16 @@ export class ToxicMeltdownEngine {
 
   // Game Progress
   private isRunning: boolean = false;
+  private gamePhase: 'lobby' | 'countdown' | 'playing' | 'gameover' = 'lobby';
+  private countdownTimer: number = 0;
+  private lastCountdownCeil: number = 4;
+  private activePrompt: 'jump' | 'duck' | null = null;
+  private feedbackText: string | null = null;
+  private feedbackTimer: number = 0;
+  private hasClearedCurrentLowPass: boolean = false;
+  private hasClearedCurrentHighPass: boolean = false;
+  private gameOverTimer: number = 0;
+
   private roundTime: number = 0;
   private score: number = 0;
   private clearedJumps: number = 0;
@@ -160,6 +174,7 @@ export class ToxicMeltdownEngine {
     // 8. Start Loop
     this.lastTime = performance.now();
     this.animate();
+    this.broadcastState();
   }
 
   private handleResize = () => {
@@ -827,7 +842,7 @@ export class ToxicMeltdownEngine {
     return modes[nextIdx];
   }
 
-  public restartGame() {
+  private resetArenaForRound() {
     this.roundTime = 0;
     this.score = 0;
     this.clearedJumps = 0;
@@ -837,6 +852,12 @@ export class ToxicMeltdownEngine {
     this.sweeperDirection = 1;
     this.sweeperAngle = 0;
     this.nextEventTime = 10.0;
+    this.activePrompt = null;
+    this.feedbackText = null;
+    this.feedbackTimer = 0;
+    this.hasClearedCurrentLowPass = false;
+    this.hasClearedCurrentHighPass = false;
+    this.gameOverTimer = 0;
 
     // Reset all 8 players back to their podiums
     this.players.forEach((p) => {
@@ -864,10 +885,37 @@ export class ToxicMeltdownEngine {
       this.scene.remove(this.confettiGroup);
       this.confettiGroup = null;
     }
+  }
 
-    this.isRunning = true;
-    this.audio.startMotor();
-    this.onNotification?.('⚠️ ROUND STARTED: JUMP & DUCK TO SURVIVE!');
+  /**
+   * Resets the game back to the standby lobby (arms stationary, ready for player start)
+   */
+  public resetToLobby() {
+    this.resetArenaForRound();
+    this.gamePhase = 'lobby';
+    this.isRunning = false;
+    this.sweeperSpeed = 0;
+    this.sweeperHub.rotation.y = 0;
+    this.audio.stopMotor();
+    this.broadcastState();
+  }
+
+  /**
+   * Starts live countdown and begins live gameplay round
+   */
+  public startLiveRound() {
+    this.resetArenaForRound();
+    this.gamePhase = 'countdown';
+    this.countdownTimer = 3.0;
+    this.lastCountdownCeil = 4;
+    this.isRunning = false;
+    this.sweeperSpeed = 1.45;
+    this.audio.playCountdownBeep(false);
+    this.broadcastState();
+  }
+
+  public restartGame() {
+    this.startLiveRound();
   }
 
   private updateCameraPlacement() {
@@ -922,20 +970,72 @@ export class ToxicMeltdownEngine {
     const dt = Math.min((now - this.lastTime) / 1000, 0.1);
     this.lastTime = now;
 
-    if (this.isRunning) {
+    // Fade reaction feedback text after timer expires
+    if (this.feedbackTimer > 0) {
+      this.feedbackTimer -= dt;
+      if (this.feedbackTimer <= 0) {
+        this.feedbackText = null;
+      }
+    }
+
+    if (this.gamePhase === 'lobby') {
+      // 1. Idle standing / breathing animation for all 8 players
+      const t = now * 0.003;
+      this.players.forEach((p, idx) => {
+        if (p.state === 'idle') {
+          p.bodyMesh.position.y = 0.74 + Math.sin(t + idx * 0.8) * 0.015;
+          p.headMesh.position.y = 1.12 + Math.sin(t + idx * 0.8) * 0.015;
+        }
+      });
+
+      // Keep boom arms stationary
+      this.sweeperSpeed = 0;
+
+      // Gentle ambient camera rotation
+      if (this.cameraMode === 'action') {
+        this.cameraAngle += dt * 0.04;
+        this.updateCameraPlacement();
+      }
+
+      this.broadcastState();
+    } else if (this.gamePhase === 'countdown') {
+      // 2. Countdown Phase: 3, 2, 1, GO!
+      this.countdownTimer -= dt;
+      const currentCeil = Math.max(1, Math.ceil(this.countdownTimer));
+      if (currentCeil < this.lastCountdownCeil) {
+        this.lastCountdownCeil = currentCeil;
+        this.audio.playCountdownBeep(false);
+      }
+
+      if (this.countdownTimer <= 0) {
+        this.gamePhase = 'playing';
+        this.isRunning = true;
+        this.audio.playCountdownBeep(true);
+        this.audio.startMotor();
+        this.onNotification?.('⚡ GO! JUMP LOW ARM, DUCK HIGH ARM!');
+      }
+
+      if (this.cameraMode === 'action') {
+        this.cameraAngle += dt * 0.05;
+        this.updateCameraPlacement();
+      }
+
+      this.broadcastState();
+    } else if (this.gamePhase === 'playing') {
+      // 3. Active Real-Time Gameplay
       this.roundTime += dt;
 
-      // 1. Escalating Difficulty: smoothly ramp speed as time progresses
+      // Escalating Difficulty: smoothly ramp speed as time progresses
       const speedRamp = 1.45 + (this.roundTime / 60) * 2.2;
       this.targetSpeed = Math.min(speedRamp, 5.5);
       this.sweeperSpeed = THREE.MathUtils.lerp(this.sweeperSpeed, this.targetSpeed, dt * 1.5);
 
-      // 2. Attendant AI Events (Direction reversal, speed bursts)
+      // Attendant AI Events (Direction reversal, speed bursts)
       if (this.roundTime > this.nextEventTime) {
         this.triggerAttendantEvent();
       }
 
-      // 3. Rotate Sweeper Hub & Boom Arms
+      // Rotate Sweeper Hub & Boom Arms
       const deltaAngle = this.sweeperSpeed * this.sweeperDirection * dt;
       this.sweeperAngle = (this.sweeperAngle + deltaAngle) % (Math.PI * 2);
       if (this.sweeperAngle < 0) this.sweeperAngle += Math.PI * 2;
@@ -943,13 +1043,28 @@ export class ToxicMeltdownEngine {
 
       this.audio.updateMotorSpeed(this.sweeperSpeed / 5.5);
 
-      // 4. Update Character Animations & AI Behaviors
+      // Update Character Animations & AI Behaviors
       this.updatePlayers(dt);
 
-      // 5. Collision Hit Detection (Sweeper Arms vs Players)
+      // Detect incoming boom arms for live Jump / Duck HUD prompts
+      this.updateActionPrompts();
+
+      // Collision Hit Detection (Sweeper Arms vs Players)
       this.checkArmCollisions();
 
-      // 6. Confetti animation if victory
+      // Check if round finished
+      const activeSurvivors = this.players.filter((p) => p.state !== 'eliminated' && p.state !== 'hit');
+      const p1 = this.players[0];
+      const isP1Out = p1 && (p1.state === 'eliminated' || p1.state === 'hit');
+
+      if (activeSurvivors.length <= 1 || isP1Out) {
+        this.gameOverTimer += dt;
+        if (this.gameOverTimer > 1.2) {
+          this.gamePhase = 'gameover';
+        }
+      }
+
+      // Confetti animation if victory
       if (this.confettiGroup) {
         this.confettiGroup.children.forEach((c) => {
           c.position.y -= dt * 2.5;
@@ -959,18 +1074,89 @@ export class ToxicMeltdownEngine {
         });
       }
 
-      // 7. Update Camera in Action Mode
+      // Update Camera in Action Mode
       if (this.cameraMode === 'action') {
         this.cameraAngle += dt * 0.08;
         this.updateCameraPlacement();
       }
 
-      // 8. Broadcast State to UI
+      // Broadcast State to UI
+      this.broadcastState();
+    } else if (this.gamePhase === 'gameover') {
+      // 4. Game Over / Victory Settlement
+      this.updatePlayers(dt);
+
+      // Gradually spin down arms
+      this.sweeperSpeed = THREE.MathUtils.lerp(this.sweeperSpeed, 0.4, dt * 0.8);
+      this.sweeperAngle = (this.sweeperAngle + this.sweeperSpeed * this.sweeperDirection * dt) % (Math.PI * 2);
+      this.sweeperHub.rotation.y = this.sweeperAngle;
+      this.audio.updateMotorSpeed(this.sweeperSpeed / 5.5);
+
+      if (this.confettiGroup) {
+        this.confettiGroup.children.forEach((c) => {
+          c.position.y -= dt * 2.5;
+          c.rotation.x += dt * 4;
+          c.rotation.y += dt * 3;
+          if (c.position.y < 0.2) c.position.y = 6.0;
+        });
+      }
+
+      if (this.cameraMode === 'action') {
+        this.cameraAngle += dt * 0.04;
+        this.updateCameraPlacement();
+      }
+
       this.broadcastState();
     }
 
     this.renderer.render(this.scene, this.camera);
   };
+
+  /**
+   * Real-time calculation of oncoming boom arms relative to Player 1's podium.
+   * Generates dynamic visual prompts (JUMP! / DUCK!) and tracks clearances.
+   */
+  private updateActionPrompts() {
+    const p1 = this.players[0];
+    if (!p1 || p1.state === 'eliminated' || p1.state === 'hit') {
+      this.activePrompt = null;
+      return;
+    }
+
+    const lowArmAngle = this.normalizeAngle(this.sweeperAngle);
+    const highArmAngle = this.normalizeAngle(this.sweeperAngle + Math.PI);
+    const pAngle = this.normalizeAngle(p1.podiumAngle);
+
+    // Angular distance the arm must travel to reach P1
+    const dLow = this.sweeperDirection === 1
+      ? this.normalizeAngle(pAngle - lowArmAngle)
+      : this.normalizeAngle(lowArmAngle - pAngle);
+
+    const dHigh = this.sweeperDirection === 1
+      ? this.normalizeAngle(pAngle - highArmAngle)
+      : this.normalizeAngle(highArmAngle - pAngle);
+
+    const speed = Math.max(0.6, this.sweeperSpeed);
+    const timeToLow = dLow / speed;
+    const timeToHigh = dHigh / speed;
+
+    // Reset cleared flags once arm passes far behind
+    if (dLow > 0.85) {
+      this.hasClearedCurrentLowPass = false;
+    }
+    if (dHigh > 0.85) {
+      this.hasClearedCurrentHighPass = false;
+    }
+
+    // Trigger prompt when arm is between 0.08s and 0.65s away
+    if (timeToLow >= 0.06 && timeToLow <= 0.65) {
+      this.activePrompt = 'jump';
+    } else if (timeToHigh >= 0.06 && timeToHigh <= 0.65) {
+      this.activePrompt = 'duck';
+    } else {
+      this.activePrompt = null;
+    }
+  }
 
   /**
    * Attendant AI triggers sudden reversals or surprises
@@ -1123,9 +1309,13 @@ export class ToxicMeltdownEngine {
         const playerClearanceY = p.yOffset;
         if (playerClearanceY >= 0.32) {
           // Success! Jumped over low arm
-          if (p.isHuman) {
+          if (p.isHuman && !this.hasClearedCurrentLowPass) {
             this.clearedJumps++;
-            this.score += 100;
+            this.score += 150;
+            this.hasClearedCurrentLowPass = true;
+            this.feedbackText = 'PERFECT JUMP! ✨ +150';
+            this.feedbackTimer = 1.2;
+            this.audio.playSuccess();
           }
         } else {
           // HIT BY LOW ARM! Swept off podium!
@@ -1139,9 +1329,13 @@ export class ToxicMeltdownEngine {
         // Safe only if player is DUCKING / CROUCHING!
         if (p.state === 'ducking') {
           // Success! Ducked underneath high arm
-          if (p.isHuman) {
+          if (p.isHuman && !this.hasClearedCurrentHighPass) {
             this.clearedDucks++;
-            this.score += 100;
+            this.score += 150;
+            this.hasClearedCurrentHighPass = true;
+            this.feedbackText = 'CLEAN DUCK! 🎯 +150';
+            this.feedbackTimer = 1.2;
+            this.audio.playSuccess();
           }
         } else {
           // HIT BY HIGH ARM! Clipped in chest/head!
@@ -1202,6 +1396,12 @@ export class ToxicMeltdownEngine {
       ? `💥 ${p.name} tripped over the low sweeper arm!`
       : `💥 ${p.name} was clipped by the high boom arm!`;
 
+    if (p.isHuman) {
+      this.feedbackText = 'KNOCKED OFF PODIUM! 💥';
+      this.feedbackTimer = 2.5;
+      this.activePrompt = null;
+    }
+
     this.onNotification?.(hitMsg);
   }
 
@@ -1238,18 +1438,25 @@ export class ToxicMeltdownEngine {
     const isP1Eliminated = p1 ? (p1.state === 'eliminated' || p1.state === 'hit') : false;
 
     // RPM: 1 rad/s = 9.55 RPM
-    const rpm = Math.round(this.sweeperSpeed * 9.55);
+    const rpm = this.gamePhase === 'lobby' ? 0 : Math.round(this.sweeperSpeed * 9.55);
 
-    let speedLevel = 'WARMUP';
-    if (this.sweeperSpeed > 4.8) speedLevel = 'TOXIC MELTDOWN!';
+    let speedLevel = 'STANDBY';
+    if (this.gamePhase === 'lobby') speedLevel = 'STANDBY';
+    else if (this.gamePhase === 'countdown') speedLevel = 'ENGAGING';
+    else if (this.sweeperSpeed > 4.8) speedLevel = 'TOXIC MELTDOWN!';
     else if (this.sweeperSpeed > 3.8) speedLevel = 'INSANE';
     else if (this.sweeperSpeed > 2.8) speedLevel = 'RAPID';
     else if (this.sweeperSpeed > 2.0) speedLevel = 'HAZARD';
     else if (this.sweeperSpeed > 1.5) speedLevel = 'CRUISING';
+    else speedLevel = 'WARMUP';
 
     const winner = activeCount === 1 ? this.players.find((p) => p.state === 'victory') : null;
 
     this.onStateUpdate?.({
+      phase: this.gamePhase,
+      countdown: Math.max(0, Math.ceil(this.countdownTimer)),
+      activePrompt: this.activePrompt,
+      reactionFeedback: this.feedbackText,
       survivorsCount: activeCount,
       totalPlayers: 8,
       roundTime: this.roundTime,
@@ -1259,7 +1466,7 @@ export class ToxicMeltdownEngine {
       isPlayerEliminated: isP1Eliminated,
       playerRank: isP1Eliminated ? 9 - activeCount : (activeCount === 1 ? 1 : null),
       winnerName: winner ? winner.name : null,
-      isRoundOver: activeCount <= 1,
+      isRoundOver: this.gamePhase === 'gameover' || (this.gamePhase === 'playing' && (activeCount <= 1 || isP1Eliminated)),
       score: this.score + Math.floor(this.roundTime * 15),
       clearedJumps: this.clearedJumps,
       clearedDucks: this.clearedDucks,
@@ -1301,3 +1508,4 @@ export class ToxicMeltdownEngine {
     this.renderer.dispose();
   }
 }
+

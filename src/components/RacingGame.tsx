@@ -61,9 +61,10 @@ function formatLapTime(seconds: number | null | undefined): string {
 
 export interface RacingGameProps {
   onSwitchToMeltdown?: () => void;
+  onReturnToMenu?: () => void;
 }
 
-export default function RacingGame({ onSwitchToMeltdown }: RacingGameProps = {}) {
+export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: RacingGameProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameInstance | null>(null);
 
@@ -422,6 +423,30 @@ export default function RacingGame({ onSwitchToMeltdown }: RacingGameProps = {})
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {onReturnToMenu && (
+                  <button
+                    type="button"
+                    onClick={onReturnToMenu}
+                    className="landing-menu-pill"
+                    title="Return to Master Arcade Portal"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      color: '#f4f4f5',
+                      padding: '5px 12px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>🏠</span>
+                    <span>Game Menu</span>
+                  </button>
+                )}
                 {onSwitchToMeltdown && (
                   <button
                     type="button"
@@ -641,6 +666,24 @@ export default function RacingGame({ onSwitchToMeltdown }: RacingGameProps = {})
 
           {/* Action Toolbar */}
           <div className="racing-toolbar">
+            {/* Return to Arcade Menu Portal Button */}
+            {onReturnToMenu && (
+              <button
+                className="racing-btn menu-btn"
+                onClick={onReturnToMenu}
+                title="Return to Master Arcade Portal"
+                style={{
+                  background: 'rgba(24, 24, 27, 0.85)',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  color: '#f4f4f5',
+                  fontWeight: 800,
+                }}
+              >
+                <span style={{ fontSize: '13px' }}>🏠</span>
+                <span className="racing-btn-text">Game Menu</span>
+              </button>
+            )}
+
             {/* Switch to Toxic Meltdown Button */}
             {onSwitchToMeltdown && (
               <button

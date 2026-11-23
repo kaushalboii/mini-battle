@@ -314,4 +314,65 @@ export class ToxicMeltdownAudio {
       });
     } catch {}
   }
+
+  /**
+   * Countdown Beeps (3, 2, 1, GO!)
+   */
+  public playCountdownBeep(isGo: boolean = false) {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = isGo ? 'sawtooth' : 'sine';
+      osc.frequency.setValueAtTime(isGo ? 880 : 440, now);
+      if (isGo) {
+        osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35); // D6
+      }
+
+      const dur = isGo ? 0.45 : 0.22;
+      gain.gain.setValueAtTime(isGo ? 0.30 : 0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + dur);
+    } catch {}
+  }
+
+  /**
+   * Reward chime for perfect jump or clean duck
+   */
+  public playSuccess() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } catch {}
+  }
 }
+
+

@@ -2,7 +2,8 @@
  * Toxic Meltdown® 3D - Interactive React Component
  * 8-player inflatable sweeper battle game.
  * Jump over the low arm, duck under the high arm, survive escalating motor speeds!
- * Features tactile mobile pedals, attendant console controls, and multi-cam views.
+ * Features live lobby start, 3-2-1 countdown, dynamic HUD prompts, tactile mobile pedals,
+ * attendant console controls, and multi-cam views.
  * Engineered by Kaushal.
  */
 
@@ -13,20 +14,25 @@ import '../styles/toxic-meltdown.css';
 
 interface ToxicMeltdownProps {
   onSwitchToRacing?: () => void;
+  onReturnToMenu?: () => void;
 }
 
-export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) {
+export default function ToxicMeltdown({ onSwitchToRacing, onReturnToMenu }: ToxicMeltdownProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<ToxicMeltdownEngine | null>(null);
   const audioRef = useRef<ToxicMeltdownAudio>(new ToxicMeltdownAudio());
 
   // Game UI State
   const [engineState, setEngineState] = useState<MeltdownEngineState>({
+    phase: 'lobby',
+    countdown: 3,
+    activePrompt: null,
+    reactionFeedback: null,
     survivorsCount: 8,
     totalPlayers: 8,
     roundTime: 0,
-    currentRpm: 14,
-    speedLevel: 'WARMUP',
+    currentRpm: 0,
+    speedLevel: 'STANDBY',
     direction: 1,
     isPlayerEliminated: false,
     playerRank: null,
@@ -63,7 +69,8 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
     );
 
     engineRef.current = engine;
-    engine.restartGame();
+    // Engine starts in 'lobby' mode with arms stationary.
+    // User starts the live round by pressing "START ROUND" or Space/Enter.
 
     return () => {
       engine.destroy();
@@ -76,6 +83,36 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
 
+      if (e.code === 'KeyR') {
+        e.preventDefault();
+        engineRef.current?.restartGame();
+        return;
+      }
+      if (e.code === 'KeyC') {
+        e.preventDefault();
+        const nextMode = engineRef.current?.cycleCameraMode();
+        if (nextMode) setCameraMode(nextMode as any);
+        return;
+      }
+      if (e.code === 'KeyM') {
+        setIsMuted((prev) => {
+          const next = !prev;
+          audioRef.current.setMuted(next);
+          return next;
+        });
+        return;
+      }
+
+      // Lobby Start Key
+      if (engineState.phase === 'lobby') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          engineRef.current?.startLiveRound();
+          return;
+        }
+      }
+
+      // Gameplay Action Keys
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         setIsJumpPressed(true);
@@ -84,19 +121,6 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
         e.preventDefault();
         setIsDuckPressed(true);
         engineRef.current?.setDucking(true, 0);
-      } else if (e.code === 'KeyR') {
-        e.preventDefault();
-        engineRef.current?.restartGame();
-      } else if (e.code === 'KeyC') {
-        e.preventDefault();
-        const nextMode = engineRef.current?.cycleCameraMode();
-        if (nextMode) setCameraMode(nextMode as any);
-      } else if (e.code === 'KeyM') {
-        setIsMuted((prev) => {
-          const next = !prev;
-          audioRef.current.setMuted(next);
-          return next;
-        });
       }
     };
 
@@ -115,9 +139,13 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [engineState.phase]);
 
   const handleJumpStart = () => {
+    if (engineState.phase === 'lobby') {
+      engineRef.current?.startLiveRound();
+      return;
+    }
     setIsJumpPressed(true);
     engineRef.current?.triggerJump(0);
   };
@@ -127,6 +155,10 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
   };
 
   const handleDuckStart = () => {
+    if (engineState.phase === 'lobby') {
+      engineRef.current?.startLiveRound();
+      return;
+    }
     setIsDuckPressed(true);
     engineRef.current?.setDucking(true, 0);
   };
@@ -180,6 +212,18 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
 
         {/* Global Toolbar Actions */}
         <div className="toxic-toolbar-actions">
+          {/* Return to Arcade Menu Portal */}
+          {onReturnToMenu && (
+            <button
+              className="toxic-nav-btn return-menu-btn"
+              onClick={onReturnToMenu}
+              title="Return to Master Arcade Menu"
+            >
+              <span>🏠</span>
+              <span className="btn-label-text">Game Menu</span>
+            </button>
+          )}
+
           {/* Switch to Car Racing Portal Button */}
           {onSwitchToRacing && (
             <button
@@ -188,7 +232,7 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
               title="Switch to RevSector 3D Car Racing"
             >
               <span>🏎️</span>
-              <span className="btn-label-text">Play Car Racing</span>
+              <span className="btn-label-text">Car Racing</span>
             </button>
           )}
 
@@ -218,7 +262,7 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
             title="Toggle Operator Control Console"
           >
             <span>🕹️</span>
-            <span className="btn-label-text">Operator Panel</span>
+            <span className="btn-label-text">Operator</span>
           </button>
 
           {/* Audio Mute */}
@@ -263,7 +307,9 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
             </span>
           </div>
           <div className="survivors-status-text">
-            {engineState.survivorsCount === 1
+            {engineState.phase === 'lobby'
+              ? '8 Players Ready On Podiums'
+              : engineState.survivorsCount === 1
               ? '👑 FINAL CHAMPION!'
               : engineState.survivorsCount === 2
               ? '⚡ FINAL 2 HEAD-TO-HEAD!'
@@ -382,6 +428,32 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
         </div>
       )}
 
+      {/* Dynamic Action Prompt Banner during Live Gameplay */}
+      {engineState.phase === 'playing' && engineState.activePrompt && (
+        <div className={`toxic-live-prompt-banner prompt-${engineState.activePrompt}`}>
+          {engineState.activePrompt === 'jump' ? (
+            <div className="prompt-inner">
+              <span className="prompt-icon">🦘</span>
+              <span className="prompt-text">JUMP OVER LOW ARM!</span>
+              <span className="prompt-keys">SPACE / ↑</span>
+            </div>
+          ) : (
+            <div className="prompt-inner">
+              <span className="prompt-icon">🦆</span>
+              <span className="prompt-text">DUCK UNDER HIGH ARM!</span>
+              <span className="prompt-keys">S / ↓</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Reaction Feedback Toast */}
+      {engineState.reactionFeedback && (
+        <div className="toxic-feedback-toast">
+          <span>{engineState.reactionFeedback}</span>
+        </div>
+      )}
+
       {/* Instructions Overlay Bar (Desktop Guidance) */}
       <div className="toxic-desktop-guide">
         <span className="guide-item">
@@ -428,6 +500,80 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
         </button>
       </div>
 
+      {/* LOBBY / READY PRE-ROUND OVERLAY */}
+      {engineState.phase === 'lobby' && (
+        <div className="toxic-lobby-backdrop">
+          <div className="toxic-lobby-card">
+            <div className="lobby-hazard-bar" />
+            <div className="lobby-brand-row">
+              <span className="lobby-badge-official">GALAXY MULTI RIDES® OFFICIAL</span>
+              <span className="lobby-badge-live">LIVE ARENA 3D</span>
+            </div>
+            <h1 className="lobby-title">
+              TOXIC MELTDOWN<span className="toxic-reg">®</span>
+            </h1>
+            <p className="lobby-subtitle">
+              8-Player Inflatable Sweeper • Last Standing Survivor Challenge
+            </p>
+
+            <div className="lobby-rules-grid">
+              <div className="rule-box rule-low">
+                <div className="rule-icon-circle low">🦘</div>
+                <div className="rule-text-content">
+                  <div className="rule-heading">LOW BOOM ARM (0.38m)</div>
+                  <div className="rule-action">JUMP OVER!</div>
+                  <div className="rule-keys">
+                    <kbd className="toxic-kbd">SPACE</kbd> or <kbd className="toxic-kbd">↑</kbd> or <span className="touch-tag">Green Pedal</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rule-box rule-high">
+                <div className="rule-icon-circle high">🦆</div>
+                <div className="rule-text-content">
+                  <div className="rule-heading">HIGH BOOM ARM (1.35m)</div>
+                  <div className="rule-action">DUCK UNDER!</div>
+                  <div className="rule-keys">
+                    <kbd className="toxic-kbd">S</kbd> or <kbd className="toxic-kbd">↓</kbd> or <span className="touch-tag">Orange Pedal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lobby-tip-bar">
+              ⚠️ Stay on your podium! Don't let the spinning mechanical foam boom arms knock you onto the inflatable floor!
+            </div>
+
+            <div className="lobby-start-actions">
+              <button
+                type="button"
+                className="btn-start-live-round"
+                onClick={() => engineRef.current?.startLiveRound()}
+              >
+                <span className="btn-play-icon">▶</span>
+                <span className="btn-text-main">START ROUND (LIVE PLAY)</span>
+                <span className="btn-key-hint">Press SPACE or ENTER</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COUNTDOWN OVERLAY */}
+      {engineState.phase === 'countdown' && (
+        <div className="toxic-countdown-backdrop">
+          <div className="toxic-countdown-card">
+            <div className="countdown-hazard-icon">☣️</div>
+            <div className="countdown-number-pulse">
+              {engineState.countdown > 0 ? engineState.countdown : 'GO!'}
+            </div>
+            <div className="countdown-subtext">
+              {engineState.countdown > 0 ? 'GET READY ON YOUR PODIUM!' : 'DUCK & JUMP!'}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Round End / Elimination Modal */}
       {engineState.isRoundOver && (
         <div className="toxic-modal-backdrop">
@@ -466,10 +612,20 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
               <button
                 type="button"
                 className="modal-btn btn-replay"
-                onClick={() => engineRef.current?.restartGame()}
+                onClick={() => engineRef.current?.startLiveRound()}
               >
                 <span>🔄 Play Again</span>
               </button>
+
+              {onReturnToMenu && (
+                <button
+                  type="button"
+                  className="modal-btn btn-menu"
+                  onClick={onReturnToMenu}
+                >
+                  <span>🏠 Game Menu</span>
+                </button>
+              )}
 
               {onSwitchToRacing && (
                 <button
@@ -477,7 +633,7 @@ export default function ToxicMeltdown({ onSwitchToRacing }: ToxicMeltdownProps) 
                   className="modal-btn btn-switch"
                   onClick={onSwitchToRacing}
                 >
-                  <span>🏎️ Race in RevSector 3D</span>
+                  <span>🏎️ Play Car Racing</span>
                 </button>
               )}
             </div>
