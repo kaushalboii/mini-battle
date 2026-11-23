@@ -41,7 +41,7 @@ export default function ArcadeMenu({ onSelectGame }: ArcadeMenuProps) {
           <div className="arcade-game-card card-racing" onClick={() => onSelectGame('racing')}>
             <div className="card-top-banner">
               <span className="game-type-pill pill-racing">🏎️ MOTORSPORT SIMULATOR</span>
-              <span className="game-meta-tag">4 CIRCUITS</span>
+              <span className="game-meta-tag">3 GRAND PRIX CIRCUITS</span>
             </div>
 
             <div className="card-visual-preview preview-racing">
@@ -58,16 +58,16 @@ export default function ArcadeMenu({ onSelectGame }: ArcadeMenuProps) {
             <div className="card-content">
               <h2 className="game-title">RevSector 3D</h2>
               <p className="game-tagline">
-                Grand Prix Circuit Racing • Real Vehicle Dynamics & Multi-Car Grid
+                Formula Grand Prix Circuit Racing • Dynamic Physics & Multi-Car Grid
               </p>
               <p className="game-desc">
-                High-speed asphalt racing across Monza Mega Speedway, Silverstone GP, Marina Bay, and Thunder Canyon. Features dynamic vehicle physics, nitrous injection, active tire smoke, drift rubber skid marks, and official F1 live timing telemetry.
+                High-speed asphalt circuit racing across Monza Speed Ring, Silverstone GP, and Marina Bay. Features realistic vehicle dynamics, nitrous injection, tire smoke, drift rubber skid marks, Day/Sunset/Night lighting, and official F1 live timing telemetry.
               </p>
 
               <div className="game-features-list">
-                <span className="feature-pill">🏁 4 Grand Prix Levels</span>
-                <span className="feature-pill">👥 Live Wi-Fi Mesh Sync</span>
-                <span className="feature-pill">🤖 3 Sparring AI Bots</span>
+                <span className="feature-pill">🏁 3 Grand Prix Tracks</span>
+                <span className="feature-pill">🌐 Zero-Connect Mesh Sync</span>
+                <span className="feature-pill">🤖 3 Sparring AI Racers</span>
                 <span className="feature-pill">💨 Nitrous & Drift Marks</span>
               </div>
             </div>
@@ -157,3 +157,4 @@ export default function ArcadeMenu({ onSelectGame }: ArcadeMenuProps) {
     </div>
   );
 }
+

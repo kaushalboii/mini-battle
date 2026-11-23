@@ -43,6 +43,8 @@ export interface MeltdownEngineState {
   countdown: number;
   activePrompt: 'jump' | 'duck' | null;
   reactionFeedback: string | null;
+  playerLives: number;
+  isInvulnerable: boolean;
   survivorsCount: number;
   totalPlayers: number;
   roundTime: number;
@@ -104,6 +106,8 @@ export class ToxicMeltdownEngine {
   private hasClearedCurrentLowPass: boolean = false;
   private hasClearedCurrentHighPass: boolean = false;
   private gameOverTimer: number = 0;
+  private playerLives: number = 3;
+  private playerInvulnerableTimer: number = 0;
 
   private roundTime: number = 0;
   private score: number = 0;
@@ -847,11 +851,17 @@ export class ToxicMeltdownEngine {
     this.score = 0;
     this.clearedJumps = 0;
     this.clearedDucks = 0;
-    this.sweeperSpeed = 1.45;
-    this.targetSpeed = 1.45;
+    this.playerLives = 3;
+    this.playerInvulnerableTimer = 0;
+    this.sweeperSpeed = 1.15;
+    this.targetSpeed = 1.15;
     this.sweeperDirection = 1;
-    this.sweeperAngle = 0;
-    this.nextEventTime = 10.0;
+    // Start low arm safely pointing away from Player 1 (give ~3 seconds of runway!)
+    this.sweeperAngle = Math.PI + Math.PI / 8;
+    if (this.sweeperHub) {
+      this.sweeperHub.rotation.y = this.sweeperAngle;
+    }
+    this.nextEventTime = 12.0;
     this.activePrompt = null;
     this.feedbackText = null;
     this.feedbackTimer = 0;
@@ -874,6 +884,7 @@ export class ToxicMeltdownEngine {
       p.meshGroup.lookAt(0, 0.20, 0);
 
       // Restore body transforms
+      p.bodyMesh.visible = true;
       p.bodyMesh.scale.set(1, 1, 1);
       p.bodyMesh.position.y = 0.74;
       p.headMesh.position.y = 1.12;
@@ -895,7 +906,7 @@ export class ToxicMeltdownEngine {
     this.gamePhase = 'lobby';
     this.isRunning = false;
     this.sweeperSpeed = 0;
-    this.sweeperHub.rotation.y = 0;
+    this.sweeperHub.rotation.y = Math.PI + Math.PI / 8;
     this.audio.stopMotor();
     this.broadcastState();
   }
@@ -909,7 +920,7 @@ export class ToxicMeltdownEngine {
     this.countdownTimer = 3.0;
     this.lastCountdownCeil = 4;
     this.isRunning = false;
-    this.sweeperSpeed = 1.45;
+    this.sweeperSpeed = 1.15;
     this.audio.playCountdownBeep(false);
     this.broadcastState();
   }
@@ -1052,14 +1063,11 @@ export class ToxicMeltdownEngine {
       // Collision Hit Detection (Sweeper Arms vs Players)
       this.checkArmCollisions();
 
-      // Check if round finished
+      // Check if round finished (only 1 final survivor remains)
       const activeSurvivors = this.players.filter((p) => p.state !== 'eliminated' && p.state !== 'hit');
-      const p1 = this.players[0];
-      const isP1Out = p1 && (p1.state === 'eliminated' || p1.state === 'hit');
-
-      if (activeSurvivors.length <= 1 || isP1Out) {
+      if (activeSurvivors.length <= 1 && this.roundTime > 4) {
         this.gameOverTimer += dt;
-        if (this.gameOverTimer > 1.2) {
+        if (this.gameOverTimer > 2.5) {
           this.gamePhase = 'gameover';
         }
       }
@@ -1307,7 +1315,7 @@ export class ToxicMeltdownEngine {
       if (diffLow < HIT_ANGLE_TOLERANCE) {
         // Safe only if player is JUMPING high enough!
         const playerClearanceY = p.yOffset;
-        if (playerClearanceY >= 0.32) {
+        if (playerClearanceY >= 0.28) {
           // Success! Jumped over low arm
           if (p.isHuman && !this.hasClearedCurrentLowPass) {
             this.clearedJumps++;
@@ -1360,10 +1368,7 @@ export class ToxicMeltdownEngine {
   /**
    * Applies physics impulse to fling knocked-out player off the podium
    */
-  private knockoutPlayer(p: MeltdownPlayerState, armType: 'low' | 'high') {
-    p.state = 'hit';
-    this.audio.playImpact();
-
+  private applyRagdollImpulse(p: MeltdownPlayerState, armType: 'low' | 'high') {
     // Tangential direction of the rotating arm
     const tangent = new THREE.Vector3(
       -Math.sin(p.podiumAngle) * this.sweeperDirection,
@@ -1379,11 +1384,11 @@ export class ToxicMeltdownEngine {
     );
 
     const impulse = new THREE.Vector3()
-      .addScaledVector(tangent, 3.8 * (this.sweeperSpeed / 2.0))
-      .addScaledVector(outward, 2.2);
+      .addScaledVector(tangent, 3.6 * (this.sweeperSpeed / 2.0))
+      .addScaledVector(outward, 2.0);
 
     // High arm hit produces stronger backward head snap
-    impulse.y = armType === 'high' ? 2.4 : 3.8;
+    impulse.y = armType === 'high' ? 2.4 : 3.6;
 
     p.velocity.copy(impulse);
     p.angularVelocity.set(
@@ -1391,17 +1396,57 @@ export class ToxicMeltdownEngine {
       (Math.random() - 0.5) * 6,
       (Math.random() - 0.5) * 8
     );
+  }
 
+  private knockoutPlayer(p: MeltdownPlayerState, armType: 'low' | 'high') {
+    if (p.isHuman) {
+      if (this.playerInvulnerableTimer > 0) {
+        return; // Currently in recovery shield, ignore hit
+      }
+
+      this.audio.playImpact();
+      this.playerLives--;
+
+      if (this.playerLives > 0) {
+        p.state = 'hit';
+        this.playerInvulnerableTimer = 2.5;
+        this.applyRagdollImpulse(p, armType);
+        this.feedbackText = `💥 OUCH! ${this.playerLives} ${this.playerLives === 1 ? 'LIFE' : 'LIVES'} REMAINING!`;
+        this.feedbackTimer = 2.2;
+        this.activePrompt = null;
+        this.onNotification?.(`⚠️ Hit by ${armType} arm! ${this.playerLives} lives left.`);
+
+        // Recover player back onto podium after 1.2 seconds
+        setTimeout(() => {
+          if (p.state === 'hit' && this.playerLives > 0) {
+            p.state = 'idle';
+            p.meshGroup.position.copy(p.podiumPos);
+            p.meshGroup.rotation.set(0, 0, 0);
+            p.meshGroup.lookAt(0, 0.20, 0);
+            p.velocity.set(0, 0, 0);
+            p.angularVelocity.set(0, 0, 0);
+          }
+        }, 1200);
+        return;
+      }
+
+      // 0 lives left: Full elimination
+      p.state = 'eliminated';
+      this.feedbackText = 'ELIMINATED OFF PODIUM! 💥';
+      this.feedbackTimer = 3.0;
+      this.activePrompt = null;
+      this.applyRagdollImpulse(p, armType);
+      this.onNotification?.('💥 All 3 lives lost! Spectating remaining survivors...');
+      return;
+    }
+
+    // AI competitors get eliminated on hit
+    p.state = 'eliminated';
+    this.audio.playImpact();
+    this.applyRagdollImpulse(p, armType);
     const hitMsg = armType === 'low'
       ? `💥 ${p.name} tripped over the low sweeper arm!`
       : `💥 ${p.name} was clipped by the high boom arm!`;
-
-    if (p.isHuman) {
-      this.feedbackText = 'KNOCKED OFF PODIUM! 💥';
-      this.feedbackTimer = 2.5;
-      this.activePrompt = null;
-    }
-
     this.onNotification?.(hitMsg);
   }
 
@@ -1434,8 +1479,7 @@ export class ToxicMeltdownEngine {
       (p) => p.state !== 'eliminated' && p.state !== 'hit'
     ).length;
 
-    const p1 = this.players[0];
-    const isP1Eliminated = p1 ? (p1.state === 'eliminated' || p1.state === 'hit') : false;
+    const isP1Eliminated = this.playerLives <= 0;
 
     // RPM: 1 rad/s = 9.55 RPM
     const rpm = this.gamePhase === 'lobby' ? 0 : Math.round(this.sweeperSpeed * 9.55);
@@ -1457,6 +1501,8 @@ export class ToxicMeltdownEngine {
       countdown: Math.max(0, Math.ceil(this.countdownTimer)),
       activePrompt: this.activePrompt,
       reactionFeedback: this.feedbackText,
+      playerLives: this.playerLives,
+      isInvulnerable: this.playerInvulnerableTimer > 0,
       survivorsCount: activeCount,
       totalPlayers: 8,
       roundTime: this.roundTime,
@@ -1466,7 +1512,7 @@ export class ToxicMeltdownEngine {
       isPlayerEliminated: isP1Eliminated,
       playerRank: isP1Eliminated ? 9 - activeCount : (activeCount === 1 ? 1 : null),
       winnerName: winner ? winner.name : null,
-      isRoundOver: this.gamePhase === 'gameover' || (this.gamePhase === 'playing' && (activeCount <= 1 || isP1Eliminated)),
+      isRoundOver: this.gamePhase === 'gameover',
       score: this.score + Math.floor(this.roundTime * 15),
       clearedJumps: this.clearedJumps,
       clearedDucks: this.clearedDucks,

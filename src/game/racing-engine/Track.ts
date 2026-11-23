@@ -1,99 +1,75 @@
 /**
  * RevSector 3D - Modular Circuit Registry & Environmental Grid
- * Multi-level circuit generator with dynamic wall collision mesh, racing-line waypoint extraction,
- * obstacle disturbances (speed bumps & hazard blocks), and environmental decor.
+ * Multi-circuit generator with dynamic wall collision mesh, racing-line waypoint extraction,
+ * and environmental decor generation for Monza, Silverstone, and Marina Bay.
  * Engineered by Kaushal.
  */
 
-import { Container3D, CubeGeometry, Material3D, Mesh3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';
+import { Container3D, Model3D, Quaternion, Vector3 } from '@pixi/3d';
 
 export const ORIENT_DEG: Record<number, number> = { 0: 0, 10: 180, 16: 90, 22: 270 };
 
 export const CELL_RAW = 9.99;
-export const GRID_SCALE = 1.15; // +15% bigger & wider road dimensions!
-export const CELL_SIZE = CELL_RAW * GRID_SCALE; // 11.49m per cell
+export const GRID_SCALE = 1.05;
+export const CELL_SIZE = CELL_RAW * GRID_SCALE; // 10.49m per cell (expanded scale!)
 
 export type TrackCell = [number, number, string, number];
 
-export interface CircuitDefinition {
-  id: string;
-  level: number;
-  name: string;
-  location: string;
-  country: string;
-  flag: string;
-  tag: string;
-  difficulty: string;
-  hasObstacles: boolean;
-  description: string;
-  sectorsCount: number;
-  drsZones: number;
-  benchmarkLap: number;
-  recommendedTheme: 'day' | 'sunset' | 'night';
-  cells: TrackCell[];
-  decoCells: TrackCell[];
-  obstacles?: Array<{ gx: number; gz: number; laneOffset: number }>;
-}
-
 // ==========================================
-// LEVEL 1: MONZA MEGA SPEED RING (Italy)
-// Enormous 44-cell Grand Prix speedway with 100m Pit Straight,
-// high-speed Curva Grande, 140m Serraglio Back Straight, and Parabolica
+// CIRCUIT 1: MONZA SPEED RING (Italy)
+// Massive, sprawling Grand Prix circuit with 70m Main Pit Straight,
+// high-speed Curva Grande, 120m Serraglio Back Straight, and Parabolica
 // ==========================================
 const MONZA_CELLS: TrackCell[] = [
-  // Sector 1: Massive Main Pit Straight & Curva Grande Sweep
-  [0, 0, 'track-finish', 0],       // Start/Finish Line
-  [0, 1, 'track-straight', 0],     // Pit Straight Launch
-  [0, 2, 'track-straight', 0],     // Pit Lane Speed Trap
-  [0, 3, 'track-straight', 0],     // DRS Zone 1 Activation
-  [0, 4, 'track-straight', 0],     // Full Power Acceleration
-  [0, 5, 'track-straight', 0],     // High-Speed Straightaway
-  [0, 6, 'track-straight', 0],     // Sector 1 Speed Trap
-  [0, 7, 'track-straight', 0],     // 200m Braking Board
-  [0, 8, 'track-straight', 0],     // 100m Turn 1 Board
-  [0, 9, 'track-corner', 22],      // Turn 1: Curva Grande Entry (SW)
-  [-1, 9, 'track-straight', 16],   // Curva Grande High-Speed Sweep
-  [-2, 9, 'track-straight', 16],   // Curva Grande Apex
-  [-3, 9, 'track-straight', 16],   // High-G Sweeper
-  [-4, 9, 'track-straight', 16],   // Curva Grande Midpoint
-  [-5, 9, 'track-straight', 16],   // Arc Exit
-  [-6, 9, 'track-straight', 16],   // Variante della Roggia Run
-  [-7, 9, 'track-straight', 16],   // Heavy Braking Zone
-  [-8, 9, 'track-corner', 10],     // Turn 2: Roggia Chicane (SE)
+  // Sector 1: Main Pit Straight Acceleration & Curva Grande
+  [0, 0, 'track-finish', 0],      // Start/Finish Line & Electronic Gantry
+  [0, 1, 'track-straight', 0],    // Pit Straight Acceleration
+  [0, 2, 'track-straight', 0],    // Pit Lane Speed Trap
+  [0, 3, 'track-straight', 0],    // DRS Zone 1 Activation
+  [0, 4, 'track-straight', 0],    // Full Throttle Run
+  [0, 5, 'track-straight', 0],    // High-Speed Straightaway
+  [0, 6, 'track-straight', 0],    // Turn 1 Braking Board
+  [0, 7, 'track-corner', 22],     // Turn 1: Curva Grande Entry (SW)
+  [-1, 7, 'track-straight', 16],  // Curva Grande High-Speed Arc
+  [-2, 7, 'track-straight', 16],  // Curva Grande Apex
+  [-3, 7, 'track-straight', 16],  // Curva Grande Midpoint
+  [-4, 7, 'track-straight', 16],  // High-G Sweeper
+  [-5, 7, 'track-straight', 16],  // Curva Grande Arc
+  [-6, 7, 'track-straight', 16],  // Roggia Approach
+  [-7, 7, 'track-straight', 16],  // Heavy Braking Zone
+  [-8, 7, 'track-corner', 10],    // Turn 2: Variante della Roggia (SE)
 
-  // Sector 2: Ultra-Long Serraglio Back Straight
-  [-8, 8, 'track-straight', 0],    // Back Straight Launch
-  [-8, 7, 'track-straight', 0],    // DRS Zone 2 Activation
-  [-8, 6, 'track-straight', 0],    // Full Throttle Run
-  [-8, 5, 'track-straight', 0],    // High-Velocity Straightaway
-  [-8, 4, 'track-straight', 0],    // Serraglio Speed Trap
-  [-8, 3, 'track-straight', 0],    // DRS Max Velocity
-  [-8, 2, 'track-straight', 0],    // Lesmo Exit Run
-  [-8, 1, 'track-straight', 0],    // Midpoint Straight
-  [-8, 0, 'track-straight', 0],    // Full Power Straight
-  [-8, -1, 'track-straight', 0],   // Sector 2 Speed Trap
-  [-8, -2, 'track-straight', 0],   // Ascari Approach Run
-  [-8, -3, 'track-straight', 0],   // 150m Braking Board
-  [-8, -4, 'track-straight', 0],   // 100m Braking Board
-  [-8, -5, 'track-corner', 16],    // Turn 3: Variante Ascari (NE)
+  // Sector 2: Super-Long Serraglio Back Straight
+  [-8, 6, 'track-straight', 0],   // Back Straight DRS Zone
+  [-8, 5, 'track-straight', 0],   // Full Throttle Run
+  [-8, 4, 'track-straight', 0],   // High-Velocity Straightaway
+  [-8, 3, 'track-straight', 0],   // Serraglio Speed Trap
+  [-8, 2, 'track-straight', 0],   // High-Speed DRS Run
+  [-8, 1, 'track-straight', 0],   // Sector 2 Midpoint
+  [-8, 0, 'track-straight', 0],   // Lesmo Exit Run
+  [-8, -1, 'track-straight', 0],  // Full Power Straight
+  [-8, -2, 'track-straight', 0],  // Ascari Approach
+  [-8, -3, 'track-straight', 0],  // 150m Braking Board
+  [-8, -4, 'track-straight', 0],  // 100m Braking Board
+  [-8, -5, 'track-corner', 16],   // Turn 3: Variante Ascari Entry (NE)
 
-  // Sector 3: Ascari Chicane, Stadium Infield & Parabolica Sweeper
-  [-7, -5, 'track-straight', 16],  // Ascari High-Speed Transition
-  [-6, -5, 'track-straight', 16],  // Ascari Chicane Apex
-  [-5, -5, 'track-straight', 16],  // Chicane Exit Run
-  [-4, -5, 'track-corner', 0],     // Turn 4: Stadium Infield Entry (NW)
-  [-4, -4, 'track-straight', 0],   // Stadium Straight
-  [-4, -3, 'track-straight', 0],   // Grandstand Run
-  [-4, -2, 'track-straight', 0],   // S-Curve Approach
-  [-4, -1, 'track-corner', 10],    // Turn 5: Technical S-Curve (SE)
-  [-3, -1, 'track-straight', 16],  // Parabolica Approach Run
-  [-2, -1, 'track-straight', 16],  // Parabolica High-Speed Arc
-  [-1, -1, 'track-straight', 16],  // Parabolica Sweeper
-  [0, -1, 'track-corner', 0],      // Turn 6: Parabolica onto Main Straight (NW)
+  // Sector 3: Ascari Chicane, Infield Stadium & Parabolica
+  [-7, -5, 'track-straight', 16], // Ascari High-Speed Transition
+  [-6, -5, 'track-straight', 16], // Chicane Apex
+  [-5, -5, 'track-straight', 16], // Chicane Exit
+  [-4, -5, 'track-corner', 0],    // Turn 4: Infield Stadium Apex (NW)
+  [-4, -4, 'track-straight', 0],  // Stadium Straight
+  [-4, -3, 'track-straight', 0],  // Stadium Infield Section
+  [-4, -2, 'track-straight', 0],  // S-Curve Approach
+  [-4, -1, 'track-corner', 10],   // Turn 5: Technical S-Curve (SE)
+  [-3, -1, 'track-straight', 16], // Parabolica Approach Run
+  [-2, -1, 'track-straight', 16], // Parabolica High-Speed Arc
+  [-1, -1, 'track-straight', 16], // Parabolica Sweeper
+  [0, -1, 'track-corner', 0],     // Turn 6: Parabolica curve onto Start/Finish (NW)
 ];
 
 const MONZA_DECO: TrackCell[] = [
-  // Pit Straight Grandstands & Paddock
+  // Pit Straight Grandstands & Paddock Tents
   [1, 0, 'decoration-tents', 22],
   [1, 1, 'decoration-tents', 22],
   [1, 2, 'decoration-tents', 22],
@@ -101,219 +77,186 @@ const MONZA_DECO: TrackCell[] = [
   [1, 4, 'decoration-tents', 22],
   [1, 5, 'decoration-tents', 22],
   [1, 6, 'decoration-tents', 22],
-  [1, 7, 'decoration-tents', 22],
 
-  // Infield Forest Canopy
-  [-1, 1, 'decoration-forest', 0],
-  [-2, 1, 'decoration-forest', 16],
-  [-3, 1, 'decoration-forest', 10],
-  [-1, 3, 'decoration-forest', 0],
-  [-2, 3, 'decoration-forest', 16],
-  [-3, 3, 'decoration-forest', 10],
-  [-5, 1, 'decoration-forest', 0],
-  [-6, 1, 'decoration-forest', 16],
-  [-7, 1, 'decoration-forest', 10],
-  [-5, 3, 'decoration-forest', 0],
-  [-6, 3, 'decoration-forest', 16],
-  [-7, 3, 'decoration-forest', 10],
+  // Infield Forest Canopy & Paddock Festival Area
+  [-1, 1, 'decoration-tents', 0],
+  [-2, 1, 'decoration-tents', 16],
+  [-3, 1, 'decoration-tents', 10],
+  [-1, 3, 'decoration-tents', 0],
+  [-2, 3, 'decoration-tents', 16],
+  [-3, 3, 'decoration-tents', 10],
+  [-5, 1, 'decoration-tents', 0],
+  [-6, 1, 'decoration-tents', 16],
+  [-7, 1, 'decoration-tents', 10],
+  [-5, 3, 'decoration-tents', 0],
+  [-6, 3, 'decoration-tents', 16],
+  [-7, 3, 'decoration-tents', 10],
+
+  // Infield Green Spaces
+  [-1, 0, 'decoration-empty', 0],
+  [-2, 0, 'decoration-empty', 0],
+  [-3, 0, 'decoration-empty', 0],
+  [-1, 2, 'decoration-empty', 0],
+  [-2, 2, 'decoration-empty', 0],
+  [-3, 2, 'decoration-empty', 0],
+  [-1, 4, 'decoration-empty', 0],
+  [-2, 4, 'decoration-empty', 0],
+  [-3, 4, 'decoration-empty', 0],
+  [-1, 5, 'decoration-empty', 0],
+  [-2, 5, 'decoration-empty', 0],
+  [-3, 5, 'decoration-empty', 0],
+  [-5, 0, 'decoration-empty', 0],
+  [-6, 0, 'decoration-empty', 0],
+  [-7, 0, 'decoration-empty', 0],
+  [-5, 2, 'decoration-empty', 0],
+  [-6, 2, 'decoration-empty', 0],
+  [-7, 2, 'decoration-empty', 0],
+  [-5, 4, 'decoration-empty', 0],
+  [-6, 4, 'decoration-empty', 0],
+  [-7, 4, 'decoration-empty', 0],
+  [-5, 5, 'decoration-empty', 0],
+  [-6, 5, 'decoration-empty', 0],
+  [-7, 5, 'decoration-empty', 0],
 ];
 
 // ==========================================
-// LEVEL 2: SILVERSTONE GP (United Kingdom)
-// 24-Cell Technical Grand Prix with Maggotts-Becketts, Hangar Straight & Vale
+// CIRCUIT 2: SILVERSTONE GP (United Kingdom)
+// Maggotts-Becketts chicane, Wellington straight, Vale braking zone, Woodcote
 // ==========================================
 const SILVERSTONE_CELLS: TrackCell[] = [
-  [0, 0, 'track-finish', 0],       // Hamilton Straight
-  [0, 1, 'track-straight', 0],     // Abbey Launch
-  [0, 2, 'track-straight', 0],     // Farm Curve
-  [0, 3, 'track-corner', 22],      // Turn 1: Copse Corner (SW)
-  [-1, 3, 'track-straight', 16],   // Maggotts Entry
-  [-2, 3, 'track-corner', 16],     // Becketts Esses (NE)
-  [-2, 4, 'track-corner', 22],     // Chapel Apex (SW)
-  [-3, 4, 'track-straight', 16],   // Hangar Straight DRS 1
-  [-4, 4, 'track-straight', 16],   // Full Velocity Run
-  [-5, 4, 'track-straight', 16],   // Stowe Approach
-  [-6, 4, 'track-corner', 10],     // Turn 4: Stowe Corner (SE)
-  [-6, 3, 'track-straight', 0],    // Vale Braking Zone
-  [-6, 2, 'track-straight', 0],    // Club Chicane
-  [-6, 1, 'track-straight', 0],    // Hamilton Infield
-  [-6, 0, 'track-corner', 16],     // Turn 6: The Loop (NE)
-  [-5, 0, 'track-corner', 22],     // Aintree Apex (SW)
-  [-5, -1, 'track-corner', 16],    // Wellington Entry (NE)
-  [-4, -1, 'track-straight', 16],  // Wellington Straight DRS 2
-  [-3, -1, 'track-straight', 16],  // Brooklands Run
-  [-2, -1, 'track-straight', 16],  // Luffield Complex
-  [-1, -1, 'track-straight', 16],  // Woodcote Sweeper
-  [0, -1, 'track-corner', 0],      // Woodcote onto Hamilton Straight (NW)
+  [0, 0, 'track-finish', 0],     // Hamilton Straight / S/F Line
+  [0, 1, 'track-straight', 0],   // Abbey Acceleration
+  [0, 2, 'track-corner', 22],    // Turn 1: Copse Corner (SW)
+  [-1, 2, 'track-straight', 16], // Maggotts Approach
+  [-2, 2, 'track-corner', 16],   // Becketts Chicane (NE)
+  [-2, 3, 'track-corner', 22],   // Chapel Exit (SW)
+  [-3, 3, 'track-straight', 16], // Hangar Straight DRS
+  [-4, 3, 'track-straight', 16], // High-Speed Run
+  [-5, 3, 'track-corner', 10],   // Turn 4: Stowe Corner (SE)
+  [-5, 2, 'track-straight', 0],  // Vale Braking Zone
+  [-5, 1, 'track-straight', 0],  // Club Chicane
+  [-5, 0, 'track-corner', 16],   // Turn 6: Farm Curve (NE)
+  [-4, 0, 'track-corner', 22],   // Infield Loop Hairpin (SW)
+  [-4, -1, 'track-corner', 16],  // Aintree Apex (NE)
+  [-3, -1, 'track-straight', 16],// Wellington Straight DRS
+  [-2, -1, 'track-straight', 16],// Brooklands Entry
+  [-1, -1, 'track-straight', 16],// Luffield Complex
+  [0, -1, 'track-corner', 0],    // Turn 10: Woodcote onto Straight (NW)
 ];
 
 const SILVERSTONE_DECO: TrackCell[] = [
   [1, 0, 'decoration-tents', 22],
   [1, 1, 'decoration-tents', 22],
-  [-1, 2, 'decoration-forest', 0],
-  [-2, 2, 'decoration-tents', 16],
-  [-4, 2, 'decoration-forest', 10],
-  [-5, 2, 'decoration-forest', 0],
+  [-1, 1, 'decoration-tents', 0],
+  [-3, 2, 'decoration-tents', 16],
+  [-3, 1, 'decoration-tents', 10],
+  [-1, 0, 'decoration-empty', 0],
+  [-2, 1, 'decoration-empty', 0],
+  [-3, 0, 'decoration-empty', 0],
+  [-4, 2, 'decoration-empty', 0],
+  [-4, 1, 'decoration-empty', 0],
+  [-2, 0, 'decoration-empty', 0],
 ];
 
 // ==========================================
-// LEVEL 3: MARINA BAY STREET HAZARD CIRCUIT (Singapore)
-// Intense obstacle disturbances: physical track bumps, jumps, and hazard barriers to dodge!
+// CIRCUIT 3: MARINA BAY STREET CIRCUIT (Singapore)
+// Tight 90° corners, close Armco barriers, night street racing, drift multiplier
 // ==========================================
 const MARINA_CELLS: TrackCell[] = [
-  [0, 0, 'track-finish', 0],       // Padang S/F Straight
-  [0, 1, 'track-straight', 0],     // DRS Acceleration
-  [0, 2, 'track-bump', 0],         // OBSTACLE DISTURBANCE 1: Physical Speed Bump & Jump!
-  [0, 3, 'track-straight', 0],     // Sheares Approach
-  [0, 4, 'track-corner', 22],      // Turn 1: Sheares Curve (SW)
-  [-1, 4, 'track-straight', 16],   // Republic Boulevard
-  [-2, 4, 'track-corner', 10],     // Turn 3: Esplanade (SE)
-  [-2, 3, 'track-straight', 0],    // City Street Run
-  [-2, 2, 'track-bump', 0],        // OBSTACLE DISTURBANCE 2: Speed Bump Jump!
-  [-2, 1, 'track-corner', 0],      // Turn 5: Stamford Chicane (NW)
-  [-3, 1, 'track-straight', 16],   // Raffles Avenue DRS
-  [-4, 1, 'track-bump', 16],       // OBSTACLE DISTURBANCE 3: Raffles High-Speed Jump!
-  [-5, 1, 'track-corner', 10],     // Turn 7: Memorial Hairpin (SE)
-  [-5, 0, 'track-straight', 0],    // Waterfront Straight
-  [-5, -1, 'track-corner', 16],    // Turn 9: Singapore Flyer (NE)
-  [-4, -1, 'track-straight', 16],  // Bayfront Avenue
-  [-3, -1, 'track-straight', 16],  // Helix Bridge Straight
-  [-2, -1, 'track-bump', 16],      // OBSTACLE DISTURBANCE 4: Marina Bay Jump!
-  [-1, -1, 'track-straight', 16],  // Marina Pit Entry
-  [0, -1, 'track-corner', 0],      // Anderson Bridge onto S/F (NW)
+  [0, 0, 'track-finish', 0],     // S/F: Padang Grandstand Straight
+  [0, 1, 'track-straight', 0],   // DRS Acceleration
+  [0, 2, 'track-straight', 0],   // Turn 1 Heavy Braking
+  [0, 3, 'track-corner', 22],    // Turn 1: Sheares Curve (SW)
+  [-1, 3, 'track-straight', 16], // Republic Boulevard
+  [-2, 3, 'track-corner', 10],   // Turn 3: Esplanade Apex (SE)
+  [-2, 2, 'track-straight', 0],  // City Street Run
+  [-2, 1, 'track-corner', 0],    // Turn 5: Stamford Chicane (NW)
+  [-3, 1, 'track-straight', 16], // Raffles Avenue DRS
+  [-4, 1, 'track-corner', 10],   // Turn 7: Memorial Hairpin (SE)
+  [-4, 0, 'track-straight', 0],  // Waterfront Straight
+  [-4, -1, 'track-corner', 16],  // Turn 9: Singapore Flyer (NE)
+  [-3, -1, 'track-straight', 16],// Bayfront Avenue
+  [-2, -1, 'track-straight', 16],// Helix Bridge Straight
+  [-1, -1, 'track-straight', 16],// Marina Pit Entry
+  [0, -1, 'track-corner', 0],    // Turn 12: Anderson Bridge onto S/F (NW)
 ];
 
 const MARINA_DECO: TrackCell[] = [
   [1, 0, 'decoration-tents', 22],
   [1, 1, 'decoration-tents', 22],
-  [-1, 3, 'decoration-tents', 16],
+  [-1, 2, 'decoration-tents', 16],
+  [-1, 1, 'decoration-empty', 0],
+  [-3, 2, 'decoration-empty', 0],
   [-3, 0, 'decoration-empty', 0],
+  [-2, 0, 'decoration-empty', 0],
   [-1, 0, 'decoration-empty', 0],
 ];
 
-// Obstacle hazard blocks placed on Marina Bay road lanes (must be dodged!)
-const MARINA_OBSTACLES: Array<{ gx: number; gz: number; laneOffset: number }> = [
-  { gx: 0, gz: 1, laneOffset: -1.2 },  // Slalom Left Block on Main Straight
-  { gx: -1, gz: 4, laneOffset: 1.1 },  // Slalom Right Hazard on Republic Blvd
-  { gx: -2, gz: 3, laneOffset: -1.0 }, // Infield City Hazard Block
-  { gx: -3, gz: 1, laneOffset: 1.2 },  // High-Speed Raffles Chicane Barrier
-  { gx: -5, gz: 0, laneOffset: -1.1 }, // Waterfront Hazard Block
-  { gx: -3, gz: -1, laneOffset: 1.0 }, // Bayfront Bridge Slalom Hazard
-];
-
-// ==========================================
-// LEVEL 4: THUNDER CANYON SUPER SPEEDWAY (USA)
-// High-banked ultra-speedway with massive sweeping turns and non-stop top speed
-// ==========================================
-const THUNDER_CELLS: TrackCell[] = [
-  [0, 0, 'track-finish', 0],
-  [0, 1, 'track-straight', 0],
-  [0, 2, 'track-straight', 0],
-  [0, 3, 'track-straight', 0],
-  [0, 4, 'track-straight', 0],
-  [0, 5, 'track-straight', 0],
-  [0, 6, 'track-corner', 22],
-  [-1, 6, 'track-straight', 16],
-  [-2, 6, 'track-straight', 16],
-  [-3, 6, 'track-straight', 16],
-  [-4, 6, 'track-corner', 10],
-  [-4, 5, 'track-straight', 0],
-  [-4, 4, 'track-straight', 0],
-  [-4, 3, 'track-straight', 0],
-  [-4, 2, 'track-straight', 0],
-  [-4, 1, 'track-straight', 0],
-  [-4, 0, 'track-straight', 0],
-  [-4, -1, 'track-straight', 0],
-  [-4, -2, 'track-corner', 16],
-  [-3, -2, 'track-straight', 16],
-  [-2, -2, 'track-straight', 16],
-  [-1, -2, 'track-straight', 16],
-  [0, -2, 'track-corner', 0],
-  [0, -1, 'track-straight', 0],
-];
-
-const THUNDER_DECO: TrackCell[] = [
-  [1, 0, 'decoration-tents', 22],
-  [1, 1, 'decoration-tents', 22],
-  [1, 2, 'decoration-tents', 22],
-  [-1, 2, 'decoration-forest', 0],
-  [-2, 2, 'decoration-forest', 16],
-  [-3, 2, 'decoration-forest', 10],
-];
+export interface CircuitDefinition {
+  id: string;
+  name: string;
+  location: string;
+  country: string;
+  flag: string;
+  tag: string;
+  difficulty: 'High Speed' | 'Technical GP' | 'Drift & Agility';
+  description: string;
+  sectorsCount: number;
+  drsZones: number;
+  benchmarkLap: number;
+  recommendedTheme: 'day' | 'sunset' | 'night';
+  cells: TrackCell[];
+  decoCells: TrackCell[];
+}
 
 export const CIRCUITS: Record<string, CircuitDefinition> = {
   monza: {
     id: 'monza',
-    level: 1,
-    name: 'Monza Mega Speedway',
+    name: 'Monza Speed Ring',
     location: 'Autodromo Nazionale Monza',
     country: 'Italy',
     flag: '🇮🇹',
-    tag: 'Level 1 • High Speed',
-    difficulty: 'High Speed Mega GP',
-    hasObstacles: false,
-    description: 'Massive 44-cell circuit with 100m Pit Straight, high-G Curva Grande, and 140m Serraglio Straight.',
-    sectorsCount: 44,
+    tag: 'Temple of Speed',
+    difficulty: 'High Speed',
+    description: 'Expanded Grand Prix circuit with 70m Pit Straight, high-G Curva Grande, 120m Back Straight, and Parabolica.',
+    sectorsCount: 38,
     drsZones: 3,
-    benchmarkLap: 42.5,
+    benchmarkLap: 38.5,
     recommendedTheme: 'day',
     cells: MONZA_CELLS,
     decoCells: MONZA_DECO,
   },
   silverstone: {
     id: 'silverstone',
-    level: 2,
-    name: 'Silverstone Grand Prix',
+    name: 'Silverstone GP',
     location: 'Silverstone Circuit',
     country: 'United Kingdom',
     flag: '🇬🇧',
-    tag: 'Level 2 • Technical GP',
-    difficulty: 'Technical High-G Esses',
-    hasObstacles: false,
-    description: 'Technical Maggotts-Becketts esses, Hangar straight DRS, Club chicane, and Woodcote curve.',
-    sectorsCount: 22,
+    tag: 'Home of Motor Racing',
+    difficulty: 'Technical GP',
+    description: 'Technical Maggotts-Becketts esses, Hangar straight, Club chicane, and Woodcote.',
+    sectorsCount: 18,
     drsZones: 2,
-    benchmarkLap: 24.2,
+    benchmarkLap: 20.8,
     recommendedTheme: 'sunset',
     cells: SILVERSTONE_CELLS,
     decoCells: SILVERSTONE_DECO,
   },
   marina: {
     id: 'marina',
-    level: 3,
-    name: 'Marina Bay Obstacle Run',
+    name: 'Marina Bay Street Circuit',
     location: 'Marina Bay City Circuit',
     country: 'Singapore',
     flag: '🇸🇬',
-    tag: 'Level 3 • Obstacle Course',
-    difficulty: 'Obstacles Disturbance & Slalom',
-    hasObstacles: true,
-    description: 'Intense obstacle course with track bumps, high-speed jumps, and hazard barriers to weave and dodge!',
-    sectorsCount: 20,
+    tag: 'Night City Grand Prix',
+    difficulty: 'Drift & Agility',
+    description: 'Glamorous night circuit with 90° corners, tight walls, and intense drift multiplier zones.',
+    sectorsCount: 16,
     drsZones: 2,
-    benchmarkLap: 22.8,
+    benchmarkLap: 18.5,
     recommendedTheme: 'night',
     cells: MARINA_CELLS,
     decoCells: MARINA_DECO,
-    obstacles: MARINA_OBSTACLES,
-  },
-  thunder: {
-    id: 'thunder',
-    level: 4,
-    name: 'Thunder Canyon Speedway',
-    location: 'Thunder Canyon Raceway',
-    country: 'United States',
-    flag: '🇺🇸',
-    tag: 'Level 4 • Super Speedway',
-    difficulty: 'Drafting & Slipstream Oval',
-    hasObstacles: false,
-    description: 'High-speed 24-cell super speedway designed for continuous top speed, slipstreaming, and high-G drifting.',
-    sectorsCount: 24,
-    drsZones: 2,
-    benchmarkLap: 21.0,
-    recommendedTheme: 'sunset',
-    cells: THUNDER_CELLS,
-    decoCells: THUNDER_DECO,
   },
 };
 
@@ -389,7 +332,6 @@ export function buildTrack(parent: any, sources: Record<string, any>, circuitId:
     placeModel(source, trackGroup, px, 0.5, pz, yaw);
   }
 
-  // Generate lush surrounding pine forest & festival tents around the track
   const pad = 3;
   for (let gz = minZ - pad; gz <= maxZ + pad; gz++) {
     for (let gx = minX - pad; gx <= maxX + pad; gx++) {
@@ -424,40 +366,6 @@ export function buildTrack(parent: any, sources: Record<string, any>, circuitId:
 
   // Rigid physics wall colliders
   const walls = buildWallColliders(trackCells);
-
-  // Spawn Obstacle Hazard Blocks (for circuits with obstacles like Marina Bay Level 3)
-  if (circuit.obstacles && circuit.obstacles.length > 0) {
-    const obsGeo = new CubeGeometry({ width: 0.9, height: 0.85, depth: 0.9 });
-    const obsMat = new Material3D({
-      baseColor: 0xf59e0b, // High-visibility hazard amber
-      metallic: 0.2,
-      roughness: 0.5,
-    });
-
-    for (const obs of circuit.obstacles) {
-      const worldCenter = pieceWorldPosition(obs.gx, obs.gz);
-      // Place hazard cube in track lane
-      const obsMesh = new Mesh3D({
-        geometry: obsGeo,
-        material: obsMat,
-        castShadow: true,
-      });
-      obsMesh.position.set(obs.laneOffset, 0.42, 0);
-
-      // Container positioned at world coordinates
-      const obsContainer = new Container3D();
-      obsContainer.position.set(worldCenter.x, 0, worldCenter.z);
-      obsContainer.addChild(obsMesh);
-      parent.addChild(obsContainer);
-
-      // Add solid box collider to physics world
-      walls.push({
-        halfExtents: [0.55 * GRID_SCALE, 0.6 * GRID_SCALE, 0.55 * GRID_SCALE],
-        position: [worldCenter.x + obs.laneOffset * GRID_SCALE, 0.35, worldCenter.z],
-        quaternion: [0, 0, 0, 1],
-      });
-    }
-  }
 
   // Finish line frame for lap detection (matches `track-finish` cell at gx=0, gz=0)
   const finishCell = trackCells.find(([, , key]) => key === 'track-finish') || trackCells[0];
@@ -537,6 +445,8 @@ function buildWallColliders(trackCells: Array<[number, number, string, number]>)
   const walls = [];
 
   for (const [gx, gz, key, orient] of trackCells) {
+    if (key === 'track-bump') continue;
+
     const cx = (gx + 0.5) * CELL_RAW * S;
     const cz = (gz + 0.5) * CELL_RAW * S;
     const deg = ORIENT_DEG[orient] ?? 0;
@@ -544,7 +454,7 @@ function buildWallColliders(trackCells: Array<[number, number, string, number]>)
     const cr = Math.cos(rad);
     const sr = Math.sin(rad);
 
-    if (key === 'track-straight' || key === 'track-finish' || key === 'track-bump') {
+    if (key === 'track-straight' || key === 'track-finish') {
       for (const side of [-1, 1]) {
         const lx = side * WALL_X;
         const wx = cx + lx * cr * S;

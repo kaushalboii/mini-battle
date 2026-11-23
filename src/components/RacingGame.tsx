@@ -499,13 +499,7 @@ export default function RacingGame({ onSwitchToMeltdown, onReturnToMenu }: Racin
                     >
                       <div className="circuit-card-top">
                         <span className="circuit-flag">{circuit.flag}</span>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span className="circuit-level-pill">LVL {circuit.level}</span>
-                          {circuit.hasObstacles && (
-                            <span className="circuit-obstacle-badge">⚠️ Obstacles</span>
-                          )}
-                          <span className="circuit-diff-badge">{circuit.difficulty}</span>
-                        </div>
+                        <span className="circuit-diff-badge">{circuit.difficulty}</span>
                       </div>
                       <div className="circuit-card-name">{circuit.name}</div>
                       <div className="circuit-card-loc">{circuit.location} • {circuit.country}</div>

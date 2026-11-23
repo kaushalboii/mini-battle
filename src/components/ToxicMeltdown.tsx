@@ -28,6 +28,8 @@ export default function ToxicMeltdown({ onSwitchToRacing, onReturnToMenu }: Toxi
     countdown: 3,
     activePrompt: null,
     reactionFeedback: null,
+    playerLives: 3,
+    isInvulnerable: false,
     survivorsCount: 8,
     totalPlayers: 8,
     roundTime: 0,
@@ -340,6 +342,13 @@ export default function ToxicMeltdown({ onSwitchToRacing, onReturnToMenu }: Toxi
           <div className={`sweeper-level-pill level-${engineState.speedLevel.toLowerCase().replace(/[^a-z]/g, '')}`}>
             {engineState.speedLevel}
           </div>
+          <div className="player-lives-bar" title="Remaining Lives">
+            {[1, 2, 3].map((h) => (
+              <span key={h} className="live-heart-icon">
+                {h <= engineState.playerLives ? '❤️' : '🤍'}
+              </span>
+            ))}
+          </div>
           <div className="sweeper-dir-indicator">
             {engineState.direction === 1 ? '🔄 Clockwise' : '🔁 Counter-Clockwise'}
           </div>
@@ -425,6 +434,25 @@ export default function ToxicMeltdown({ onSwitchToRacing, onReturnToMenu }: Toxi
       {toastMessage && (
         <div className="toxic-alert-toast">
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Non-blocking Spectator Banner when Player 1 is eliminated */}
+      {engineState.isPlayerEliminated && !engineState.isRoundOver && (
+        <div className="toxic-spectator-banner">
+          <div className="spectator-inner">
+            <span className="spectator-icon">💥</span>
+            <span className="spectator-msg">
+              Knocked off your podium! Spectating remaining survivors...
+            </span>
+            <button
+              type="button"
+              className="btn-spectator-retry"
+              onClick={() => engineRef.current?.startLiveRound()}
+            >
+              🔄 Quick Retry
+            </button>
+          </div>
         </div>
       )}
 
