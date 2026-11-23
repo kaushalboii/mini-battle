@@ -1,9 +1,9 @@
-# 🏎️ RevSector 3D • Grand Prix Racing
+# 🦑 Kraken's Quay: Splash & Shot
 
-> A custom real-time 3D circuit racing simulator engineered by **Kaushal** with modern WebGPU & WebGL hardware acceleration, rigid body physics, nitrous injection, active tire smoke, and sector telemetry.
+> A rich 3D tropical turn-based projectile battle game built with **Three.js**, **React 19**, and WebGL.
 
 [![Play Live](https://img.shields.io/badge/Play-Live-brightgreen?style=for-the-badge&logo=github)](https://kaushalboii.github.io/mini-battle/)
-[![Developer](https://img.shields.io/badge/Developer-Kaushal-amber?style=for-the-badge)](https://github.com/kaushalboii)
+[![Release](https://img.shields.io/github/v/release/kaushalboii/mini-battle?style=for-the-badge)](https://github.com/kaushalboii/mini-battle/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
@@ -14,63 +14,62 @@
 
 ---
 
-## 🚀 Key Features
+## 🌴 Overview
 
-* 🏎️ **Dynamic Chase & Cockpit Cameras**: Multi-perspective 3D camera system (Chase, Close Bumper, Hood Cockpit, Isometric, and Aerial GPS tracker).
-* ⚡ **Nitrous Boost (NOS)**: Tap or hold <kbd>Shift</kbd> / <kbd>Space</kbd> or touch the on-screen **NOS** core for a 1.55x speed surge with radial focus compression and cyan exhaust trails.
-* 💨 **Dynamic Tire Smoke & Asphalt Skid Marks**: Real-time continuous GPU vertex buffer ribbons left on the asphalt, with world-space drift smoke simulation.
-* 📊 **Unified Digital Telemetry & Sector Timing**:
-  * Precision digital lap stopwatch with lap counter (`LAP 1`), previous lap, and all-time record persistence.
-  * 12-segment RPM LED gauge with authentic green/amber/redline shift indicators.
-  * Digital speedometer in km/h with tabular numerals and gear indicator.
-  * Nitrous reservoir fuel gauge.
-* 📱 **Mobile Landscape First Architecture**:
-  * Handheld console ergonomics with dedicated left thumb steering paddles (`◀`, `▶`).
-  * Right thumb drive accelerator pedal, brake pedal, and circular NOS booster.
-  * Full multi-touch support for simultaneous steering and acceleration.
-  * Safe-area inset aware (`env(safe-area-inset-*)`) for phone notches and edge gestures.
-* 🌅 **Real-Time Atmospheric Lighting**: Switch dynamically between **Daylight**, **Dusk**, and **Neon Night** lighting models.
-* 🔊 **Procedural WebAudio Synthesis**: Dynamic engine RPM curves, 3-speed transmission shifts, throttle lowpass filtering, and tire screech sound synthesis.
-* 🎨 **Paddock Team Selection**: Switch between Amber Team, Crimson Team, Emerald Team, and Cobalt Team.
+Take command of the Tide Guard on a tropical inner-tube and wooden raft! Across the turquoise lagoon, Captain Brinebeard's armada is encroaching on Kraken's Quay. Aim your trajectory, set your power, account for drift, and blast the pirate crew overboard across 3 escalating rounds!
 
 ---
 
-## 🎮 Controls
+## ✨ Features
 
-| Action | Keyboard | Touch / Mobile Landscape |
-| :--- | :--- | :--- |
-| **Accelerate** | <kbd>W</kbd> or <kbd>↑</kbd> | Drive Pedal |
-| **Brake / Reverse** | <kbd>S</kbd> or <kbd>↓</kbd> | Brake Pedal |
-| **Steer Left / Right** | <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> | Left / Right Steering Paddles |
-| **Nitrous Boost** | <kbd>Shift</kbd> or <kbd>Space</kbd> | On-screen NOS Button |
-| **Switch Camera** | <kbd>C</kbd> | Camera Button |
-| **Cycle Atmosphere** | <kbd>T</kbd> | Atmosphere Button |
-| **Toggle Audio** | <kbd>M</kbd> | Audio Button |
-| **Reset Vehicle** | <kbd>R</kbd> | Reset Button |
-
----
-
-## 🛠️ Engine Architecture
-
-* **Game & Engine Title**: RevSector 3D
-* **Author / Developer**: Kaushal
-* **Graphics Pipeline**: Custom WebGPU / WebGL2 Real-Time 3D Rendering
-* **Physics Simulator**: Continuous rigid body sphere and box collider dynamics
-* **UI Framework**: React 19 + TypeScript + Vite
-* **Design Philosophy**: Engineered following `unslop` principles — 4px grid, graphite neutral ramp, zero slop glow, authentic motorsport telemetry.
+* 🎯 **Dynamic Ballistics & 3D Aiming**: Adjust elevation angle ($15^\circ$ to $76^\circ$) and launch velocity ($35\%$ to $100\%$) with real-time aim marker tracking.
+* 🍍 **Specialized Tropical Arsenal**:
+  * 🥥 **Coconut Cannonball**: High velocity, steady direct hit damage (infinite ammo).
+  * 🍍 **Explosive Pineapple**: High blast radius, destructive damage (bonus per round).
+  * 🪨 **Pebble Volley**: Triple spread volley for multi-target hits.
+* 🏴‍☠️ **Rigged Animated 3D Characters**:
+  * **Kai Tide** & **Nia Tide** (Player team)
+  * **Captain Brinebeard**, **Patch Deckhand**, **Pearl Poacher**, & **Tiki Tom** (Kraken crew)
+  * Real skeletal animations for `idle`, `throw`, `hit`, `fall` overboard, and `victory` cheer!
+* 🏝️ **3D Tropical Lagoon Environment**:
+  * PBR water with dynamic ripple animation and wave displacement.
+  * Dune beach horizon, drifting puffy clouds, volcanic islets, and coral cover.
+* 🔊 **Arcade Audio**:
+  * Caribbean pirate battle loop, launch thumps, ocean splashes, and victory fanfare.
 
 ---
 
-## 🏁 Local Development
+## 📁 Clean Architecture
 
-```bash
-git clone https://github.com/kaushalboii/mini-battle.git
-cd mini-battle
-npm install
-npm run dev
+```text
+src/
+├── assets/
+│   └── krakensQuayAssets.ts  # Central 3D GLTF models, audio, textures & images
+├── components/
+│   └── KrakensQuay.tsx       # Main 3D Game Canvas & controller component
+├── game/
+│   ├── types.ts              # TypeScript interfaces (Phase, Ammo, Upgrade, UiState)
+│   └── constants.ts          # Round configs, weapon damage balance & initial state
+├── styles/
+│   └── krakens-quay.css      # Responsive arcade HUD, modals & health styling
+├── main.tsx                  # React entry point
+└── vite-env.d.ts
 ```
 
-Build for production:
+---
+
+## ⚡ Development
+
 ```bash
+# Install dependencies
+npm install
+
+# Start local development server
+npm run dev
+
+# Build production bundle into /dist
 npm run build
+
+# Preview production build locally
+npm run preview
 ```

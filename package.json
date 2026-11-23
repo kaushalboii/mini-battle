@@ -1,6 +1,6 @@
 {
-  "name": "revsector-3d",
-  "version": "4.1.0",
+  "name": "starter-kit-racing-3d",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,18 +24,17 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
   },
-  "description": "RevSector 3D — Custom 3D circuit racing simulator engineered by Kaushal with dynamic vehicle physics, nitrous injection, active tire smoke, and realtime telemetry.",
-  "author": "Kaushal <kaushalboii>",
+  "description": "Starter Kit Racing 3D - Kenney Starter Kit Racing with vehicle physics, dynamic drift marks, particle smoke, multi-gear audio and 2D lap timer",
+  "author": "kaushalboii",
   "license": "MIT",
   "keywords": [
-    "revsector",
     "racing",
-    "arcade-game",
-    "webgpu",
-    "webgl",
-    "3d-game",
-    "telemetry",
+    "game",
+    "threejs",
+    "pixi3d",
     "drift",
-    "kaushal"
+    "kenney",
+    "physics",
+    "webgl"
   ]
 }

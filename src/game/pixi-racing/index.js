@@ -1,8 +1,11 @@
 /**
- * RevSector 3D - Standalone Arcade Grand Prix Runner
- * High-performance 3D racer with cascaded directional shadows, ACES tone mapping,
- * multi-gear synthesized audio, and dynamic follow cameras.
- * Engineered by Kaushal.
+ * Racing: Kenney's Starter Kit Racing, ported to Pixi 3D from mrdoob's three.js port.
+ *
+ * A truck rides a crashcat physics sphere round a grid of glTF track pieces,
+ * under a sun with cascaded shadows and ACES tone mapping, with particle smoke,
+ * streamed skid marks and a PixiJS 2D lap timer over the view.
+ *
+ * Controls: WASD or arrow keys, gamepad, or touch joystick.
  */
 
 import {
@@ -158,7 +161,7 @@ physics.listener = {
   },
 };
 
-// -- Real-Time Racing HUD --
+// -- HUD (PixiJS 2D over the 3D view) --
 
 const hudLayer = new Container();
 

@@ -1,9 +1,3 @@
-/**
- * RevSector 3D - Rigid Body Collision Simulation
- * Integrates discrete broadphase collision layers and static barrier bounding boxes.
- * Engineered by Kaushal.
- */
-
 import {
   addBroadphaseLayer,
   addObjectLayer,
