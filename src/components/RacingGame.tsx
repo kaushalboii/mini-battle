@@ -25,13 +25,12 @@ export default function RacingGame() {
   const [showHelp, setShowHelp] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // GTA Menu state: Open by default when starting the game
+  // Home & Menu page state: Open by default when starting the game
   const [isGtaMenuOpen, setIsGtaMenuOpen] = useState(true);
 
   // In-Game Live HUD metrics
   const [liveSpeedMph, setLiveSpeedMph] = useState(0);
   const [liveGear, setLiveGear] = useState("N");
-  const [clockStr, setClockStr] = useState("16:20");
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -84,19 +83,6 @@ export default function RacingGame() {
 
     animId = requestAnimationFrame(updateHud);
     return () => cancelAnimationFrame(animId);
-  }, []);
-
-  // Clock ticker for GTA HUD
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setClockStr(
-        `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleReset = () => {
@@ -185,8 +171,8 @@ export default function RacingGame() {
         <div className="gta-loading-overlay">
           <div className="gta-loading-card">
             <div className="gta-loading-spinner" />
-            <h2 className="gta-loading-title">GRAND THEFT RACING</h2>
-            <p className="gta-loading-subtitle">LOS SANTOS MINI-BATTLE // PIXI 3D</p>
+            <h2 className="gta-loading-title">MINI BATTLE</h2>
+            <p className="gta-loading-subtitle">3D ARCADE RACING CIRCUIT • PIXI 3D</p>
             <div className="gta-progress-track">
               <div
                 className="gta-progress-fill"
@@ -225,10 +211,10 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* In-Game GTA HUD (Visible when Menu is closed) */}
+      {/* In-Game Racing HUD (Clean, no stars/cash clutter, just sleek buttons) */}
       {!isLoading && !isGtaMenuOpen && (
         <>
-          {/* Top Left: GTA Menu Toggle Button */}
+          {/* Top Left: Home / Menu Toggle Button */}
           <div className="gta-hud-top-left">
             <button
               className="gta-hud-btn gta-menu-trigger-btn"
@@ -237,32 +223,15 @@ export default function RacingGame() {
                 setIsGtaMenuOpen(true);
               }}
               onMouseEnter={() => GtaAudio.playHover()}
-              title="Open GTA Menu (Press ESC)"
+              title="Open Mini Battle Menu (Press ESC)"
             >
               <span className="gta-btn-key">ESC</span>
               <span className="gta-btn-label">MENU</span>
             </button>
           </div>
 
-          {/* Top Right: GTA Status HUD (Stars + Cash + Location) */}
+          {/* Top Right: Sleek Control Buttons Row (No stars, no cash!) */}
           <div className="gta-hud-top-right">
-            <div className="gta-hud-status-card">
-              <div className="gta-wanted-stars">
-                <span className="star active">★</span>
-                <span className="star active">★</span>
-                <span className="star active">★</span>
-                <span className="star active">★</span>
-                <span className="star active pulse">★</span>
-              </div>
-              <div className="gta-cash-display">$2,450,000</div>
-              <div className="gta-hud-clock-row">
-                <span>{clockStr}</span>
-                <span className="gta-dot">•</span>
-                <span>DEL PERRO LS</span>
-              </div>
-            </div>
-
-            {/* In-Game GTA Control Buttons */}
             <div className="gta-hud-action-row">
               {/* Truck Color Switcher Badges */}
               <div className="gta-hud-palette">
@@ -328,7 +297,7 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Bottom Right: GTA Speedometer HUD */}
+          {/* Bottom Right: Digital Speedometer HUD */}
           <div className="gta-hud-speedometer">
             <div className="gta-speed-value">{liveSpeedMph}</div>
             <div className="gta-speed-unit">MPH</div>
@@ -343,12 +312,12 @@ export default function RacingGame() {
 
           {/* Bottom Legend Hint Bar */}
           <div className="gta-hud-bottom-bar">
-            <span>[WASD] DRIVE • [C] CAMERA • [R] RESPAWN • [ESC] GTA MENU</span>
+            <span>[WASD] DRIVE • [C] CAMERA • [R] RESPAWN • [ESC] MENU</span>
           </div>
         </>
       )}
 
-      {/* GTA Menu Overlay */}
+      {/* Mini Battle Home & Pause Menu Overlay */}
       {!isLoading && (
         <GtaMenu
           isOpen={isGtaMenuOpen}
@@ -369,7 +338,7 @@ export default function RacingGame() {
         <div className="gta-modal-overlay" onClick={() => setShowHelp(false)}>
           <div className="gta-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="gta-modal-header">
-              <h3>KENNEY RACING • DRIVER MANUAL</h3>
+              <h3>MINI BATTLE • DRIVER MANUAL</h3>
               <button
                 onClick={() => {
                   GtaAudio.playBack();
@@ -381,13 +350,16 @@ export default function RacingGame() {
             </div>
             <div className="gta-modal-body">
               <p>
+                <strong>Game:</strong> Mini Battle 3D Racing
+              </p>
+              <p>
                 <strong>Engine:</strong> Official PixiJS 3D (<code>@pixi/3d</code>)
               </p>
               <p>
-                <strong>Physics:</strong> <code>crashcat</code> rigid body sphere & box colliders
+                <strong>Physics:</strong> <code>crashcat</code> Continuous Collision Detection
               </p>
               <p>
-                <strong>Cameras:</strong> 5 selectable camera angles with dynamic speed FOV.
+                <strong>Cameras:</strong> 5 selectable camera angles with dynamic speed FOV
               </p>
               <hr />
               <h4>Controls</h4>
@@ -408,7 +380,7 @@ export default function RacingGame() {
                   <kbd>R</kbd> : Respawn truck at starting line
                 </li>
                 <li>
-                  <kbd>ESC</kbd> : Open GTA Menu & Vehicle Selector
+                  <kbd>ESC</kbd> : Open Mini Battle Menu & Vehicle Selector
                 </li>
                 <li>
                   <strong>Touch Screen:</strong> Floating touch joystick anywhere on screen

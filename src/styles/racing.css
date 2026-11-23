@@ -246,51 +246,36 @@
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
 }
 
-/* Header Right: Wanted Level & Cash */
+/* Header Right: Track Telemetry & Clock */
 .gta-header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
-.gta-wanted-stars {
+.gta-track-status-badge {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 5px 12px;
 }
 
-.gta-wanted-stars .star {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.2);
-  transition: color 0.2s;
+.track-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gta-green);
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.8);
 }
 
-.gta-wanted-stars .star.active {
+.track-status-text {
+  font-family: var(--gta-font-tech);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
   color: #ffffff;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
-}
-
-.gta-wanted-stars .star.pulse {
-  animation: starBlink 0.9s infinite ease-in-out;
-}
-
-@keyframes starBlink {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(0.9);
-  }
-}
-
-.gta-cash-display {
-  font-family: var(--gta-font-heading);
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: var(--gta-green);
-  text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
 }
 
 .gta-header-meta {
@@ -613,6 +598,38 @@
   margin-bottom: 16px;
 }
 
+/* Track Stats Grid */
+.gta-track-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.track-stat-tile {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.track-stat-tile .tile-label {
+  font-family: var(--gta-font-tech);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.track-stat-tile .tile-value {
+  font-family: var(--gta-font-heading);
+  font-size: 17px;
+  letter-spacing: 1px;
+  color: var(--gta-gold);
+  font-weight: 800;
+}
+
 .gta-key-card {
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -759,37 +776,12 @@
   padding: 6px 12px;
 }
 
-/* Top-Right: GTA HUD Status & Action Buttons */
+/* Top-Right: Action Buttons Row */
 .gta-hud-top-right {
   position: absolute;
   top: 16px;
   right: 16px;
   z-index: 40;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.gta-hud-status-card {
-  background: var(--gta-bg-glass);
-  border: 1px solid var(--gta-border);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.gta-hud-clock-row {
-  font-family: var(--gta-font-tech);
-  font-size: 11px;
-  letter-spacing: 1.2px;
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .gta-hud-action-row {
