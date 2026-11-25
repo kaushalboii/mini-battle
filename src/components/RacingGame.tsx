@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { initRacingGame, type GameInstance } from "../game/pixi-racing/initGame";
+import {
+  initRacingGame,
+  type GameInstance,
+  type RaceTelemetry,
+} from "../game/pixi-racing/initGame";
 import { CAMERA_MODES } from "../game/pixi-racing/Camera";
-import GtaMenu from "./GtaMenu";
+import { TRACK_DEFINITIONS } from "../game/pixi-racing/Track";
+import {
+  MeshNetworkManager,
+  type MeshStateSnapshot,
+} from "../game/multiplayer/MeshNetwork";
+import GtaMenu, { type MenuTab } from "./GtaMenu";
 import { GtaAudio } from "../utils/gtaAudio";
 import "../styles/racing.css";
 
@@ -12,25 +21,123 @@ const VEHICLE_OPTIONS = [
   { key: "vehicle-truck-purple", label: "Purple Truck", color: "#a855f7" },
 ];
 
+function loadPref<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function savePref(key: string, val: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // ignore
+  }
+}
+
 export default function RacingGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameInstance | null>(null);
+  const meshRef = useRef<MeshNetworkManager | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadLabel, setLoadLabel] = useState("Initializing PixiJS 3D...");
-  const [selectedColor, setSelectedColor] = useState("vehicle-truck-yellow");
-  const [cameraMode, setCameraMode] = useState("chase");
+
+  const [selectedColor, setSelectedColor] = useState<string>(() =>
+    loadPref("miniBattle.vehicleColor", "vehicle-truck-yellow")
+  );
+  const [cameraMode, setCameraMode] = useState<string>(() =>
+    loadPref("miniBattle.cameraMode", "chase")
+  );
+  const [selectedTrack, setSelectedTrack] = useState<string>("classic");
+  const [raceMode, setRaceMode] = useState<"solo" | "ghost" | "ai">("solo");
+
+  const [isMuted, setIsMuted] = useState<boolean>(() => GtaAudio.isMuted());
+  const [audioVolume, setAudioVolume] = useState<number>(() => GtaAudio.getVolume());
+  const [speedUnit, setSpeedUnit] = useState<"MPH" | "KMH">(() =>
+    loadPref("miniBattle.speedUnit", "MPH")
+  );
+  const [touchMode, setTouchMode] = useState<"joystick" | "pedals">(() =>
+    loadPref("miniBattle.touchMode", "joystick")
+  );
+  const [showMinimap, setShowMinimap] = useState<boolean>(() =>
+    loadPref("miniBattle.showMinimap", false)
+  );
+
   const [camToast, setCamToast] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Home & Menu page state: Open by default when starting the game
   const [isGtaMenuOpen, setIsGtaMenuOpen] = useState(true);
 
-  // In-Game Live HUD metrics
-  const [liveSpeedMph, setLiveSpeedMph] = useState(0);
-  const [liveGear, setLiveGear] = useState("N");
+  // Check URL for shared multiplayer room code (?room=XXXX)
+  const [urlRoomCode] = useState<string>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return (params.get("room") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    } catch {
+      return "";
+    }
+  });
+  const [initialMenuTab] = useState<MenuTab>(() =>
+    urlRoomCode ? "MULTIPLAYER" : "HOME"
+  );
 
+  // Live telemetry for HUD & Menu stats
+  const [telemetry, setTelemetry] = useState<RaceTelemetry>({
+    speedNormalized: 0,
+    mph: 0,
+    kmh: 0,
+    gear: 0,
+    rpm: 0,
+    lap: 1,
+    currentLapTime: 0,
+    lastLapFormatted: "--:--.--",
+    bestLapFormatted: "--:--.--",
+    bestLap: null,
+    x: 3.5,
+    y: 0,
+    z: 5,
+    yaw: 0,
+    trackId: "classic",
+    waypoints: [],
+    bounds: { minX: -30, maxX: 8, minZ: -30, maxZ: 22 },
+  });
+
+  const [meshState, setMeshState] = useState<MeshStateSnapshot>({
+    status: "offline",
+    roomCode: "",
+    isHost: false,
+    localId: "",
+    driverName: "RACER-1",
+    trackId: "classic",
+    players: [],
+    logs: [],
+    error: null,
+  });
+
+  // Initialize Mesh Multiplayer manager
+  useEffect(() => {
+    const mesh = new MeshNetworkManager(
+      (snap) => setMeshState(snap),
+      (syncedTrackId) => {
+        setSelectedTrack(syncedTrackId);
+        gameRef.current?.setTrack(syncedTrackId);
+      }
+    );
+    meshRef.current = mesh;
+    setMeshState(mesh.getSnapshot());
+
+    return () => {
+      mesh.disconnect(true);
+      meshRef.current = null;
+    };
+  }, []);
+
+  // Initialize PixiJS 3D Racing Engine
   useEffect(() => {
     if (!canvasRef.current) return;
     let isDisposed = false;
@@ -46,7 +153,13 @@ export default function RacingGame() {
           return;
         }
         gameRef.current = instance;
+        instance.setVehicleColor(selectedColor);
+        instance.setCameraMode(cameraMode);
+        instance.setAudioMuted(isMuted);
+        instance.setAudioVolume(audioVolume);
+        instance.setTouchMode(touchMode);
         instance.setPaused(isGtaMenuOpen);
+        setTelemetry(instance.getTelemetry());
         setIsLoading(false);
       })
       .catch((err) => {
@@ -64,33 +177,61 @@ export default function RacingGame() {
     };
   }, []);
 
-  // Sync pause state with game engine
+  // Keep engine pause state synced with Menu
   useEffect(() => {
     if (gameRef.current) {
       gameRef.current.setPaused(isGtaMenuOpen);
+      setTelemetry(gameRef.current.getTelemetry());
     }
   }, [isGtaMenuOpen]);
 
-  // Live HUD Speedometer ticker
+  // Live HUD & Mesh Pose Ticker (20Hz telemetry sync + animation frame speedometer)
   useEffect(() => {
     let animId: number;
-    const updateHud = () => {
-      if (gameRef.current?.vehicle) {
-        const speed = Math.abs(gameRef.current.vehicle.linearSpeed || 0);
-        const mph = Math.round(speed * 28);
-        setLiveSpeedMph(mph);
+    let lastMeshSend = 0;
 
-        if (mph === 0) setLiveGear("N");
-        else if (mph < 35) setLiveGear("1");
-        else if (mph < 75) setLiveGear("2");
-        else setLiveGear("3");
+    const tickHud = (now: number) => {
+      const game = gameRef.current;
+      if (game) {
+        const snap = game.getTelemetry();
+        setTelemetry(snap);
+
+        const mesh = meshRef.current;
+        if (mesh) {
+          const ms = mesh.getSnapshot();
+          if (ms.status === "hosting" || ms.status === "connected") {
+            game.syncRemotePlayers(ms.players);
+            if (now - lastMeshSend >= 50) {
+              lastMeshSend = now;
+              mesh.updateLocalPose({
+                x: snap.x,
+                y: snap.y,
+                z: snap.z,
+                yaw: snap.yaw,
+                speed: snap.speedNormalized * 1.5,
+                color: selectedColor,
+                lap: snap.lap,
+                bestLap: snap.bestLap,
+              });
+            }
+          } else {
+            game.syncRemotePlayers([]);
+          }
+        }
       }
-      animId = requestAnimationFrame(updateHud);
+      animId = requestAnimationFrame(tickHud);
     };
 
-    animId = requestAnimationFrame(updateHud);
+    animId = requestAnimationFrame(tickHud);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [selectedColor]);
+
+  const showToast = (msg: string) => {
+    setCamToast(msg);
+    setTimeout(() => {
+      setCamToast((cur) => (cur === msg ? null : cur));
+    }, 1800);
+  };
 
   const handleReset = () => {
     GtaAudio.playSelect();
@@ -100,18 +241,17 @@ export default function RacingGame() {
   const handleColorChange = (key: string) => {
     GtaAudio.playSelect();
     setSelectedColor(key);
+    savePref("miniBattle.vehicleColor", key);
     gameRef.current?.setVehicleColor(key);
   };
 
   const handleSelectCamera = (key: string) => {
     GtaAudio.playSelect();
     setCameraMode(key);
+    savePref("miniBattle.cameraMode", key);
     gameRef.current?.setCameraMode(key);
     const info = CAMERA_MODES.find((m) => m.key === key);
-    setCamToast(info ? `${info.label} (${info.desc})` : key);
-    setTimeout(() => {
-      setCamToast((cur) => (cur?.includes(info?.label || "") ? null : cur));
-    }, 1800);
+    if (info) showToast(`${info.label} (${info.desc})`);
   };
 
   const handleCycleCamera = () => {
@@ -119,11 +259,70 @@ export default function RacingGame() {
     GtaAudio.playSelect();
     const nextMode = gameRef.current.cycleCameraMode();
     setCameraMode(nextMode);
+    savePref("miniBattle.cameraMode", nextMode);
     const info = CAMERA_MODES.find((m) => m.key === nextMode);
-    setCamToast(info ? `${info.label} (${info.desc})` : nextMode);
-    setTimeout(() => {
-      setCamToast((cur) => (cur?.includes(info?.label || "") ? null : cur));
-    }, 1800);
+    if (info) showToast(`${info.label} (${info.desc})`);
+  };
+
+  const handleSelectTrack = (trackId: string) => {
+    setSelectedTrack(trackId);
+    gameRef.current?.setTrack(trackId);
+    meshRef.current?.setTrackId(trackId);
+    if (gameRef.current) setTelemetry(gameRef.current.getTelemetry());
+    const info =
+      TRACK_DEFINITIONS[trackId as keyof typeof TRACK_DEFINITIONS];
+    if (info) showToast(`Circuit: ${info.name}`);
+  };
+
+  const handleSelectRaceMode = (mode: "solo" | "ghost" | "ai") => {
+    setRaceMode(mode);
+    gameRef.current?.setRaceMode(mode);
+  };
+
+  const handleToggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    GtaAudio.setMuted(next);
+    gameRef.current?.setAudioMuted(next);
+  };
+
+  const handleVolumeChange = (vol: number) => {
+    setAudioVolume(vol);
+    GtaAudio.setVolume(vol);
+    gameRef.current?.setAudioVolume(vol);
+    if (vol > 0 && isMuted) {
+      setIsMuted(false);
+      GtaAudio.setMuted(false);
+      gameRef.current?.setAudioMuted(false);
+    }
+  };
+
+  const handleToggleSpeedUnit = () => {
+    const next = speedUnit === "MPH" ? "KMH" : "MPH";
+    setSpeedUnit(next);
+    savePref("miniBattle.speedUnit", next);
+  };
+
+  const handleToggleTouchMode = () => {
+    const next = touchMode === "joystick" ? "pedals" : "joystick";
+    setTouchMode(next);
+    savePref("miniBattle.touchMode", next);
+    gameRef.current?.setTouchMode(next);
+  };
+
+  const handleToggleMinimap = () => {
+    const next = !showMinimap;
+    setShowMinimap(next);
+    savePref("miniBattle.showMinimap", next);
+  };
+
+  const toggleFullscreen = () => {
+    GtaAudio.playSelect();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
   };
 
   const toggleGtaMenu = () => {
@@ -136,10 +335,15 @@ export default function RacingGame() {
     }
   };
 
+  // In-game keyboard shortcuts (while menu is closed)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
 
       if (e.code === "Escape") {
         e.preventDefault();
@@ -149,24 +353,24 @@ export default function RacingGame() {
           handleCycleCamera();
         } else if (e.code === "KeyR") {
           handleReset();
+        } else if (e.code === "KeyM") {
+          handleToggleMute();
+        } else if (e.code === "KeyF") {
+          toggleFullscreen();
         }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isGtaMenuOpen]);
+  }, [isGtaMenuOpen, isMuted]);
 
-  const toggleFullscreen = () => {
-    GtaAudio.playSelect();
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
-  const currentCamInfo = CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
+  const currentCamInfo =
+    CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
+  const displaySpeed = speedUnit === "MPH" ? telemetry.mph : telemetry.kmh;
+  const displayGear = telemetry.gear === 0 ? "N" : String(telemetry.gear);
+  const isMeshOnline =
+    meshState.status === "hosting" || meshState.status === "connected";
 
   return (
     <div className="racing-root">
@@ -179,7 +383,9 @@ export default function RacingGame() {
           <div className="gta-loading-card">
             <div className="gta-loading-spinner" />
             <h2 className="gta-loading-title">MINI BATTLE</h2>
-            <p className="gta-loading-subtitle">3D ARCADE RACING SPEEDWAY • PIXI 3D</p>
+            <p className="gta-loading-subtitle">
+              3D ARCADE RACING SPEEDWAY • PIXI 3D
+            </p>
             <div className="gta-progress-track">
               <div
                 className="gta-progress-fill"
@@ -193,7 +399,7 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* Camera Mode Toast Notification */}
+      {/* Camera / Track Toast */}
       {camToast && !isGtaMenuOpen && (
         <div className="gta-camera-toast">
           <span className="gta-toast-icon">📷</span>
@@ -218,10 +424,10 @@ export default function RacingGame() {
         </div>
       )}
 
-      {/* In-Game Racing HUD: Clean, organized, zero clutter */}
+      {/* Clean, Organized In-Game Driving HUD */}
       {!isLoading && !isGtaMenuOpen && (
         <>
-          {/* Top Left: Home / Menu Toggle Button */}
+          {/* Top Left: Menu Button (+ optional Live Mesh pill ONLY when connected) */}
           <div className="gta-hud-top-left">
             <button
               className="gta-hud-btn gta-menu-trigger-btn"
@@ -235,12 +441,19 @@ export default function RacingGame() {
               <span className="gta-btn-key">ESC</span>
               <span className="gta-btn-label">MENU</span>
             </button>
+            {isMeshOnline && (
+              <div className="hud-mesh-live-pill">
+                <span className="live-dot" />
+                <span>
+                  {meshState.roomCode} • {meshState.players.length} LIVE
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Top Right: Clean Action Bar */}
+          {/* Top Right: Essential Race Controls Only */}
           <div className="gta-hud-top-right">
             <div className="gta-hud-action-row">
-              {/* Camera Switcher Button */}
               <button
                 className="gta-hud-btn"
                 onClick={handleCycleCamera}
@@ -248,10 +461,11 @@ export default function RacingGame() {
                 title="Switch Camera (Press C)"
               >
                 <span className="gta-btn-key">C</span>
-                <span className="gta-btn-label">CAM: {currentCamInfo.label.toUpperCase()}</span>
+                <span className="gta-btn-label">
+                  CAM: {currentCamInfo.label.toUpperCase()}
+                </span>
               </button>
 
-              {/* Respawn Button */}
               <button
                 className="gta-hud-btn gta-hud-btn-danger"
                 onClick={handleReset}
@@ -262,34 +476,85 @@ export default function RacingGame() {
                 <span className="gta-btn-label">↺ RESPAWN</span>
               </button>
 
-              {/* Fullscreen Button */}
+              <button
+                className="gta-hud-btn gta-hud-btn-sq"
+                onClick={handleToggleMute}
+                onMouseEnter={() => GtaAudio.playHover()}
+                title="Toggle Sound (Press M)"
+              >
+                {isMuted ? "🔇" : "🔊"}
+              </button>
+
               <button
                 className="gta-hud-btn gta-hud-btn-sq"
                 onClick={toggleFullscreen}
                 onMouseEnter={() => GtaAudio.playHover()}
-                title="Toggle Fullscreen"
+                title="Toggle Fullscreen (Press F)"
               >
                 ⛶
               </button>
             </div>
           </div>
 
-          {/* Bottom Right: Digital Speedometer HUD */}
+          {/* Bottom Left: Optional Compact Minimap (enabled via Settings) */}
+          {showMinimap && telemetry.waypoints.length > 0 && (
+            <div className="hud-minimap-card">
+              <svg
+                viewBox={`${telemetry.bounds.minX - 6} ${telemetry.bounds.minZ - 6} ${
+                  telemetry.bounds.maxX - telemetry.bounds.minX + 12
+                } ${telemetry.bounds.maxZ - telemetry.bounds.minZ + 12}`}
+                className="hud-minimap-svg"
+              >
+                <polygon
+                  points={telemetry.waypoints
+                    .map((w) => `${w.x},${w.z}`)
+                    .join(" ")}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.28)"
+                  strokeWidth="4.2"
+                  strokeLinejoin="round"
+                />
+                {meshState.players
+                  .filter((p) => !p.isSelf)
+                  .map((p) => (
+                    <circle
+                      key={p.id}
+                      cx={p.x}
+                      cy={p.z}
+                      r="2.2"
+                      fill="#00e5ff"
+                    />
+                  ))}
+                <circle
+                  cx={telemetry.x}
+                  cy={telemetry.z}
+                  r="2.6"
+                  fill="#facc15"
+                  stroke="#000"
+                  strokeWidth="0.7"
+                />
+              </svg>
+            </div>
+          )}
+
+          {/* Bottom Right: Calibrated Real-Gear Speedometer & Tachometer */}
           <div className="gta-hud-speedometer">
-            <div className="gta-speed-value">{liveSpeedMph}</div>
-            <div className="gta-speed-unit">MPH</div>
-            <div className="gta-gear-badge">GEAR {liveGear}</div>
+            <div className="gta-speed-value">{displaySpeed}</div>
+            <div className="gta-speed-unit">{speedUnit}</div>
+            <div className="gta-gear-badge">GEAR {displayGear}</div>
             <div className="gta-speed-bar">
               <div
                 className="gta-speed-fill"
-                style={{ width: `${Math.min(100, (liveSpeedMph / 140) * 100)}%` }}
+                style={{
+                  width: `${Math.min(100, Math.round(telemetry.speedNormalized * 100))}%`,
+                }}
               />
             </div>
           </div>
         </>
       )}
 
-      {/* Mini Battle Home & Pause Menu Overlay */}
+      {/* Mini Battle Home & Pause Menu */}
       {!isLoading && (
         <GtaMenu
           isOpen={isGtaMenuOpen}
@@ -300,8 +565,32 @@ export default function RacingGame() {
           onSelectColor={handleColorChange}
           selectedCamera={cameraMode}
           onSelectCamera={handleSelectCamera}
+          selectedTrack={selectedTrack}
+          onSelectTrack={handleSelectTrack}
+          raceMode={raceMode}
+          onSelectRaceMode={handleSelectRaceMode}
+          bestLapFormatted={telemetry.bestLapFormatted}
+          lastLapFormatted={telemetry.lastLapFormatted}
+          onClearBestLap={() => gameRef.current?.clearBestLap()}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
+          audioVolume={audioVolume}
+          onChangeVolume={handleVolumeChange}
+          speedUnit={speedUnit}
+          onToggleSpeedUnit={handleToggleSpeedUnit}
+          touchMode={touchMode}
+          onToggleTouchMode={handleToggleTouchMode}
+          showMinimap={showMinimap}
+          onToggleMinimap={handleToggleMinimap}
           toggleFullscreen={toggleFullscreen}
           vehicleOptions={VEHICLE_OPTIONS}
+          meshState={meshState}
+          initialTab={initialMenuTab}
+          initialRoomCode={urlRoomCode}
+          onHostRoom={() => meshRef.current?.hostRoom(selectedTrack)}
+          onJoinRoom={(code) => meshRef.current?.joinRoom(code)}
+          onLeaveRoom={() => meshRef.current?.disconnect()}
+          onChangeDriverName={(name) => meshRef.current?.setDriverName(name)}
         />
       )}
     </div>

@@ -39,6 +39,7 @@ export class FollowCamera {
   _smoothedCamPos = new Vector3();
   _smoothedLookPos = new Vector3();
   _initialized = false;
+  _showcaseAngle = 0.6;
 
   constructor(camera) {
     this.camera = camera;
@@ -68,6 +69,51 @@ export class FollowCamera {
     return CAMERA_MODES.find((m) => m.key === this.mode) || CAMERA_MODES[0];
   }
 
+  resetTracking() {
+    this._initialized = false;
+  }
+
+  /**
+   * Gentle cinematic garage orbit while viewing the Home/Pause Menu.
+   * Frames the truck nicely on the right side of the menu layout.
+   */
+  updateShowcase(dt, target, yaw = 0) {
+    this._showcaseAngle += dt * 0.28;
+    this.camera.fov = lerp(this.camera.fov, 44, Math.min(1, dt * 4));
+
+    const dist = 4.3;
+    const height = 1.8;
+    const orbitYaw = yaw + Math.PI * 0.8 + Math.sin(this._showcaseAngle) * 0.55;
+
+    const camX = target.x + Math.sin(orbitYaw) * dist;
+    const camY = target.y + height;
+    const camZ = target.z + Math.cos(orbitYaw) * dist;
+
+    // Offset look target slightly left so truck stands clearly on the right half
+    const rightX = Math.cos(orbitYaw);
+    const rightZ = -Math.sin(orbitYaw);
+    const lookX = target.x - rightX * 0.55;
+    const lookY = target.y + 0.55;
+    const lookZ = target.z - rightZ * 0.55;
+
+    const alpha = 1 - Math.exp(-dt * 5);
+    if (!this._initialized) {
+      this._smoothedCamPos.set(camX, camY, camZ);
+      this._smoothedLookPos.set(lookX, lookY, lookZ);
+      this._initialized = true;
+    } else {
+      this._smoothedCamPos.x = lerp(this._smoothedCamPos.x, camX, alpha);
+      this._smoothedCamPos.y = lerp(this._smoothedCamPos.y, camY, alpha);
+      this._smoothedCamPos.z = lerp(this._smoothedCamPos.z, camZ, alpha);
+      this._smoothedLookPos.x = lerp(this._smoothedLookPos.x, lookX, alpha);
+      this._smoothedLookPos.y = lerp(this._smoothedLookPos.y, lookY, alpha);
+      this._smoothedLookPos.z = lerp(this._smoothedLookPos.z, lookZ, alpha);
+    }
+
+    this.camera.position.copyFrom(this._smoothedCamPos);
+    this.camera.lookAt(this._smoothedLookPos);
+  }
+
   update(dt, target, velocity, yaw = 0, speed = 0) {
     if (this.mode === 'isometric') {
       this._updateIsometric(dt, target, velocity);
@@ -83,12 +129,10 @@ export class FollowCamera {
     }
   }
 
-  _updateChase(dt, target, velocity, yaw, speed, dist, height, baseFov, lookAhead, lookY) {
-    // Dynamic FOV with speed
+  _updateChase(dt, target, _velocity, yaw, speed, dist, height, baseFov, lookAhead, lookY) {
     const targetFov = baseFov + clamp(Math.abs(speed), 0, 1.5) * 6;
     this.camera.fov = lerp(this.camera.fov, targetFov, Math.min(1, dt * 4));
 
-    // Smoothly track vehicle heading (yaw)
     const yawAlpha = this._initialized ? 1 - Math.exp(-dt * 6.5) : 1;
     this._smoothedYaw = lerpAngle(this._smoothedYaw, yaw, yawAlpha);
 
@@ -134,7 +178,6 @@ export class FollowCamera {
     const forwardX = Math.sin(yaw);
     const forwardZ = Math.cos(yaw);
 
-    // Mounted on hood
     const camX = target.x + forwardX * 0.2;
     const camY = target.y + 0.65;
     const camZ = target.z + forwardZ * 0.2;
@@ -171,7 +214,6 @@ export class FollowCamera {
     const forwardX = Math.sin(yaw);
     const forwardZ = Math.cos(yaw);
 
-    // Look slightly ahead of car
     const lookX = target.x + forwardX * 1.5;
     const lookY = target.y;
     const lookZ = target.z + forwardZ * 1.5;

@@ -18,6 +18,7 @@ function remap(value, inMin, inMax, outMin, outMax) {
 
 export class GameAudio {
   _ctx;
+  _masterGain;
   _engine;
   _engineLayer;
   _skid;
@@ -27,6 +28,8 @@ export class GameAudio {
   _ready = false;
   _unlocked = false;
   _started = false;
+  _muted = false;
+  _volume = 0.8;
 
   _rpm = 0;
   _gear = 0;
@@ -36,6 +39,9 @@ export class GameAudio {
     const Ctx = window.AudioContext || window.webkitAudioContext;
 
     this._ctx = new Ctx();
+    this._masterGain = this._ctx.createGain();
+    this._masterGain.gain.value = this._volume;
+    this._masterGain.connect(this._ctx.destination);
 
     this._engine = this._makeVoice(true);
     this._engineLayer = this._makeVoice(false);
@@ -59,7 +65,7 @@ export class GameAudio {
       head = filter;
     }
 
-    head.connect(this._ctx.destination);
+    head.connect(this._masterGain);
 
     return {
       source: null,
@@ -69,6 +75,30 @@ export class GameAudio {
       currentVolume: 0,
       currentPitch: 1,
     };
+  }
+
+  setMuted(muted) {
+    this._muted = Boolean(muted);
+    this._syncMasterGain();
+  }
+
+  setVolume(vol) {
+    this._volume = clamp(vol, 0, 1);
+    this._syncMasterGain();
+  }
+
+  _syncMasterGain() {
+    if (!this._masterGain || !this._ctx) return;
+    const target = this._muted ? 0 : this._volume;
+    this._masterGain.gain.setTargetAtTime(target, this._ctx.currentTime, 0.03);
+  }
+
+  getGear() {
+    return this._gear + 1;
+  }
+
+  getRpm() {
+    return this._rpm;
   }
 
   async load() {
@@ -126,6 +156,16 @@ export class GameAudio {
     src.connect(voice.gain);
     src.start();
     voice.source = src;
+  }
+
+  silence() {
+    if (!this._started) return;
+    this._engine.currentVolume = 0;
+    this._engine.gain.gain.value = 0;
+    this._engineLayer.currentVolume = 0;
+    this._engineLayer.gain.gain.value = 0;
+    this._skid.currentVolume = 0;
+    this._skid.gain.gain.value = 0;
   }
 
   update(dt, speed, throttle, driftIntensity) {
@@ -216,7 +256,7 @@ export class GameAudio {
   }
 
   playImpact(impactVelocity) {
-    if (!this._unlocked || this._impactBuffers.length === 0) return;
+    if (!this._unlocked || this._muted || this._impactBuffers.length === 0) return;
 
     const buffer = this._impactBuffers[this._impactIndex];
 
@@ -231,7 +271,7 @@ export class GameAudio {
 
     gain.gain.value = volume;
     src.connect(gain);
-    gain.connect(this._ctx.destination);
+    gain.connect(this._masterGain);
     src.start();
   }
 

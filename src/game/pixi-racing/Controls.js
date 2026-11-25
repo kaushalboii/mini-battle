@@ -51,15 +51,22 @@ export class Controls {
 
     let touchActive = false;
 
-    if (this._joystick && this._joystick.touchActive) {
-      const jx = this._joystick.dirX;
-      const jy = this._joystick.dirY;
-      const mag = Math.sqrt(jx * jx + jy * jy);
+    if (this._joystick) {
+      if (this._joystick.pedalMode && this._joystick.pedalActive) {
+        x = this._joystick.pedalX;
+        z = this._joystick.pedalZ;
+        // Pedals use direct digital steering & gas just like keyboard WASD!
+        touchActive = false;
+      } else if (this._joystick.touchActive) {
+        const jx = this._joystick.dirX;
+        const jy = this._joystick.dirY;
+        const mag = Math.sqrt(jx * jx + jy * jy);
 
-      if (mag > 0.15) {
-        x = ((jx + jy) * Math.SQRT1_2) / mag;
-        z = ((-jx + jy) * Math.SQRT1_2) / mag;
-        touchActive = true;
+        if (mag > 0.15) {
+          x = ((jx + jy) * Math.SQRT1_2) / mag;
+          z = ((-jx + jy) * Math.SQRT1_2) / mag;
+          touchActive = true;
+        }
       }
     }
 

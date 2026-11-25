@@ -20,6 +20,7 @@ export class PhysicsWorld {
   sphereBody;
   OL_STATIC;
   listener = null;
+  _wallBodyIds = [];
 
   constructor(spawn) {
     if (!_registered) {
@@ -69,15 +70,35 @@ export class PhysicsWorld {
   }
 
   addStaticBox(spec) {
-    rigidBody.create(this.world, {
+    const body = rigidBody.create(this.world, {
       shape: box.create({ halfExtents: spec.halfExtents }),
       motionType: MotionType.STATIC,
       objectLayer: this.OL_STATIC,
       position: spec.position,
       quaternion: spec.quaternion,
-      friction: 0.0,
-      restitution: 0.1,
+      friction: spec.friction ?? 0.0,
+      restitution: spec.restitution ?? 0.1,
     });
+    if (body) {
+      this._wallBodyIds.push(body.id);
+    }
+  }
+
+  clearWalls() {
+    for (const id of this._wallBodyIds) {
+      const body = rigidBody.get(this.world, id);
+      if (body) {
+        rigidBody.remove(this.world, body);
+      }
+    }
+    this._wallBodyIds = [];
+  }
+
+  rebuildWalls(walls) {
+    this.clearWalls();
+    for (const wall of walls) {
+      this.addStaticBox(wall);
+    }
   }
 
   step(dt) {

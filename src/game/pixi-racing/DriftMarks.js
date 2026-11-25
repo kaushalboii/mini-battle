@@ -120,6 +120,17 @@ class DriftTrail {
     this._active = emit;
   }
 
+  clear() {
+    this._positions.fill(0);
+    for (let i = 0; i < TOTAL_VERTS; i++) {
+      this._colors[i * FLOATS_PER_COLOR + 3] = 0;
+    }
+    this._positionsBuffer.update(this._positions.byteLength, 0);
+    this._colorsBuffer.update(this._colors.byteLength, 0);
+    this._segmentIndex = 0;
+    this._active = false;
+  }
+
   _writeSegment(prev, curr, alpha) {
     const dx = curr.x - prev.x;
     const dz = curr.z - prev.z;
@@ -236,6 +247,12 @@ export class DriftMarks {
         _wheelPos,
       );
       this._trails[1].track(_wheelPos, intensity, emit);
+    }
+  }
+
+  clear() {
+    for (const trail of this._trails) {
+      trail.clear();
     }
   }
 }

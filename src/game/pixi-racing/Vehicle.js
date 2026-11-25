@@ -6,7 +6,7 @@ import { clamp, lerp } from './MathUtils';
 const LINEAR_DAMP = 0.1;
 export const MAX_SPEED = 1.5;
 
-const SPAWN = [3.5, 0.5, 5];
+const DEFAULT_SPAWN = [3.5, 0.5, 5];
 
 const _forward = new Vector3();
 const _up = new Vector3(0, 1, 0);
@@ -30,6 +30,7 @@ function lerpAngle(a, b, t) {
 
 export class Vehicle {
   container;
+  root = null;
 
   bodyNode = null;
   wheels = [];
@@ -49,7 +50,10 @@ export class Vehicle {
   acceleration = 0;
   yaw = 0;
 
-  spherePos = new Vector3(SPAWN[0], SPAWN[1], SPAWN[2]);
+  spawn = [...DEFAULT_SPAWN];
+  spawnYaw = 0;
+
+  spherePos = new Vector3(DEFAULT_SPAWN[0], DEFAULT_SPAWN[1], DEFAULT_SPAWN[2]);
   sphereVel = new Vector3();
   modelVelocity = new Vector3();
   _prevModelPos = new Vector3();
@@ -60,18 +64,46 @@ export class Vehicle {
 
   physics;
 
-  constructor(source, physics) {
+  constructor(source, physics, spawn = DEFAULT_SPAWN, spawnYaw = 0) {
     this.physics = physics;
+    this.spawn = [...spawn];
+    this.spawnYaw = spawnYaw;
+    this.yaw = spawnYaw;
 
     this.container = new Container3D();
+    this.setSource(source);
+
+    this.spherePos.set(this.spawn[0], this.spawn[1], this.spawn[2]);
+    this.container.position.set(this.spawn[0], this.spawn[1] - 0.5, this.spawn[2]);
+    this._prevModelPos.set(this.spawn[0], 0, this.spawn[2]);
+    _q.setFromAxisAngle(_up, this.yaw);
+    this.container.quaternion.copyFrom(_q);
+  }
+
+  /**
+   * Swaps the visual truck 3D model without replacing the Vehicle instance
+   * or resetting physics position, velocity, or steering state.
+   */
+  setSource(source) {
+    if (this.root) {
+      this.container.removeChild(this.root);
+      this.root.destroy?.({ children: true });
+      this.root = null;
+    }
+
+    this.wheels = [];
+    this.bodyNode = null;
+    this.wheelFL = null;
+    this.wheelFR = null;
+    this.wheelBL = null;
+    this.wheelBR = null;
 
     const root = new Model3D(source);
-
     root.scale.set(0.5, 0.5, 0.5);
     this.container.addChild(root);
+    this.root = root;
 
     this.bodyNode = root.getChildByLabel('body', true);
-
     if (this.bodyNode) this.bodyNode.quaternion.copyTo(this._bodyInitQuat);
 
     const wheelFL = root.getChildByLabel('wheel-front-left', true);
@@ -88,24 +120,31 @@ export class Vehicle {
     if (wheelFR) this.wheels.push(wheelFR);
     if (wheelBL) this.wheels.push(wheelBL);
     if (wheelBR) this.wheels.push(wheelBR);
+  }
 
-    this.container.position.set(SPAWN[0], SPAWN[1] - 0.5, SPAWN[2]);
-    this._prevModelPos.set(SPAWN[0], 0, SPAWN[2]);
+  setSpawn(spawnPos, yaw = 0) {
+    this.spawn = [...spawnPos];
+    this.spawnYaw = yaw;
+    this.reset();
   }
 
   reset() {
     const body = this.physics.sphereBody;
-    rigidBody.setPosition(this.physics.world, body, SPAWN, false);
+    rigidBody.setPosition(this.physics.world, body, this.spawn, false);
     rigidBody.setLinearVelocity(this.physics.world, body, [0, 0, 0]);
     rigidBody.setAngularVelocity(this.physics.world, body, [0, 0, 0]);
-    this.spherePos.set(SPAWN[0], SPAWN[1], SPAWN[2]);
+    this.spherePos.set(this.spawn[0], this.spawn[1], this.spawn[2]);
     this.sphereVel.set(0, 0, 0);
+    this.modelVelocity.set(0, 0, 0);
     this.linearSpeed = 0;
     this.angularSpeed = 0;
     this.acceleration = 0;
-    this.yaw = 0;
-    this.container.position.set(SPAWN[0], SPAWN[1] - 0.5, SPAWN[2]);
-    this._prevModelPos.set(SPAWN[0], 0, SPAWN[2]);
+    this.driftIntensity = 0;
+    this.yaw = this.spawnYaw;
+    this.container.position.set(this.spawn[0], this.spawn[1] - 0.5, this.spawn[2]);
+    this._prevModelPos.set(this.spawn[0], 0, this.spawn[2]);
+    _q.setFromAxisAngle(_up, this.yaw);
+    this.container.quaternion.copyFrom(_q);
   }
 
   update(dt, input) {

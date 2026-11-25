@@ -9,8 +9,6 @@ function ensureFont() {
   if (_fontInstalled) return;
   _fontInstalled = true;
 
-  // Single rasterization shared by every HUD glyph. `chars` is restricted to
-  // exactly the characters the timer can produce, so the atlas is tiny.
   BitmapFont.install({
     name: HUD_FONT,
     style: {
@@ -38,11 +36,11 @@ function saveBest(key, value) {
   try {
     localStorage.setItem(key, String(value));
   } catch {
-    // Storage may be unavailable (e.g. private browsing); silently ignore.
+    // ignore
   }
 }
 
-function formatTime(t) {
+export function formatLapTime(t) {
   if (t === null || t === undefined) return '0:00.00';
 
   const m = Math.floor(t / 60);
@@ -55,7 +53,7 @@ export class LapTimer {
   container;
 
   _track;
-  _storageKey = `${STORAGE_PREFIX}default`;
+  _storageKey = `${STORAGE_PREFIX}classic`;
 
   _lap = 1;
   _bestLap;
@@ -75,10 +73,16 @@ export class LapTimer {
   _bestText;
   _bg;
 
-  constructor(track) {
+  onLapCompleted = null;
+
+  constructor(track, trackId = 'classic') {
     ensureFont();
 
     this._track = track;
+    this._storageKey =
+      trackId === 'classic'
+        ? `${STORAGE_PREFIX}default`
+        : `${STORAGE_PREFIX}${trackId}`;
     this._bestLap = loadBest(this._storageKey);
 
     this.container = new Container();
@@ -86,8 +90,10 @@ export class LapTimer {
     this.container.y = 56;
 
     this._bg = new Graphics()
-      .roundRect(0, 0, 220, 110, 12)
-      .fill({ color: 0x000000, alpha: 0.5 });
+      .roundRect(0, 0, 220, 110, 10)
+      .fill({ color: 0x0a0c10, alpha: 0.72 })
+      .roundRect(0, 0, 220, 110, 10)
+      .stroke({ width: 1, color: 0xffffff, alpha: 0.16 });
     this.container.addChild(this._bg);
 
     const labelLap = new BitmapText({
@@ -108,7 +114,7 @@ export class LapTimer {
     this.container.addChild(this._lapText);
 
     this._currentText = new BitmapText({
-      text: formatTime(0),
+      text: formatLapTime(0),
       style: { fontFamily: HUD_FONT, fontSize: 26 },
     });
     this._currentText.position.set(14, 30);
@@ -124,7 +130,7 @@ export class LapTimer {
     this.container.addChild(labelLast);
 
     this._lastText = new BitmapText({
-      text: formatTime(null),
+      text: formatLapTime(null),
       style: { fontFamily: HUD_FONT, fontSize: 13 },
     });
     this._lastText.anchor.set(1, 0);
@@ -141,7 +147,7 @@ export class LapTimer {
     this.container.addChild(labelBest);
 
     this._bestText = new BitmapText({
-      text: formatTime(this._bestLap),
+      text: formatLapTime(this._bestLap),
       style: { fontFamily: HUD_FONT, fontSize: 13 },
     });
     this._bestText.anchor.set(1, 0);
@@ -149,12 +155,65 @@ export class LapTimer {
     this.container.addChild(this._bestText);
   }
 
+  setTrack(track, trackId = 'classic') {
+    this._track = track;
+    this._storageKey =
+      trackId === 'classic'
+        ? `${STORAGE_PREFIX}default`
+        : `${STORAGE_PREFIX}${trackId}`;
+    this._bestLap = loadBest(this._storageKey);
+    this.resetAll();
+  }
+
+  resetCurrentLap() {
+    this._currentLapTime = 0;
+    this._running = false;
+    this._prevForwardProj = null;
+    this._visited.clear();
+    this._currentText.text = formatLapTime(0);
+    this._currentText.tint = 0xffffff;
+  }
+
+  resetAll() {
+    this._lap = 1;
+    this._lastLap = null;
+    this._lapText.text = '1';
+    this._lastText.text = formatLapTime(null);
+    this._bestText.text = formatLapTime(this._bestLap);
+    this.resetCurrentLap();
+  }
+
+  clearBest() {
+    this._bestLap = null;
+    try {
+      localStorage.removeItem(this._storageKey);
+    } catch {
+      // ignore
+    }
+    this._bestText.text = formatLapTime(null);
+  }
+
+  getStats() {
+    return {
+      lap: this._lap,
+      currentLapTime: this._currentLapTime,
+      lastLap: this._lastLap,
+      bestLap: this._bestLap,
+      lastLapFormatted: this._lastLap !== null ? formatLapTime(this._lastLap) : '--:--.--',
+      bestLapFormatted: this._bestLap !== null ? formatLapTime(this._bestLap) : '--:--.--',
+      progressRatio:
+        this._track.requiredCellKeys.size > 0
+          ? this._visited.size / this._track.requiredCellKeys.size
+          : 0,
+    };
+  }
+
   update(dt, position, hasInput) {
     if (!this._running && !hasInput) return;
     this._running = true;
 
     this._currentLapTime += dt;
-    this._currentText.text = formatTime(this._currentLapTime);
+    this._currentText.text = formatLapTime(this._currentLapTime);
 
     const cellSize = this._track.cellSize;
     const gx = Math.floor(position.x / cellSize);
@@ -199,12 +258,13 @@ export class LapTimer {
   }
 
   _completeLap() {
+    const lapTime = this._currentLapTime;
     const isBest =
-      this._bestLap === null || this._currentLapTime < this._bestLap;
+      this._bestLap === null || lapTime < this._bestLap;
 
-    this._lastLap = this._currentLapTime;
+    this._lastLap = lapTime;
     if (isBest) {
-      this._bestLap = this._currentLapTime;
+      this._bestLap = lapTime;
       saveBest(this._storageKey, this._bestLap);
     }
 
@@ -212,10 +272,14 @@ export class LapTimer {
     this._currentLapTime = 0;
 
     this._lapText.text = String(this._lap);
-    this._lastText.text = formatTime(this._lastLap);
-    this._bestText.text = formatTime(this._bestLap);
+    this._lastText.text = formatLapTime(this._lastLap);
+    this._bestText.text = formatLapTime(this._bestLap);
 
     this._flashTime = 1.2;
     this._flashColor = isBest ? 0x5af168 : 0xff6e6e;
+
+    if (typeof this.onLapCompleted === 'function') {
+      this.onLapCompleted({ lapTime, isBest, lap: this._lap });
+    }
   }
 }

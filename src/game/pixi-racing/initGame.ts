@@ -17,26 +17,55 @@ import { DriftMarks } from './DriftMarks';
 import { LapTimer } from './LapTimer';
 import { SmokeTrails } from './Particles';
 import { PhysicsWorld } from './Physics';
+import { RivalsAndGhostManager } from './RivalsAndGhost';
 import { TouchJoystick } from './TouchJoystick';
 import { buildTrack } from './Track';
 import { MAX_SPEED, Vehicle } from './Vehicle';
 
+export interface RaceTelemetry {
+  speedNormalized: number;
+  mph: number;
+  kmh: number;
+  gear: number;
+  rpm: number;
+  lap: number;
+  currentLapTime: number;
+  lastLapFormatted: string;
+  bestLapFormatted: string;
+  bestLap: number | null;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  trackId: string;
+  waypoints: Array<{ x: number; z: number }>;
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+}
+
 export interface GameInstance {
   app: Application;
   audio: GameAudio;
-  vehicle: Vehicle;
+  getVehicle: () => Vehicle;
   camera: FollowCamera;
   setVehicleColor: (colorKey: string) => void;
   setCameraMode: (mode: string) => void;
   cycleCameraMode: () => string;
+  setTrack: (trackId: string) => void;
+  setRaceMode: (mode: 'solo' | 'ghost' | 'ai') => void;
+  setTouchMode: (mode: 'joystick' | 'pedals') => void;
+  setAudioMuted: (muted: boolean) => void;
+  setAudioVolume: (vol: number) => void;
+  clearBestLap: () => void;
   resetPosition: () => void;
   setPaused: (paused: boolean) => void;
+  getTelemetry: () => RaceTelemetry;
+  syncRemotePlayers: (players: any[]) => void;
   destroy: () => void;
 }
 
 export async function initRacingGame(
   canvas: HTMLCanvasElement,
-  onProgress?: (progress: number, label: string) => void
+  onProgress?: (progress: number, label: string) => void,
 ): Promise<GameInstance> {
   const app = new Application();
 
@@ -67,7 +96,7 @@ export async function initRacingGame(
       loadedCount++;
       onProgress?.(0.1 + (loadedCount / totalAssets) * 0.7, `Loading ${key}...`);
       return res;
-    })
+    }),
   );
 
   const [smokeTexture, ...sourceList] = await Promise.all([
@@ -132,15 +161,13 @@ export async function initRacingGame(
   view3d.root.addChild(ground);
 
   // Track
-  const track = buildTrack(view3d.root, sources);
+  let currentTrackId = 'classic';
+  let track = buildTrack(view3d.root, sources, currentTrackId);
 
   // Physics
-  const physics = new PhysicsWorld(new Vector3(3.5, 0.5, 5));
-  physics.addStaticGround([0, -0.125, 0], [50, 0.01, 50]);
-
-  for (const wall of track.walls) {
-    physics.addStaticBox(wall);
-  }
+  const physics = new PhysicsWorld(new Vector3(track.spawn[0], track.spawn[1], track.spawn[2]));
+  physics.addStaticGround([0, -0.125, 0], [80, 0.01, 80]);
+  physics.rebuildWalls(track.walls);
 
   // Audio
   const audio = new GameAudio();
@@ -155,9 +182,9 @@ export async function initRacingGame(
   window.addEventListener('keydown', unlockAudio);
   window.addEventListener('pointerdown', unlockAudio);
 
-  // Vehicle
-  let currentKey = 'vehicle-truck-yellow';
-  let vehicle = new Vehicle(sources[currentKey], physics);
+  // Vehicle (single persistent Vehicle instance whose Model3D swaps cleanly)
+  let currentColorKey = 'vehicle-truck-yellow';
+  const vehicle = new Vehicle(sources[currentColorKey], physics, track.spawn, track.spawnYaw);
   view3d.root.addChild(vehicle.container);
 
   (physics as any).listener = {
@@ -177,7 +204,7 @@ export async function initRacingGame(
   const hudLayer = new Container();
   app.stage.addChild(hudLayer);
 
-  const lapTimer = new LapTimer(track);
+  const lapTimer = new LapTimer(track, currentTrackId);
   hudLayer.addChild(lapTimer.container);
 
   const joystick = new TouchJoystick(app.screen.width, app.screen.height);
@@ -185,20 +212,36 @@ export async function initRacingGame(
 
   const controls = new Controls(joystick as any);
 
+  // Rivals & Best-Lap Ghost Manager
+  const rivalsManager = new RivalsAndGhostManager(view3d.root, sources, track);
+  (lapTimer as any).onLapCompleted = ({ isBest }: { isBest: boolean }) => {
+    rivalsManager.onPlayerLapComplete(isBest);
+  };
+
   // FX
   const driftMarks = new DriftMarks(view3d.root);
   const particles = new SmokeTrails(view3d.root, smokeTexture);
 
   let isGamePaused = false;
+  let elapsedTime = 0;
+  let pendingRemotePlayers: any[] = [];
 
   const tickerFn = () => {
     joystick.resize(app.screen.width, app.screen.height);
 
     const dt = Math.min(app.ticker.deltaMS / 1000, 1 / 30);
+    elapsedTime += dt;
+
+    if (pendingRemotePlayers.length > 0 || rivalsManager) {
+      rivalsManager.syncRemotePlayers(pendingRemotePlayers, dt);
+    }
 
     if (isGamePaused) {
-      audio.update(dt, 0, 0, 0);
+      audio.silence();
       hudLayer.visible = false;
+      sun.position.set(vehicle.spherePos.x + 11.4, 15, vehicle.spherePos.z - 5.3);
+      sun.lookAt({ x: vehicle.spherePos.x, y: 0, z: vehicle.spherePos.z });
+      followCamera.updateShowcase(dt, vehicle.container.position, vehicle.yaw);
       return;
     }
 
@@ -216,7 +259,7 @@ export async function initRacingGame(
       vehicle.container.position,
       vehicle.modelVelocity,
       vehicle.yaw,
-      vehicle.linearSpeed
+      vehicle.linearSpeed,
     );
 
     driftMarks.update(dt, vehicle);
@@ -231,6 +274,7 @@ export async function initRacingGame(
     const hasInput =
       input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
 
+    rivalsManager.update(dt, vehicle, hasInput || Math.abs(vehicle.linearSpeed) > 0.05, elapsedTime);
     lapTimer.update(dt, vehicle.container.position, hasInput);
   };
 
@@ -241,16 +285,13 @@ export async function initRacingGame(
   return {
     app,
     audio,
-    vehicle,
+    getVehicle: () => vehicle,
     camera: followCamera,
     setVehicleColor(newKey: string) {
-      if (!sources[newKey] || newKey === currentKey) return;
-      currentKey = newKey;
-      view3d.root.removeChild(vehicle.container);
-      const oldYaw = vehicle.yaw;
-      vehicle = new Vehicle(sources[newKey], physics);
-      vehicle.yaw = oldYaw;
-      view3d.root.addChild(vehicle.container);
+      if (!sources[newKey] || newKey === currentColorKey) return;
+      currentColorKey = newKey;
+      vehicle.setSource(sources[newKey]);
+      rivalsManager.setPlayerColor(newKey);
     },
     setCameraMode(mode: string) {
       followCamera.setMode(mode);
@@ -258,24 +299,87 @@ export async function initRacingGame(
     cycleCameraMode() {
       return followCamera.cycleMode();
     },
+    setTrack(trackId: string) {
+      if (trackId === currentTrackId) return;
+      track.destroy();
+      currentTrackId = trackId;
+      track = buildTrack(view3d.root, sources, trackId);
+      physics.rebuildWalls(track.walls);
+      vehicle.setSpawn(track.spawn, track.spawnYaw);
+      driftMarks.clear();
+      lapTimer.setTrack(track, trackId);
+      rivalsManager.setTrack(track);
+      followCamera.resetTracking();
+    },
+    setRaceMode(mode: 'solo' | 'ghost' | 'ai') {
+      rivalsManager.setMode(mode, currentColorKey);
+    },
+    setTouchMode(mode: 'joystick' | 'pedals') {
+      joystick.setMode(mode);
+    },
+    setAudioMuted(muted: boolean) {
+      audio.setMuted(muted);
+    },
+    setAudioVolume(vol: number) {
+      audio.setVolume(vol);
+    },
+    clearBestLap() {
+      lapTimer.clearBest();
+    },
     resetPosition() {
       vehicle.reset();
+      lapTimer.resetCurrentLap();
+      rivalsManager.resetAiToGrid();
+      followCamera.resetTracking();
     },
     setPaused(paused: boolean) {
+      const wasPaused = isGamePaused;
       isGamePaused = paused;
       (controls as any).enabled = !paused;
       if (paused) {
         (controls as any).reset?.();
         hudLayer.visible = false;
-        audio.update(0.016, 0, 0, 0);
+        audio.silence();
+        if (!wasPaused) followCamera.resetTracking();
       } else {
         hudLayer.visible = true;
+        if (wasPaused) followCamera.resetTracking();
       }
+    },
+    getTelemetry(): RaceTelemetry {
+      const speedRatio = Math.min(1.1, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
+      const mph = Math.round(speedRatio * 112);
+      const kmh = Math.round(speedRatio * 180);
+      const lapStats = lapTimer.getStats();
+
+      return {
+        speedNormalized: Math.min(1, speedRatio),
+        mph,
+        kmh,
+        gear: mph <= 1 ? 0 : audio.getGear(),
+        rpm: audio.getRpm(),
+        lap: lapStats.lap,
+        currentLapTime: lapStats.currentLapTime,
+        lastLapFormatted: lapStats.lastLapFormatted,
+        bestLapFormatted: lapStats.bestLapFormatted,
+        bestLap: lapStats.bestLap,
+        x: vehicle.container.position.x,
+        y: vehicle.container.position.y,
+        z: vehicle.container.position.z,
+        yaw: vehicle.yaw,
+        trackId: currentTrackId,
+        waypoints: track.waypoints,
+        bounds: track.bounds,
+      };
+    },
+    syncRemotePlayers(players: any[]) {
+      pendingRemotePlayers = players || [];
     },
     destroy() {
       app.ticker.remove(tickerFn);
       window.removeEventListener('keydown', unlockAudio);
       window.removeEventListener('pointerdown', unlockAudio);
+      rivalsManager.destroy();
       controls.destroy();
       audio.destroy();
       app.destroy(true, { children: true });

@@ -11,15 +11,14 @@
   "dependencies": {
     "@pixi/3d": "^0.1.0",
     "crashcat": "^0.0.5",
+    "peerjs": "^1.5.5",
     "pixi.js": "^8.23.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "three": "^0.185.1"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.13"
