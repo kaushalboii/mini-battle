@@ -214,9 +214,9 @@ export class RivalsAndGhostManager {
     ].filter((k) => k !== this._playerColor && this._sources[k]);
 
     const specs = [
-      { speed: 7.4, laneOffset: -1.15, progressOffset: -0.35 },
-      { speed: 6.9, laneOffset: 1.15, progressOffset: -0.7 },
-      { speed: 6.4, laneOffset: -0.45, progressOffset: -1.1 },
+      { speed: 9.2, laneOffset: -1.15, progressOffset: -0.35 },
+      { speed: 8.5, laneOffset: 1.15, progressOffset: -0.7 },
+      { speed: 7.8, laneOffset: -0.45, progressOffset: -1.1 },
     ];
 
     allKeys.slice(0, 3).forEach((key, idx) => {

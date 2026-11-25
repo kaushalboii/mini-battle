@@ -6,30 +6,40 @@ const CELL_RAW = 9.99;
 const GRID_SCALE = 0.75;
 
 /**
- * Closed-loop track definitions ordered sequentially along the driving direction
- * so `waypoints` trace the exact centerline of each circuit cleanly.
+ * 5 Progressive Large Circuits (Level 1 -> Level 5).
+ * Every track starts cleanly at [0, 0, 'track-finish', 0] heading South (+Z)
+ * and closes into a mathematically continuous loop.
  */
 export const TRACK_DEFINITIONS = {
-  classic: {
-    id: 'classic',
-    name: 'Kenney GP Speedway',
-    subtitle: 'Original Stock Circuit',
-    difficulty: 'BALANCED',
-    lengthLabel: '0.85 KM',
+  'level-1': {
+    id: 'level-1',
+    level: 1,
+    name: 'Level 1 • Rookie Speedway',
+    shortName: 'LVL 1: ROOKIE',
+    difficulty: 'ROOKIE',
+    lengthLabel: '1.65 KM',
     corners: 6,
-    desc: 'The classic Kenney Starter Kit circuit featuring fast straights, wide drift corners, and a rhythmic S-chicane.',
+    bumps: 0,
+    targetLapSec: 22,
+    desc: 'Wide sweeping bends and long twin straights to push straight up through all 6 gears.',
     cells: [
       [0, 0, 'track-finish', 0],
       [0, 1, 'track-straight', 0],
-      [0, 2, 'track-corner', 22],
-      [-1, 2, 'track-straight', 16],
-      [-2, 2, 'track-corner', 10],
-      [-2, 1, 'track-straight', 10],
-      [-2, 0, 'track-straight', 10],
-      [-2, -1, 'track-corner', 0],
-      [-3, -1, 'track-corner', 10],
-      [-3, -2, 'track-straight', 0],
-      [-3, -3, 'track-corner', 16],
+      [0, 2, 'track-straight', 0],
+      [0, 3, 'track-corner', 22],
+      [-1, 3, 'track-straight', 16],
+      [-2, 3, 'track-straight', 16],
+      [-3, 3, 'track-corner', 10],
+      [-3, 2, 'track-corner', 0],
+      [-4, 2, 'track-straight', 16],
+      [-5, 2, 'track-corner', 10],
+      [-5, 1, 'track-straight', 10],
+      [-5, 0, 'track-straight', 10],
+      [-5, -1, 'track-straight', 10],
+      [-5, -2, 'track-straight', 10],
+      [-5, -3, 'track-corner', 16],
+      [-4, -3, 'track-straight', 22],
+      [-3, -3, 'track-straight', 22],
       [-2, -3, 'track-straight', 22],
       [-1, -3, 'track-straight', 22],
       [0, -3, 'track-corner', 0],
@@ -37,66 +47,42 @@ export const TRACK_DEFINITIONS = {
       [0, -1, 'track-straight', 0],
     ],
     extraDecos: [
-      [-4, -2, 'decoration-tents', 10],
-      [-1, -4, 'decoration-tents', 22],
-      [-1, 1, 'decoration-tents', 22],
-    ],
-  },
-  'bump-oval': {
-    id: 'bump-oval',
-    name: 'Turbo Jump Oval',
-    subtitle: 'High-Speed Stunt Loop',
-    difficulty: 'FAST',
-    lengthLabel: '0.78 KM',
-    corners: 4,
-    desc: 'High-velocity oval circuit fitted with dual speed-bump ramps for mid-air suspension hops and sweeping power slides.',
-    cells: [
-      [0, 0, 'track-finish', 0],
-      [0, 1, 'track-straight', 0],
-      [0, 2, 'track-corner', 22],
-      [-1, 2, 'track-bump', 16],
-      [-2, 2, 'track-straight', 16],
-      [-3, 2, 'track-corner', 10],
-      [-3, 1, 'track-straight', 10],
-      [-3, 0, 'track-bump', 10],
-      [-3, -1, 'track-straight', 10],
-      [-3, -2, 'track-corner', 16],
-      [-2, -2, 'track-straight', 22],
-      [-1, -2, 'track-bump', 22],
-      [0, -2, 'track-corner', 0],
-      [0, -1, 'track-straight', 0],
-    ],
-    extraDecos: [
-      [-4, 0, 'decoration-tents', 16],
-      [-1, 0, 'decoration-tents', 0],
       [-2, 0, 'decoration-tents', 10],
-      [-1, -3, 'decoration-tents', 22],
+      [-3, 0, 'decoration-tents', 0],
+      [1, 0, 'decoration-tents', 22],
     ],
   },
-  technical: {
-    id: 'technical',
-    name: 'Hairpin Grand Prix',
-    subtitle: 'Technical S-Chicane Circuit',
-    difficulty: 'PRO',
-    lengthLabel: '1.15 KM',
-    corners: 8,
-    desc: 'Longer technical endurance layout combining tight hairpins, dual S-curves, and triple suspension bump sections.',
+  'level-2': {
+    id: 'level-2',
+    level: 2,
+    name: 'Level 2 • Twin-Jump Arena',
+    shortName: 'LVL 2: TWIN-JUMP',
+    difficulty: 'AMATEUR',
+    lengthLabel: '1.80 KM',
+    corners: 6,
+    bumps: 4,
+    targetLapSec: 24,
+    desc: 'High-speed dual straightaways packed with 4 suspension bump ramps and a technical mid-track kink.',
     cells: [
       [0, 0, 'track-finish', 0],
       [0, 1, 'track-straight', 0],
-      [0, 2, 'track-straight', 0],
+      [0, 2, 'track-bump', 0],
       [0, 3, 'track-corner', 22],
-      [-1, 3, 'track-bump', 16],
-      [-2, 3, 'track-corner', 10],
-      [-2, 2, 'track-corner', 0],
-      [-3, 2, 'track-straight', 16],
-      [-4, 2, 'track-corner', 10],
-      [-4, 1, 'track-straight', 10],
-      [-4, 0, 'track-bump', 10],
-      [-4, -1, 'track-straight', 10],
-      [-4, -2, 'track-corner', 16],
-      [-3, -2, 'track-corner', 22],
-      [-3, -3, 'track-corner', 16],
+      [-1, 3, 'track-straight', 16],
+      [-2, 3, 'track-bump', 16],
+      [-3, 3, 'track-straight', 16],
+      [-4, 3, 'track-straight', 16],
+      [-5, 3, 'track-bump', 16],
+      [-6, 3, 'track-corner', 10],
+      [-6, 2, 'track-straight', 10],
+      [-6, 1, 'track-straight', 10],
+      [-6, 0, 'track-corner', 16],
+      [-5, 0, 'track-corner', 22],
+      [-5, -1, 'track-straight', 10],
+      [-5, -2, 'track-straight', 10],
+      [-5, -3, 'track-corner', 16],
+      [-4, -3, 'track-bump', 22],
+      [-3, -3, 'track-straight', 22],
       [-2, -3, 'track-straight', 22],
       [-1, -3, 'track-bump', 22],
       [0, -3, 'track-corner', 0],
@@ -104,10 +90,187 @@ export const TRACK_DEFINITIONS = {
       [0, -1, 'track-straight', 0],
     ],
     extraDecos: [
-      [-1, 0, 'decoration-tents', 16],
-      [-2, 0, 'decoration-tents', 0],
-      [-5, 0, 'decoration-tents', 16],
+      [-3, 0, 'decoration-tents', 16],
+      [-4, 0, 'decoration-tents', 0],
       [-1, -4, 'decoration-tents', 22],
+    ],
+  },
+  'level-3': {
+    id: 'level-3',
+    level: 3,
+    name: 'Level 3 • Canyon S-Bends',
+    shortName: 'LVL 3: CANYON S',
+    difficulty: 'PRO',
+    lengthLabel: '2.25 KM',
+    corners: 10,
+    bumps: 4,
+    targetLapSec: 30,
+    desc: 'Rapid consecutive S-chicanes demanding smooth throttle feathering, followed by an explosive 6th-gear North sprint.',
+    cells: [
+      [0, 0, 'track-finish', 0],
+      [0, 1, 'track-straight', 0],
+      [0, 2, 'track-bump', 0],
+      [0, 3, 'track-straight', 0],
+      [0, 4, 'track-corner', 22],
+      [-1, 4, 'track-straight', 16],
+      [-2, 4, 'track-corner', 10],
+      [-2, 3, 'track-corner', 0],
+      [-3, 3, 'track-straight', 16],
+      [-4, 3, 'track-corner', 10],
+      [-4, 2, 'track-corner', 0],
+      [-5, 2, 'track-straight', 16],
+      [-6, 2, 'track-straight', 16],
+      [-7, 2, 'track-corner', 10],
+      [-7, 1, 'track-straight', 10],
+      [-7, 0, 'track-bump', 10],
+      [-7, -1, 'track-straight', 10],
+      [-7, -2, 'track-straight', 10],
+      [-7, -3, 'track-corner', 16],
+      [-6, -3, 'track-corner', 22],
+      [-6, -4, 'track-corner', 16],
+      [-5, -4, 'track-bump', 22],
+      [-4, -4, 'track-straight', 22],
+      [-3, -4, 'track-straight', 22],
+      [-2, -4, 'track-straight', 22],
+      [-1, -4, 'track-bump', 22],
+      [0, -4, 'track-corner', 0],
+      [0, -3, 'track-straight', 0],
+      [0, -2, 'track-straight', 0],
+      [0, -1, 'track-straight', 0],
+    ],
+    extraDecos: [
+      [-3, -1, 'decoration-tents', 0],
+      [-5, -1, 'decoration-tents', 10],
+      [1, 1, 'decoration-tents', 22],
+    ],
+  },
+  'level-4': {
+    id: 'level-4',
+    level: 4,
+    name: 'Level 4 • Serpent Grand Prix',
+    shortName: 'LVL 4: SERPENT GP',
+    difficulty: 'EXPERT',
+    lengthLabel: '2.92 KM',
+    corners: 12,
+    bumps: 6,
+    targetLapSec: 39,
+    desc: 'Extended East-West & North-South Grand Prix circuit with an inner hairpin pocket and high-speed bump complexes.',
+    cells: [
+      [0, 0, 'track-finish', 0],
+      [0, 1, 'track-straight', 0],
+      [0, 2, 'track-straight', 0],
+      [0, 3, 'track-bump', 0],
+      [0, 4, 'track-straight', 0],
+      [0, 5, 'track-corner', 22],
+      [-1, 5, 'track-straight', 16],
+      [-2, 5, 'track-bump', 16],
+      [-3, 5, 'track-straight', 16],
+      [-4, 5, 'track-corner', 10],
+      [-4, 4, 'track-straight', 10],
+      [-4, 3, 'track-corner', 0],
+      [-5, 3, 'track-straight', 16],
+      [-6, 3, 'track-bump', 16],
+      [-7, 3, 'track-straight', 16],
+      [-8, 3, 'track-corner', 10],
+      [-8, 2, 'track-straight', 10],
+      [-8, 1, 'track-bump', 10],
+      [-8, 0, 'track-straight', 10],
+      [-8, -1, 'track-straight', 10],
+      [-8, -2, 'track-corner', 16],
+      [-7, -2, 'track-straight', 22],
+      [-6, -2, 'track-corner', 22],
+      [-6, -3, 'track-straight', 10],
+      [-6, -4, 'track-straight', 10],
+      [-6, -5, 'track-corner', 16],
+      [-5, -5, 'track-bump', 22],
+      [-4, -5, 'track-straight', 22],
+      [-3, -5, 'track-straight', 22],
+      [-2, -5, 'track-straight', 22],
+      [-1, -5, 'track-bump', 22],
+      [0, -5, 'track-straight', 22],
+      [1, -5, 'track-straight', 22],
+      [2, -5, 'track-corner', 0],
+      [2, -4, 'track-straight', 0],
+      [2, -3, 'track-bump', 0],
+      [2, -2, 'track-corner', 22],
+      [1, -2, 'track-straight', 16],
+      [0, -2, 'track-corner', 16],
+      [0, -1, 'track-straight', 0],
+    ],
+    extraDecos: [
+      [-3, -2, 'decoration-tents', 16],
+      [-5, 0, 'decoration-tents', 0],
+      [1, 0, 'decoration-tents', 22],
+    ],
+  },
+  'level-5': {
+    id: 'level-5',
+    level: 5,
+    name: 'Level 5 • Apex Marathon',
+    shortName: 'LVL 5: APEX GP',
+    difficulty: 'MASTER',
+    lengthLabel: '3.75 KM',
+    corners: 12,
+    bumps: 9,
+    targetLapSec: 50,
+    desc: 'Massive 50-sector endurance championship loop spanning the entire valley with triple-bump straights and technical hairpins.',
+    cells: [
+      [0, 0, 'track-finish', 0],
+      [0, 1, 'track-straight', 0],
+      [0, 2, 'track-bump', 0],
+      [0, 3, 'track-straight', 0],
+      [0, 4, 'track-straight', 0],
+      [0, 5, 'track-bump', 0],
+      [0, 6, 'track-corner', 22],
+      [-1, 6, 'track-straight', 16],
+      [-2, 6, 'track-bump', 16],
+      [-3, 6, 'track-straight', 16],
+      [-4, 6, 'track-straight', 16],
+      [-5, 6, 'track-corner', 10],
+      [-5, 5, 'track-straight', 10],
+      [-5, 4, 'track-corner', 0],
+      [-6, 4, 'track-straight', 16],
+      [-7, 4, 'track-bump', 16],
+      [-8, 4, 'track-straight', 16],
+      [-9, 4, 'track-straight', 16],
+      [-10, 4, 'track-corner', 10],
+      [-10, 3, 'track-straight', 10],
+      [-10, 2, 'track-bump', 10],
+      [-10, 1, 'track-straight', 10],
+      [-10, 0, 'track-straight', 10],
+      [-10, -1, 'track-bump', 10],
+      [-10, -2, 'track-straight', 10],
+      [-10, -3, 'track-straight', 10],
+      [-10, -4, 'track-corner', 16],
+      [-9, -4, 'track-straight', 22],
+      [-8, -4, 'track-corner', 22],
+      [-8, -5, 'track-straight', 10],
+      [-8, -6, 'track-corner', 16],
+      [-7, -6, 'track-straight', 22],
+      [-6, -6, 'track-bump', 22],
+      [-5, -6, 'track-straight', 22],
+      [-4, -6, 'track-straight', 22],
+      [-3, -6, 'track-bump', 22],
+      [-2, -6, 'track-straight', 22],
+      [-1, -6, 'track-straight', 22],
+      [0, -6, 'track-straight', 22],
+      [1, -6, 'track-bump', 22],
+      [2, -6, 'track-straight', 22],
+      [3, -6, 'track-corner', 0],
+      [3, -5, 'track-straight', 0],
+      [3, -4, 'track-bump', 0],
+      [3, -3, 'track-straight', 0],
+      [3, -2, 'track-corner', 22],
+      [2, -2, 'track-straight', 16],
+      [1, -2, 'track-straight', 16],
+      [0, -2, 'track-corner', 16],
+      [0, -1, 'track-straight', 0],
+    ],
+    extraDecos: [
+      [-4, 0, 'decoration-tents', 16],
+      [-6, 0, 'decoration-tents', 0],
+      [-3, -2, 'decoration-tents', 10],
+      [1, 1, 'decoration-tents', 22],
     ],
   },
 };
@@ -135,8 +298,8 @@ function placeModel(source, parent, x, y, z, yawRad) {
   return root;
 }
 
-export function buildTrack(parent, sources, trackId = 'classic') {
-  const def = TRACK_DEFINITIONS[trackId] || TRACK_DEFINITIONS.classic;
+export function buildTrack(parent, sources, trackId = 'level-1') {
+  const def = TRACK_DEFINITIONS[trackId] || TRACK_DEFINITIONS['level-1'];
   const trackCells = def.cells;
 
   const trackGroup = new Container3D();
@@ -160,7 +323,6 @@ export function buildTrack(parent, sources, trackId = 'classic') {
     placeModel(source, trackGroup, px, 0.5, pz, yaw);
   }
 
-  // Track occupied cells & bounds
   const occupied = new Set();
   let minX = Infinity;
   let maxX = -Infinity;
@@ -189,7 +351,8 @@ export function buildTrack(parent, sources, trackId = 'classic') {
     placeModel(source, trackGroup, px, 0.5, pz, yaw);
   }
 
-  const pad = 4;
+  // Keep padding at 2 on larger tracks to preserve crisp 60 FPS performance
+  const pad = trackCells.length >= 28 ? 2 : 3;
 
   for (let gz = minZ - pad; gz <= maxZ + pad; gz++) {
     for (let gx = minX - pad; gx <= maxX + pad; gx++) {
@@ -208,7 +371,7 @@ export function buildTrack(parent, sources, trackId = 'classic') {
       if (dist <= 1) {
         const h = pseudoHash(gx, gz);
 
-        if (h % 7 === 0) {
+        if (h % 8 === 0) {
           key = 'decoration-tents';
           yawQuarters = h % 4;
         } else {
@@ -223,10 +386,8 @@ export function buildTrack(parent, sources, trackId = 'classic') {
     }
   }
 
-  // Walls + subtle physical bumps
   const walls = buildWallColliders(trackCells);
 
-  // Finish line frame for lap detection
   const finishCell = trackCells.find(([, , key]) => key === 'track-finish');
   const finishOrient = finishCell[3];
   const finishYaw = ((ORIENT_DEG[finishOrient] ?? 0) * Math.PI) / 180;
@@ -324,7 +485,6 @@ function buildWallColliders(trackCells) {
         });
       }
 
-      // Gentle physical ridge across bump pieces for realistic suspension hop
       if (key === 'track-bump') {
         walls.push({
           halfExtents: [3.8 * S, 0.055, 0.42],

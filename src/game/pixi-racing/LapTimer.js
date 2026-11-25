@@ -53,7 +53,7 @@ export class LapTimer {
   container;
 
   _track;
-  _storageKey = `${STORAGE_PREFIX}classic`;
+  _storageKey = `${STORAGE_PREFIX}level-1`;
 
   _lap = 1;
   _bestLap;
@@ -75,14 +75,11 @@ export class LapTimer {
 
   onLapCompleted = null;
 
-  constructor(track, trackId = 'classic') {
+  constructor(track, trackId = 'level-1') {
     ensureFont();
 
     this._track = track;
-    this._storageKey =
-      trackId === 'classic'
-        ? `${STORAGE_PREFIX}default`
-        : `${STORAGE_PREFIX}${trackId}`;
+    this._storageKey = `${STORAGE_PREFIX}${trackId}`;
     this._bestLap = loadBest(this._storageKey);
 
     this.container = new Container();
@@ -155,12 +152,9 @@ export class LapTimer {
     this.container.addChild(this._bestText);
   }
 
-  setTrack(track, trackId = 'classic') {
+  setTrack(track, trackId = 'level-1') {
     this._track = track;
-    this._storageKey =
-      trackId === 'classic'
-        ? `${STORAGE_PREFIX}default`
-        : `${STORAGE_PREFIX}${trackId}`;
+    this._storageKey = `${STORAGE_PREFIX}${trackId}`;
     this._bestLap = loadBest(this._storageKey);
     this.resetAll();
   }

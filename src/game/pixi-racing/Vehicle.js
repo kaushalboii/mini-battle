@@ -3,8 +3,8 @@ import { rigidBody } from 'crashcat';
 
 import { clamp, lerp } from './MathUtils';
 
-const LINEAR_DAMP = 0.1;
-export const MAX_SPEED = 1.5;
+const LINEAR_DAMP = 0.09;
+export const MAX_SPEED = 1.85;
 
 const DEFAULT_SPAWN = [3.5, 0.5, 5];
 
@@ -161,7 +161,7 @@ export class Vehicle {
       const cross = _forward.x * this.inputZ - _forward.z * this.inputX;
 
       this.inputX = clamp(-cross * 2, -1, 1);
-      this.linearSpeed = lerp(this.linearSpeed, MAX_SPEED, dt * 1.5);
+      this.linearSpeed = lerp(this.linearSpeed, MAX_SPEED, dt * 1.35);
     } else {
       let direction = Math.sign(this.linearSpeed);
 
@@ -179,20 +179,21 @@ export class Vehicle {
       if (targetSpeed < 0 && this.linearSpeed > 0.01) {
         this.linearSpeed = lerp(this.linearSpeed, 0, dt * 8);
       } else if (targetSpeed < 0) {
-        this.linearSpeed = lerp(this.linearSpeed, targetSpeed / 2, dt * 2);
+        this.linearSpeed = lerp(this.linearSpeed, targetSpeed * 0.55, dt * 2.2);
       } else {
+        // Low gears launch punchy; top gears build up smoothly onto long straights
+        const speedNorm = clamp(this.linearSpeed / MAX_SPEED, 0, 1);
+        const accelRate = lerp(1.65, 0.95, speedNorm);
         this.linearSpeed = lerp(
           this.linearSpeed,
           targetSpeed * MAX_SPEED,
-          dt * 1.5,
+          dt * accelRate,
         );
       }
     }
 
     this.linearSpeed *= Math.max(0, 1 - LINEAR_DAMP * dt);
 
-    // Drive: spin the rolling sphere about the truck's right vector (world X
-    // turned by yaw), as the three.js port does.
     const rightX = Math.cos(this.yaw);
     const rightZ = -Math.sin(this.yaw);
     const drive = this.linearSpeed * 100 * dt;
@@ -256,12 +257,13 @@ export class Vehicle {
 
     this._bodyPitch = lerpAngle(
       this._bodyPitch,
-      -(this.linearSpeed - this.acceleration) / 6,
+      -(this.linearSpeed - this.acceleration) / 7,
       dt * 10,
     );
+    const cappedSpeed = clamp(this.linearSpeed, -1.5, 1.5);
     this._bodyRoll = lerpAngle(
       this._bodyRoll,
-      -(this.inputX / 5) * this.linearSpeed,
+      -(this.inputX / 5) * cappedSpeed,
       dt * 5,
     );
 

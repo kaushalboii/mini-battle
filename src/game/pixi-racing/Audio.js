@@ -1,16 +1,19 @@
 import { sound } from './manifest';
 import { clamp, lerp } from './MathUtils';
 
-const NUM_GEARS = 3;
-const UPSHIFT_RPM = 0.92;
-const DOWNSHIFT_RPM = 0.35;
-const SHIFT_COOLDOWN = 0.35;
+const NUM_GEARS = 6;
+const GEAR_MIN = [0.0, 0.14, 0.28, 0.44, 0.62, 0.80];
+const GEAR_MAX = [0.19, 0.34, 0.50, 0.68, 0.86, 1.04];
 
-const PITCH_LOW = [1.05, 1.25, 1.4];
-const PITCH_HIGH = [3.5, 2.9, 2.3];
+const UPSHIFT_RPM = 0.90;
+const DOWNSHIFT_RPM = 0.33;
+const SHIFT_COOLDOWN = 0.22;
+
+const PITCH_LOW = [0.95, 1.08, 1.18, 1.26, 1.34, 1.42];
+const PITCH_HIGH = [2.65, 2.52, 2.42, 2.34, 2.26, 2.18];
 
 const FILTER_CUTOFF_MIN = 700;
-const FILTER_CUTOFF_MAX = 7000;
+const FILTER_CUTOFF_MAX = 7200;
 
 function remap(value, inMin, inMax, outMin, outMax) {
   return outMin + ((outMax - outMin) * (value - inMin)) / (inMax - inMin);
@@ -168,39 +171,53 @@ export class GameAudio {
     this._skid.gain.gain.value = 0;
   }
 
-  update(dt, speed, throttle, driftIntensity) {
-    if (!this._started) return;
+  resetGearbox() {
+    this._gear = 0;
+    this._rpm = 0;
+    this._shiftCooldown = 0;
+  }
 
-    const absSpeed = clamp(Math.abs(speed), 0, 1);
+  update(dt, speed, throttle, driftIntensity) {
+    const absSpeed = clamp(Math.abs(speed), 0, 1.05);
     const load = clamp(Math.max(0, throttle), 0, 1);
 
-    const gearWindow = 1 / NUM_GEARS;
-    const gearStart = this._gear * gearWindow;
-    const inGear = clamp((absSpeed - gearStart) / gearWindow, 0, 1);
+    // Always compute 6-gear transmission state even before audio unlock so HUD gears work 100%
+    const gMin = GEAR_MIN[this._gear];
+    const gMax = GEAR_MAX[this._gear];
+    const inGear = clamp((absSpeed - gMin) / Math.max(0.05, gMax - gMin), 0, 1);
 
-    let targetRpm = inGear * 0.85 + load * 0.2;
+    let targetRpm = inGear * 0.86 + load * 0.18;
+    targetRpm = clamp(targetRpm, 0.08, 1.05);
 
-    targetRpm = clamp(targetRpm, 0, 1.05);
-
-    const riseRate = 4;
-    const fallRate = 4;
-    const rate = targetRpm > this._rpm ? riseRate * (0.3 + load) : fallRate;
+    const riseRate = 4.8;
+    const fallRate = 4.2;
+    const rate = targetRpm > this._rpm ? riseRate * (0.35 + load) : fallRate;
 
     this._rpm = lerp(this._rpm, targetRpm, Math.min(1, dt * rate));
-
     this._shiftCooldown = Math.max(0, this._shiftCooldown - dt);
 
-    if (this._shiftCooldown === 0) {
-      if (this._rpm > UPSHIFT_RPM && this._gear < NUM_GEARS - 1 && load > 0.1) {
+    if (absSpeed < 0.02 && load < 0.05) {
+      this._gear = 0;
+    } else if (this._shiftCooldown === 0) {
+      if (
+        (this._rpm > UPSHIFT_RPM || absSpeed > gMax * 0.98) &&
+        this._gear < NUM_GEARS - 1 &&
+        load > 0.08
+      ) {
         this._gear++;
-        this._rpm = 0.45;
+        this._rpm = 0.46;
         this._shiftCooldown = SHIFT_COOLDOWN;
-      } else if (this._rpm < DOWNSHIFT_RPM && this._gear > 0) {
+      } else if (
+        (this._rpm < DOWNSHIFT_RPM || absSpeed < gMin * 0.88) &&
+        this._gear > 0
+      ) {
         this._gear--;
         this._rpm = 0.78;
         this._shiftCooldown = SHIFT_COOLDOWN;
       }
     }
+
+    if (!this._started) return;
 
     const targetVol = remap(absSpeed + load * 0.5, 0, 1.5, 0.02, 0.25);
 
@@ -216,7 +233,7 @@ export class GameAudio {
     const pitch = lerp(
       PITCH_LOW[this._gear],
       PITCH_HIGH[this._gear],
-      this._rpm,
+      clamp(this._rpm, 0, 1),
     );
 
     if (this._engine.source) this._engine.source.playbackRate.value = pitch;
@@ -248,7 +265,7 @@ export class GameAudio {
     this._skid.currentVolume = lerp(this._skid.currentVolume, skidVol, dt * 10);
     this._skid.gain.gain.value = this._skid.currentVolume;
 
-    const skidPitch = clamp(Math.abs(speed), 1, 3);
+    const skidPitch = clamp(absSpeed * 2.2, 1, 3);
 
     this._skid.currentPitch = lerp(this._skid.currentPitch, skidPitch, 0.1);
     if (this._skid.source)

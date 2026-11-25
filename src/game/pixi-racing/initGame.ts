@@ -118,7 +118,7 @@ export async function initRacingGame(
     exposure: 1.0,
     environment: { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1 },
     background: 0xadb2ba,
-    fog: { type: 'linear', color: 0xadb2ba, near: 30, far: 55 },
+    fog: { type: 'linear', color: 0xadb2ba, near: 42, far: 82 },
   });
 
   app.stage.addChild(view3d);
@@ -144,9 +144,9 @@ export async function initRacingGame(
   sun.lookAt({ x: 0, y: 0, z: 0 });
   view3d.root.addChild(sun);
 
-  // Ground plane
+  // Expanded Ground plane covering up to Level 5 Apex Marathon bounds
   const ground = new Mesh3D({
-    geometry: new PlaneGeometry({ width: 200, height: 200 }),
+    geometry: new PlaneGeometry({ width: 320, height: 320 }),
     material: new Material3D({
       baseColor: 0x6b7268,
       metallic: 0.0,
@@ -157,16 +157,16 @@ export async function initRacingGame(
   });
 
   ground.rotation.set(-Math.PI / 2, 0, 0);
-  ground.position.set(0, -0.13, 0);
+  ground.position.set(-30, -0.13, 0);
   view3d.root.addChild(ground);
 
-  // Track
-  let currentTrackId = 'classic';
+  // Track (defaults to Level 1)
+  let currentTrackId = 'level-1';
   let track = buildTrack(view3d.root, sources, currentTrackId);
 
-  // Physics
+  // Physics covering huge multi-level terrain
   const physics = new PhysicsWorld(new Vector3(track.spawn[0], track.spawn[1], track.spawn[2]));
-  physics.addStaticGround([0, -0.125, 0], [80, 0.01, 80]);
+  physics.addStaticGround([-30, -0.125, 0], [160, 0.01, 160]);
   physics.rebuildWalls(track.walls);
 
   // Audio
@@ -182,7 +182,7 @@ export async function initRacingGame(
   window.addEventListener('keydown', unlockAudio);
   window.addEventListener('pointerdown', unlockAudio);
 
-  // Vehicle (single persistent Vehicle instance whose Model3D swaps cleanly)
+  // Vehicle
   let currentColorKey = 'vehicle-truck-yellow';
   const vehicle = new Vehicle(sources[currentColorKey], physics, track.spawn, track.spawnYaw);
   view3d.root.addChild(vehicle.container);
@@ -232,9 +232,7 @@ export async function initRacingGame(
     const dt = Math.min(app.ticker.deltaMS / 1000, 1 / 30);
     elapsedTime += dt;
 
-    if (pendingRemotePlayers.length > 0 || rivalsManager) {
-      rivalsManager.syncRemotePlayers(pendingRemotePlayers, dt);
-    }
+    rivalsManager.syncRemotePlayers(pendingRemotePlayers, dt);
 
     if (isGamePaused) {
       audio.silence();
@@ -306,6 +304,7 @@ export async function initRacingGame(
       track = buildTrack(view3d.root, sources, trackId);
       physics.rebuildWalls(track.walls);
       vehicle.setSpawn(track.spawn, track.spawnYaw);
+      audio.resetGearbox();
       driftMarks.clear();
       lapTimer.setTrack(track, trackId);
       rivalsManager.setTrack(track);
@@ -328,6 +327,7 @@ export async function initRacingGame(
     },
     resetPosition() {
       vehicle.reset();
+      audio.resetGearbox();
       lapTimer.resetCurrentLap();
       rivalsManager.resetAiToGrid();
       followCamera.resetTracking();
@@ -347,9 +347,9 @@ export async function initRacingGame(
       }
     },
     getTelemetry(): RaceTelemetry {
-      const speedRatio = Math.min(1.1, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
-      const mph = Math.round(speedRatio * 112);
-      const kmh = Math.round(speedRatio * 180);
+      const speedRatio = Math.min(1.06, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
+      const mph = Math.round(speedRatio * 142);
+      const kmh = Math.round(speedRatio * 228);
       const lapStats = lapTimer.getStats();
 
       return {

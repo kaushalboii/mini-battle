@@ -130,7 +130,7 @@ export class FollowCamera {
   }
 
   _updateChase(dt, target, _velocity, yaw, speed, dist, height, baseFov, lookAhead, lookY) {
-    const targetFov = baseFov + clamp(Math.abs(speed), 0, 1.5) * 6;
+    const targetFov = baseFov + clamp(Math.abs(speed), 0, 1.85) * 6;
     this.camera.fov = lerp(this.camera.fov, targetFov, Math.min(1, dt * 4));
 
     const yawAlpha = this._initialized ? 1 - Math.exp(-dt * 6.5) : 1;
@@ -171,7 +171,7 @@ export class FollowCamera {
   }
 
   _updateHood(dt, target, yaw, speed) {
-    const targetFov = 62 + clamp(Math.abs(speed), 0, 1.5) * 8;
+    const targetFov = 62 + clamp(Math.abs(speed), 0, 1.85) * 7.5;
     this.camera.fov = lerp(this.camera.fov, targetFov, Math.min(1, dt * 4));
 
     this._smoothedYaw = yaw;

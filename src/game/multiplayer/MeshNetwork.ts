@@ -72,7 +72,7 @@ export class MeshNetworkManager {
   private isHost = false;
   private localId = '';
   private driverName = 'RACER-1';
-  private trackId = 'classic';
+  private trackId = 'level-1';
   private error: string | null = null;
 
   private onStateChange?: (snap: MeshStateSnapshot) => void;
