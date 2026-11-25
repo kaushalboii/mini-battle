@@ -1,9 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  initRacingGame,
-  type GameInstance,
-  type RaceTelemetry,
-} from "../game/pixi-racing/initGame";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { initRacingGame, type GameInstance } from "../game/pixi-racing/initGame";
 import { CAMERA_MODES } from "../game/pixi-racing/Camera";
 import { TRACK_DEFINITIONS } from "../game/pixi-racing/Track";
 import {
@@ -44,6 +40,12 @@ export default function RacingGame() {
   const gameRef = useRef<GameInstance | null>(null);
   const meshRef = useRef<MeshNetworkManager | null>(null);
 
+  // Direct DOM refs so 60fps HUD updates cause ZERO React re-renders
+  const speedValRef = useRef<HTMLDivElement>(null);
+  const gearBadgeRef = useRef<HTMLDivElement>(null);
+  const rpmFillRef = useRef<HTMLDivElement>(null);
+  const minimapPlayerRef = useRef<SVGCircleElement>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadLabel, setLoadLabel] = useState("Initializing PixiJS 3D...");
@@ -69,6 +71,17 @@ export default function RacingGame() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isGtaMenuOpen, setIsGtaMenuOpen] = useState(true);
 
+  const [lapStats, setLapStats] = useState({
+    bestLapFormatted: "--:--.--",
+    lastLapFormatted: "--:--.--",
+  });
+
+  // Minimap geometry rebuilt ONLY when track switches (not per frame)
+  const [minimapGeo, setMinimapGeo] = useState<{
+    points: string;
+    viewBox: string;
+  }>({ points: "", viewBox: "-45 -30 60 60" });
+
   const [urlRoomCode] = useState<string>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -84,26 +97,6 @@ export default function RacingGame() {
     urlRoomCode ? "MULTIPLAYER" : "PLAY"
   );
 
-  const [telemetry, setTelemetry] = useState<RaceTelemetry>({
-    speedNormalized: 0,
-    mph: 0,
-    kmh: 0,
-    gear: 0,
-    rpm: 0,
-    lap: 1,
-    currentLapTime: 0,
-    lastLapFormatted: "--:--.--",
-    bestLapFormatted: "--:--.--",
-    bestLap: null,
-    x: 3.5,
-    y: 0,
-    z: 5,
-    yaw: 0,
-    trackId: "level-1",
-    waypoints: [],
-    bounds: { minX: -45, maxX: 8, minZ: -30, maxZ: 30 },
-  });
-
   const [meshState, setMeshState] = useState<MeshStateSnapshot>({
     status: "offline",
     roomCode: "",
@@ -116,12 +109,37 @@ export default function RacingGame() {
     error: null,
   });
 
+  const isTouchDevice = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || navigator.maxTouchPoints > 0),
+    []
+  );
+
+  const syncTrackAndLapMeta = (instance: GameInstance | null) => {
+    if (!instance) return;
+    const t = instance.getTelemetry();
+    setLapStats({
+      bestLapFormatted: t.bestLapFormatted,
+      lastLapFormatted: t.lastLapFormatted,
+    });
+    if (t.waypoints.length > 0) {
+      setMinimapGeo({
+        points: t.waypoints.map((w) => `${w.x.toFixed(1)},${w.z.toFixed(1)}`).join(" "),
+        viewBox: `${t.bounds.minX - 6} ${t.bounds.minZ - 6} ${
+          t.bounds.maxX - t.bounds.minX + 12
+        } ${t.bounds.maxZ - t.bounds.minZ + 12}`,
+      });
+    }
+  };
+
   useEffect(() => {
     const mesh = new MeshNetworkManager(
       (snap) => setMeshState(snap),
       (syncedTrackId) => {
         setSelectedTrack(syncedTrackId);
         gameRef.current?.setTrack(syncedTrackId);
+        syncTrackAndLapMeta(gameRef.current);
       }
     );
     meshRef.current = mesh;
@@ -153,7 +171,7 @@ export default function RacingGame() {
         instance.setAudioMuted(isMuted);
         instance.setTouchMode(touchMode);
         instance.setPaused(isGtaMenuOpen);
-        setTelemetry(instance.getTelemetry());
+        syncTrackAndLapMeta(instance);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -174,19 +192,49 @@ export default function RacingGame() {
   useEffect(() => {
     if (gameRef.current) {
       gameRef.current.setPaused(isGtaMenuOpen);
-      setTelemetry(gameRef.current.getTelemetry());
+      if (isGtaMenuOpen) {
+        syncTrackAndLapMeta(gameRef.current);
+      }
     }
   }, [isGtaMenuOpen]);
 
+  // Direct DOM HUD & Mesh pose loop — ZERO React state updates per frame
   useEffect(() => {
     let animId: number;
     let lastMeshSend = 0;
+    let lastSpeedShown = -1;
+    let lastGearShown = -1;
+    let lastRpmShown = -1;
 
     const tickHud = (now: number) => {
       const game = gameRef.current;
-      if (game) {
+      if (game && !isGtaMenuOpen) {
         const snap = game.getTelemetry();
-        setTelemetry(snap);
+
+        const spd = speedUnit === "MPH" ? snap.mph : snap.kmh;
+        if (spd !== lastSpeedShown && speedValRef.current) {
+          lastSpeedShown = spd;
+          speedValRef.current.textContent = String(spd);
+        }
+
+        if (snap.gear !== lastGearShown && gearBadgeRef.current) {
+          lastGearShown = snap.gear;
+          gearBadgeRef.current.textContent = `GEAR ${
+            snap.gear === 0 ? "N" : snap.gear
+          } / 6`;
+        }
+
+        const rpmPct =
+          snap.gear === 0 ? 0 : Math.min(100, Math.round(snap.rpm * 100));
+        if (rpmPct !== lastRpmShown && rpmFillRef.current) {
+          lastRpmShown = rpmPct;
+          rpmFillRef.current.style.width = `${rpmPct}%`;
+        }
+
+        if (minimapPlayerRef.current) {
+          minimapPlayerRef.current.setAttribute("cx", snap.x.toFixed(1));
+          minimapPlayerRef.current.setAttribute("cy", snap.z.toFixed(1));
+        }
 
         const mesh = meshRef.current;
         if (mesh) {
@@ -200,7 +248,7 @@ export default function RacingGame() {
                 y: snap.y,
                 z: snap.z,
                 yaw: snap.yaw,
-                speed: snap.speedNormalized * 1.85,
+                speed: snap.speedNormalized * 1.75,
                 color: selectedColor,
                 lap: snap.lap,
                 bestLap: snap.bestLap,
@@ -216,13 +264,13 @@ export default function RacingGame() {
 
     animId = requestAnimationFrame(tickHud);
     return () => cancelAnimationFrame(animId);
-  }, [selectedColor]);
+  }, [isGtaMenuOpen, speedUnit, selectedColor]);
 
   const showToast = (msg: string) => {
     setCamToast(msg);
     setTimeout(() => {
       setCamToast((cur) => (cur === msg ? null : cur));
-    }, 1500);
+    }, 1400);
   };
 
   const handleReset = () => {
@@ -260,7 +308,7 @@ export default function RacingGame() {
     setSelectedTrack(trackId);
     gameRef.current?.setTrack(trackId);
     meshRef.current?.setTrackId(trackId);
-    if (gameRef.current) setTelemetry(gameRef.current.getTelemetry());
+    syncTrackAndLapMeta(gameRef.current);
     const info =
       TRACK_DEFINITIONS[trackId as keyof typeof TRACK_DEFINITIONS];
     if (info) showToast(info.shortName);
@@ -341,12 +389,9 @@ export default function RacingGame() {
 
   const currentCamInfo =
     CAMERA_MODES.find((m) => m.key === cameraMode) || CAMERA_MODES[0];
-  const displaySpeed = speedUnit === "MPH" ? telemetry.mph : telemetry.kmh;
-  const displayGear = telemetry.gear === 0 ? "N" : String(telemetry.gear);
-  const rpmPercent =
-    telemetry.gear === 0 ? 0 : Math.min(100, Math.round(telemetry.rpm * 100));
   const isMeshOnline =
     meshState.status === "hosting" || meshState.status === "connected";
+  const liftForPedals = isTouchDevice && touchMode === "pedals";
 
   return (
     <div className="racing-root">
@@ -357,9 +402,7 @@ export default function RacingGame() {
           <div className="gta-loading-card">
             <div className="gta-loading-spinner" />
             <h2 className="gta-loading-title">MINI BATTLE</h2>
-            <p className="gta-loading-subtitle">
-              6-SPEED 3D RACING • PIXI 3D
-            </p>
+            <p className="gta-loading-subtitle">6-SPEED 3D RACING • PIXI 3D</p>
             <div className="gta-progress-track">
               <div
                 className="gta-progress-fill"
@@ -446,12 +489,15 @@ export default function RacingGame() {
               </button>
 
               <button
-                className="gta-hud-btn gta-hud-btn-sq"
+                className="gta-hud-btn"
                 onClick={handleToggleMute}
                 onMouseEnter={() => GtaAudio.playHover()}
                 title="Toggle Sound (M)"
               >
-                {isMuted ? "🔇" : "🔊"}
+                <span className="gta-btn-key">M</span>
+                <span className="gta-btn-label">
+                  {isMuted ? "MUTED" : "SFX"}
+                </span>
               </button>
 
               <button
@@ -465,21 +511,16 @@ export default function RacingGame() {
             </div>
           </div>
 
-          {/* Minimal Corner Track Outline Map */}
-          {telemetry.waypoints.length > 0 && (
-            <div className="hud-minimap-card">
-              <svg
-                viewBox={`${telemetry.bounds.minX - 6} ${telemetry.bounds.minZ - 6} ${
-                  telemetry.bounds.maxX - telemetry.bounds.minX + 12
-                } ${telemetry.bounds.maxZ - telemetry.bounds.minZ + 12}`}
-                className="hud-minimap-svg"
-              >
+          {/* Static Polygon + Single Ref-Updated Car Dot */}
+          {minimapGeo.points && (
+            <div
+              className={`hud-minimap-card ${liftForPedals ? "lifted" : ""}`}
+            >
+              <svg viewBox={minimapGeo.viewBox} className="hud-minimap-svg">
                 <polygon
-                  points={telemetry.waypoints
-                    .map((w) => `${w.x},${w.z}`)
-                    .join(" ")}
+                  points={minimapGeo.points}
                   fill="none"
-                  stroke="rgba(255,255,255,0.28)"
+                  stroke="rgba(255,255,255,0.34)"
                   strokeWidth="4.6"
                   strokeLinejoin="round"
                 />
@@ -495,8 +536,9 @@ export default function RacingGame() {
                     />
                   ))}
                 <circle
-                  cx={telemetry.x}
-                  cy={telemetry.z}
+                  ref={minimapPlayerRef}
+                  cx={3.5}
+                  cy={5}
                   r="3.2"
                   fill="#facc15"
                   stroke="#000"
@@ -506,22 +548,30 @@ export default function RacingGame() {
             </div>
           )}
 
-          {/* 6-Speed Speedometer & Live RPM Bar */}
-          <div className="gta-hud-speedometer">
-            <div className="gta-speed-value">{displaySpeed}</div>
+          {/* Ref-Updated 6-Speed Speedometer & Live RPM Bar */}
+          <div
+            className={`gta-hud-speedometer ${
+              liftForPedals ? "lifted-right" : ""
+            }`}
+          >
+            <div ref={speedValRef} className="gta-speed-value">
+              0
+            </div>
             <div className="gta-speed-unit">{speedUnit}</div>
-            <div className="gta-gear-badge">GEAR {displayGear} / 6</div>
+            <div ref={gearBadgeRef} className="gta-gear-badge">
+              GEAR N / 6
+            </div>
             <div className="gta-speed-bar">
               <div
+                ref={rpmFillRef}
                 className="gta-speed-fill"
-                style={{ width: `${rpmPercent}%` }}
+                style={{ width: "0%" }}
               />
             </div>
           </div>
         </>
       )}
 
-      {/* Streamlined Menu */}
       {!isLoading && (
         <GtaMenu
           isOpen={isGtaMenuOpen}
@@ -536,9 +586,12 @@ export default function RacingGame() {
           onSelectTrack={handleSelectTrack}
           raceMode={raceMode}
           onSelectRaceMode={handleSelectRaceMode}
-          bestLapFormatted={telemetry.bestLapFormatted}
-          lastLapFormatted={telemetry.lastLapFormatted}
-          onClearBestLap={() => gameRef.current?.clearBestLap()}
+          bestLapFormatted={lapStats.bestLapFormatted}
+          lastLapFormatted={lapStats.lastLapFormatted}
+          onClearBestLap={() => {
+            gameRef.current?.clearBestLap();
+            syncTrackAndLapMeta(gameRef.current);
+          }}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
           speedUnit={speedUnit}

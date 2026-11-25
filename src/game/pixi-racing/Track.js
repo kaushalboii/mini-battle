@@ -8,7 +8,9 @@ const GRID_SCALE = 0.75;
 /**
  * 5 Progressive Large Circuits (Level 1 -> Level 5).
  * Every track starts cleanly at [0, 0, 'track-finish', 0] heading South (+Z)
- * and closes into a mathematically continuous loop.
+ * and forms a mathematically closed continuous loop.
+ * `track-bump` cells render BOTH full 10x10 `track-straight` road tiles AND
+ * the raised `track-bump` speed ramp mound seated cleanly on the asphalt.
  */
 export const TRACK_DEFINITIONS = {
   'level-1': {
@@ -287,8 +289,21 @@ function pieceWorldPosition(gx, gz) {
 const _q = new Quaternion();
 const _yAxis = new Vector3(0, 1, 0);
 
-function placeModel(source, parent, x, y, z, yawRad) {
-  const root = new Model3D(source);
+function placeModel(
+  source,
+  parent,
+  x,
+  y,
+  z,
+  yawRad,
+  castShadow = true,
+  receiveShadow = true,
+) {
+  const root = new Model3D({
+    source,
+    castShadow,
+    receiveShadow,
+  });
 
   root.position.set(x, y, z);
   _q.setFromAxisAngle(_yAxis, yawRad);
@@ -296,6 +311,67 @@ function placeModel(source, parent, x, y, z, yawRad) {
   parent.addChild(root);
 
   return root;
+}
+
+/**
+ * Computes subdivided centerline waypoints (including smooth arcs through corners)
+ * so both the minimap SVG and AI rivals trace the real road geometry accurately.
+ */
+function buildSmoothWaypoints(trackCells) {
+  const S = GRID_SCALE;
+  const CELL_HALF = CELL_RAW / 2;
+  const ARC_CENTER_X = -CELL_HALF;
+  const ARC_CENTER_Z = CELL_HALF;
+  const ARC_SPAN = -Math.PI / 2;
+  const CENTER_R = CELL_HALF * S;
+
+  const waypoints = [];
+
+  for (let i = 0; i < trackCells.length; i++) {
+    const [gx, gz, key, orient] = trackCells[i];
+    const center = pieceWorldPosition(gx, gz);
+
+    if (key !== 'track-corner') {
+      waypoints.push({ x: center.x, z: center.z });
+      continue;
+    }
+
+    const prevCell = trackCells[(i - 1 + trackCells.length) % trackCells.length];
+    const prevCenter = pieceWorldPosition(prevCell[0], prevCell[1]);
+
+    const deg = ORIENT_DEG[orient] ?? 0;
+    const rad = (deg * Math.PI) / 180;
+    const cr = Math.cos(rad);
+    const sr = Math.sin(rad);
+
+    const wcx = center.x + (ARC_CENTER_X * cr + ARC_CENTER_Z * sr) * S;
+    const wcz = center.z + (-ARC_CENTER_X * sr + ARC_CENTER_Z * cr) * S;
+    const arcStart = -rad;
+    const arcEnd = arcStart + ARC_SPAN;
+
+    const pStart = {
+      x: wcx + CENTER_R * Math.cos(arcStart),
+      z: wcz + CENTER_R * Math.sin(arcStart),
+    };
+    const pEnd = {
+      x: wcx + CENTER_R * Math.cos(arcEnd),
+      z: wcz + CENTER_R * Math.sin(arcEnd),
+    };
+
+    const dStart = Math.hypot(pStart.x - prevCenter.x, pStart.z - prevCenter.z);
+    const dEnd = Math.hypot(pEnd.x - prevCenter.x, pEnd.z - prevCenter.z);
+
+    const samples = dStart <= dEnd ? [0.22, 0.5, 0.78] : [0.78, 0.5, 0.22];
+    for (const t of samples) {
+      const a = arcStart + t * ARC_SPAN;
+      waypoints.push({
+        x: wcx + CENTER_R * Math.cos(a),
+        z: wcz + CENTER_R * Math.sin(a),
+      });
+    }
+  }
+
+  return waypoints;
 }
 
 export function buildTrack(parent, sources, trackId = 'level-1') {
@@ -307,21 +383,34 @@ export function buildTrack(parent, sources, trackId = 'level-1') {
   trackGroup.position.set(0, -0.5, 0);
   parent.addChild(trackGroup);
 
-  const waypoints = [];
-
   for (const [gx, gz, key, orient] of trackCells) {
-    const wp = pieceWorldPosition(gx, gz);
-    waypoints.push({ x: wp.x, z: wp.z, key, orient });
-
-    const source = sources[key];
-    if (!source) continue;
-
     const px = (gx + 0.5) * CELL_RAW;
     const pz = (gz + 0.5) * CELL_RAW;
     const yaw = ((ORIENT_DEG[orient] ?? 0) * Math.PI) / 180;
 
-    placeModel(source, trackGroup, px, 0.5, pz, yaw);
+    if (key === 'track-bump') {
+      // 1. Place the FULL 10x10 straight asphalt tile cleanly underneath
+      if (sources['track-straight']) {
+        placeModel(sources['track-straight'], trackGroup, px, 0.5, pz, yaw, false, true);
+      }
+      // 2. Seat the speed bump obstacle directly on the asphalt surface
+      if (sources['track-bump']) {
+        const bump = placeModel(sources['track-bump'], trackGroup, px, 0.5, pz, yaw, true, true);
+        // Flatten & widen cleanly across the lane so the truck drives right over it
+        bump.scale.set(2.2, 0.55, 0.85);
+      }
+      continue;
+    }
+
+    const source = sources[key];
+    if (!source) continue;
+
+    // Only finish arch needs castShadow on track tiles; roads only receiveShadow
+    const casts = key === 'track-finish';
+    placeModel(source, trackGroup, px, 0.5, pz, yaw, casts, true);
   }
+
+  const waypoints = buildSmoothWaypoints(trackCells);
 
   const occupied = new Set();
   let minX = Infinity;
@@ -348,11 +437,11 @@ export function buildTrack(parent, sources, trackId = 'level-1') {
     const pz = (gz + 0.5) * CELL_RAW;
     const yaw = ((ORIENT_DEG[orient] ?? 0) * Math.PI) / 180;
 
-    placeModel(source, trackGroup, px, 0.5, pz, yaw);
+    placeModel(source, trackGroup, px, 0.5, pz, yaw, true, true);
   }
 
-  // Keep padding at 2 on larger tracks to preserve crisp 60 FPS performance
-  const pad = trackCells.length >= 28 ? 2 : 3;
+  // Fill surrounding terrain cleanly up to fog boundary with low shadow cost
+  const pad = 4;
 
   for (let gz = minZ - pad; gz <= maxZ + pad; gz++) {
     for (let gx = minX - pad; gx <= maxX + pad; gx++) {
@@ -365,24 +454,40 @@ export function buildTrack(parent, sources, trackId = 'level-1') {
       const px = (gx + 0.5) * CELL_RAW;
       const pz = (gz + 0.5) * CELL_RAW;
 
-      let key = 'decoration-forest';
+      let key = 'decoration-empty';
       let yawQuarters = 0;
+      let castShadow = false;
 
       if (dist <= 1) {
         const h = pseudoHash(gx, gz);
-
         if (h % 8 === 0) {
           key = 'decoration-tents';
           yawQuarters = h % 4;
+          castShadow = true;
         } else {
           key = 'decoration-empty';
         }
+      } else if (dist === 2 || dist === 3) {
+        key = 'decoration-forest';
+        castShadow = dist === 2;
+      } else {
+        // Outer pad uses lightweight empty meadow tiles so fog never hits an abrupt cliff
+        key = 'decoration-empty';
       }
 
       const source = sources[key];
       if (!source) continue;
 
-      placeModel(source, trackGroup, px, 0.5, pz, (yawQuarters * Math.PI) / 2);
+      placeModel(
+        source,
+        trackGroup,
+        px,
+        0.5,
+        pz,
+        (yawQuarters * Math.PI) / 2,
+        castShadow,
+        true,
+      );
     }
   }
 
@@ -487,11 +592,11 @@ function buildWallColliders(trackCells) {
 
       if (key === 'track-bump') {
         walls.push({
-          halfExtents: [3.8 * S, 0.055, 0.42],
-          position: [cx, -0.125 + 0.055, cz],
+          halfExtents: [2.8 * S, 0.05, 0.55 * S],
+          position: [cx, -0.125 + 0.05, cz],
           quaternion: [0, Math.sin(rad / 2), 0, Math.cos(rad / 2)],
           friction: 3.5,
-          restitution: 0.25,
+          restitution: 0.2,
         });
       }
     } else if (key === 'track-corner') {

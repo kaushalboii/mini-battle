@@ -214,9 +214,9 @@ export class RivalsAndGhostManager {
     ].filter((k) => k !== this._playerColor && this._sources[k]);
 
     const specs = [
-      { speed: 9.2, laneOffset: -1.15, progressOffset: -0.35 },
-      { speed: 8.5, laneOffset: 1.15, progressOffset: -0.7 },
-      { speed: 7.8, laneOffset: -0.45, progressOffset: -1.1 },
+      { speed: 9.2, laneOffset: -0.95, progressOffset: -1 },
+      { speed: 8.5, laneOffset: 0.95, progressOffset: -2 },
+      { speed: 7.8, laneOffset: -0.35, progressOffset: -3 },
     ];
 
     allKeys.slice(0, 3).forEach((key, idx) => {
@@ -319,7 +319,7 @@ export class RivalsAndGhostManager {
         const dz = tz - ai.z;
         const dist = Math.hypot(dx, dz);
 
-        if (dist < 2.2) {
+        if (dist < 1.35) {
           ai.wpIndex = (ai.wpIndex + 1) % wps.length;
         }
 
@@ -328,7 +328,7 @@ export class RivalsAndGhostManager {
         while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
         while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
 
-        ai.yaw = lerpAngle(ai.yaw, desiredYaw, Math.min(1, dt * 4.5));
+        ai.yaw = lerpAngle(ai.yaw, desiredYaw, Math.min(1, dt * 6.5));
 
         const cornerSlowdown = Math.max(0.58, 1 - Math.abs(yawDiff) * 0.45);
         const rubberBand = 1 + Math.sin(elapsedTime * 0.7 + ai.phase) * 0.08;

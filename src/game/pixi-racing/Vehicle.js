@@ -4,7 +4,7 @@ import { rigidBody } from 'crashcat';
 import { clamp, lerp } from './MathUtils';
 
 const LINEAR_DAMP = 0.09;
-export const MAX_SPEED = 1.85;
+export const MAX_SPEED = 1.75;
 
 const DEFAULT_SPAWN = [3.5, 0.5, 5];
 
@@ -181,9 +181,9 @@ export class Vehicle {
       } else if (targetSpeed < 0) {
         this.linearSpeed = lerp(this.linearSpeed, targetSpeed * 0.55, dt * 2.2);
       } else {
-        // Low gears launch punchy; top gears build up smoothly onto long straights
+        // Snappy launch & progressive pull up through all 6 gears
         const speedNorm = clamp(this.linearSpeed / MAX_SPEED, 0, 1);
-        const accelRate = lerp(1.65, 0.95, speedNorm);
+        const accelRate = lerp(2.25, 1.35, speedNorm);
         this.linearSpeed = lerp(
           this.linearSpeed,
           targetSpeed * MAX_SPEED,

@@ -2,8 +2,8 @@ import { sound } from './manifest';
 import { clamp, lerp } from './MathUtils';
 
 const NUM_GEARS = 6;
-const GEAR_MIN = [0.0, 0.14, 0.28, 0.44, 0.62, 0.80];
-const GEAR_MAX = [0.19, 0.34, 0.50, 0.68, 0.86, 1.04];
+const GEAR_MIN = [0.0, 0.13, 0.26, 0.41, 0.57, 0.74];
+const GEAR_MAX = [0.17, 0.31, 0.47, 0.63, 0.79, 0.96];
 
 const UPSHIFT_RPM = 0.90;
 const DOWNSHIFT_RPM = 0.33;

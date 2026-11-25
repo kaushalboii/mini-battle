@@ -63,6 +63,7 @@ export class LapTimer {
 
   _prevForwardProj = null;
   _visited = new Set();
+  _lastShownCentis = -1;
 
   _flashTime = 0;
   _flashColor = 0xffffff;
@@ -207,7 +208,11 @@ export class LapTimer {
     this._running = true;
 
     this._currentLapTime += dt;
-    this._currentText.text = formatLapTime(this._currentLapTime);
+    const centis = Math.floor(this._currentLapTime * 100);
+    if (centis !== this._lastShownCentis) {
+      this._lastShownCentis = centis;
+      this._currentText.text = formatLapTime(this._currentLapTime);
+    }
 
     const cellSize = this._track.cellSize;
     const gx = Math.floor(position.x / cellSize);

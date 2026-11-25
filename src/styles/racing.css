@@ -2,6 +2,23 @@
    MINI BATTLE 3D RACING UI STYLES
    ========================================================================== */
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #111418;
+}
+
 :root {
   --gta-font-heading: 'Bebas Neue', 'Montserrat', Impact, -apple-system, sans-serif;
   --gta-font-tech: 'Chakra Petch', 'Courier New', monospace;
@@ -132,11 +149,10 @@
   height: 100vh;
   height: 100dvh;
   width: 100vw;
-  background: linear-gradient(90deg, rgba(8, 11, 16, 0.82) 0%, rgba(10, 14, 20, 0.56) 55%, rgba(8, 11, 16, 0.72) 100%);
-  backdrop-filter: blur(4px);
+  background: linear-gradient(100deg, rgba(8, 11, 16, 0.84) 0%, rgba(10, 14, 20, 0.45) 60%, rgba(8, 11, 16, 0.55) 100%);
   pointer-events: auto;
   overflow: hidden;
-  animation: gtaFadeIn 0.2s ease-out;
+  animation: gtaFadeIn 0.18s ease-out;
 }
 
 @keyframes gtaFadeIn {
@@ -313,9 +329,12 @@
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(300px, 410px) minmax(350px, 520px);
-  gap: 32px;
-  padding: 22px 44px;
+  grid-template-columns: minmax(300px, 410px) minmax(360px, 500px);
+  gap: 24px;
+  padding: 14px 28px;
+  width: min(100%, 1020px);
+  margin: 0 auto;
+  align-content: center;
   align-items: start;
   overflow-y: auto;
 }
@@ -325,7 +344,6 @@
   background: var(--gta-bg-panel);
   border: 1px solid var(--gta-border);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
 }
@@ -424,8 +442,7 @@
   background: var(--gta-bg-panel);
   border: 1px solid var(--gta-border);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  padding: 22px;
+  padding: 18px 20px;
 }
 
 .gta-card-header {
@@ -603,7 +620,7 @@
 
 .track-preview-svg {
   width: 100%;
-  height: 125px;
+  height: 104px;
   display: block;
 }
 
@@ -1048,7 +1065,7 @@
 }
 
 .hud-mesh-live-pill {
-  background: rgba(10, 12, 16, 0.85);
+  background: rgba(10, 12, 16, 0.88);
   border: 1px solid rgba(46, 204, 113, 0.55);
   padding: 6px 12px;
   display: flex;
@@ -1058,7 +1075,6 @@
   font-size: 11px;
   font-weight: 700;
   color: #86efac;
-  backdrop-filter: blur(8px);
 }
 
 .hud-mesh-live-pill .live-dot {
@@ -1073,7 +1089,6 @@
   background: var(--gta-bg-glass);
   border: 1px solid var(--gta-border);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
   padding: 6px 13px;
   display: flex;
   align-items: center;
@@ -1138,16 +1153,19 @@
 /* Optional Corner Minimap */
 .hud-minimap-card {
   position: absolute;
-  bottom: 20px;
+  bottom: 18px;
   left: 16px;
   z-index: 35;
-  width: 112px;
-  height: 112px;
-  background: var(--gta-bg-glass);
+  width: 104px;
+  height: 104px;
+  background: rgba(10, 12, 16, 0.76);
   border: 1px solid var(--gta-border);
-  backdrop-filter: blur(8px);
   padding: 8px;
   pointer-events: none;
+}
+
+.hud-minimap-card.lifted {
+  bottom: 96px;
 }
 
 .hud-minimap-svg {
@@ -1159,19 +1177,22 @@
 /* Speedometer */
 .gta-hud-speedometer {
   position: absolute;
-  bottom: 22px;
-  right: 22px;
+  bottom: 18px;
+  right: 16px;
   z-index: 40;
   background: var(--gta-bg-glass);
   border: 1px solid var(--gta-border);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
   padding: 12px 18px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   min-width: 132px;
   pointer-events: none;
+}
+
+.gta-hud-speedometer.lifted-right {
+  bottom: 112px;
 }
 
 .gta-speed-value {
@@ -1225,7 +1246,6 @@
   z-index: 60;
   background: var(--gta-bg-glass);
   border: 1px solid var(--gta-gold);
-  backdrop-filter: blur(8px);
   padding: 8px 22px;
   color: #ffffff;
   font-family: var(--gta-font-heading);

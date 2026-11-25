@@ -582,7 +582,10 @@ export default function GtaMenu({
                       setSelectedIdx(idx);
                     }
                   }}
-                  onClick={() => item.action()}
+                  onClick={() => {
+                    setSelectedIdx(idx);
+                    item.action();
+                  }}
                 >
                   <span className="gta-item-text">{item.label}</span>
                   {item.badge && (

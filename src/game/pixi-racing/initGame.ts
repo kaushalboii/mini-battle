@@ -1,11 +1,4 @@
-import {
-  DirectionalLight,
-  Material3D,
-  Mesh3D,
-  PlaneGeometry,
-  Vector3,
-  View3D,
-} from '@pixi/3d';
+import { View3D, DirectionalLight, Material3D, Mesh3D, PlaneGeometry, Vector3 } from '@pixi/3d';
 import { Application, Assets, Container } from 'pixi.js';
 
 import { rendererPreference } from './getPreference';
@@ -111,14 +104,15 @@ export async function initRacingGame(
 
   onProgress?.(0.9, 'Building 3D world...');
 
+  // Keep View3D shadow & fog fast & cohesive (horizon blends before outer tiles)
   const view3d = new View3D({
     autoResize: true,
-    shadowQuality: 'high',
+    shadowQuality: 'medium',
     toneMapping: 'aces',
     exposure: 1.0,
     environment: { skyColor: 0xc8d8e8, groundColor: 0x7a8a5a, intensity: 1 },
     background: 0xadb2ba,
-    fog: { type: 'linear', color: 0xadb2ba, near: 42, far: 82 },
+    fog: { type: 'linear', color: 0xadb2ba, near: 26, far: 52 },
   });
 
   app.stage.addChild(view3d);
@@ -134,8 +128,8 @@ export async function initRacingGame(
     shadow: {
       bias: 0.0008,
       normalBias: 0.05,
-      maxDistance: 80,
-      cascades: 3,
+      maxDistance: 45,
+      cascades: 2,
       lambda: 0.6,
     },
   });
@@ -144,9 +138,9 @@ export async function initRacingGame(
   sun.lookAt({ x: 0, y: 0, z: 0 });
   view3d.root.addChild(sun);
 
-  // Expanded Ground plane covering up to Level 5 Apex Marathon bounds
+  // Expanded Ground plane matching meadow tones under all 5 levels
   const ground = new Mesh3D({
-    geometry: new PlaneGeometry({ width: 320, height: 320 }),
+    geometry: new PlaneGeometry({ width: 340, height: 340 }),
     material: new Material3D({
       baseColor: 0x6b7268,
       metallic: 0.0,
@@ -166,7 +160,7 @@ export async function initRacingGame(
 
   // Physics covering huge multi-level terrain
   const physics = new PhysicsWorld(new Vector3(track.spawn[0], track.spawn[1], track.spawn[2]));
-  physics.addStaticGround([-30, -0.125, 0], [160, 0.01, 160]);
+  physics.addStaticGround([-30, -0.125, 0], [170, 0.01, 170]);
   physics.rebuildWalls(track.walls);
 
   // Audio
@@ -348,8 +342,8 @@ export async function initRacingGame(
     },
     getTelemetry(): RaceTelemetry {
       const speedRatio = Math.min(1.06, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
-      const mph = Math.round(speedRatio * 142);
-      const kmh = Math.round(speedRatio * 228);
+      const mph = Math.round(speedRatio * 138);
+      const kmh = Math.round(speedRatio * 222);
       const lapStats = lapTimer.getStats();
 
       return {
