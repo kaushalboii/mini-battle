@@ -107,6 +107,7 @@ export default function RacingGame() {
     players: [],
     logs: [],
     error: null,
+    failedRoomCode: null,
   });
 
   const isTouchDevice = useMemo(
@@ -150,6 +151,20 @@ export default function RacingGame() {
       meshRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      meshState.status === "hosting" &&
+      meshState.roomCode &&
+      typeof window !== "undefined"
+    ) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("room") !== meshState.roomCode) {
+        url.searchParams.set("room", meshState.roomCode);
+        window.history.replaceState({}, "", url.toString());
+      }
+    }
+  }, [meshState.status, meshState.roomCode]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -603,9 +618,43 @@ export default function RacingGame() {
           meshState={meshState}
           initialTab={initialMenuTab}
           initialRoomCode={urlRoomCode}
-          onHostRoom={() => meshRef.current?.hostRoom(selectedTrack)}
-          onJoinRoom={(code) => meshRef.current?.joinRoom(code)}
-          onLeaveRoom={() => meshRef.current?.disconnect()}
+          onHostRoom={(customCode) => {
+            const codeToHost = customCode?.trim() || undefined;
+            meshRef.current?.hostRoom(selectedTrack, codeToHost);
+            if (codeToHost && typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.set("room", codeToHost.toUpperCase());
+              window.history.replaceState({}, "", url.toString());
+            }
+          }}
+          onJoinRoom={(code) => {
+            const clean = code.trim().toUpperCase();
+            meshRef.current?.joinRoom(clean);
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.set("room", clean);
+              window.history.replaceState({}, "", url.toString());
+            }
+          }}
+          onLeaveRoom={() => {
+            meshRef.current?.disconnect(false);
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              if (url.searchParams.has("room")) {
+                url.searchParams.delete("room");
+                window.history.replaceState({}, "", url.pathname);
+              }
+            }
+          }}
+          onClearRoomUrl={() => {
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              if (url.searchParams.has("room")) {
+                url.searchParams.delete("room");
+                window.history.replaceState({}, "", url.pathname);
+              }
+            }
+          }}
           onChangeDriverName={(name) => meshRef.current?.setDriverName(name)}
         />
       )}

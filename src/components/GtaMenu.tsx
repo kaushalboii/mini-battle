@@ -32,10 +32,11 @@ export interface GtaMenuProps {
   meshState: MeshStateSnapshot;
   initialTab?: MenuTab;
   initialRoomCode?: string;
-  onHostRoom: () => void;
+  onHostRoom: (customCode?: string) => void;
   onJoinRoom: (code: string) => void;
   onLeaveRoom: () => void;
   onChangeDriverName: (name: string) => void;
+  onClearRoomUrl?: () => void;
 }
 
 export type MenuTab = "PLAY" | "LEVELS" | "SETUP" | "MULTIPLAYER";
@@ -147,6 +148,7 @@ export default function GtaMenu({
   onJoinRoom,
   onLeaveRoom,
   onChangeDriverName,
+  onClearRoomUrl,
 }: GtaMenuProps) {
   const [activeTab, setActiveTab] = useState<MenuTab>(initialTab);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
@@ -368,17 +370,21 @@ export default function GtaMenu({
         label:
           meshState.status === "hosting"
             ? `HOSTING ROOM [${meshState.roomCode}]`
+            : roomInput.trim()
+            ? `HOST ROOM [${roomInput.trim().toUpperCase()}]`
             : "HOST WI-FI MESH ROOM",
-        badge: meshState.status === "hosting" ? "LIVE" : "CREATE",
+        badge: meshState.status === "hosting" ? "LIVE" : "HOST",
         action: () => {
           GtaAudio.playSelect();
-          onHostRoom();
+          onHostRoom(roomInput.trim() || undefined);
         },
       },
       {
         id: "mp-join",
-        label: "JOIN ROOM BY CODE",
-        badge: roomInput || "CODE",
+        label: roomInput.trim()
+          ? `JOIN ROOM [${roomInput.trim().toUpperCase()}]`
+          : "JOIN ROOM BY CODE",
+        badge: roomInput.trim() ? "JOIN" : "CODE",
         action: () => {
           GtaAudio.playSelect();
           if (roomInput.trim()) onJoinRoom(roomInput);
@@ -386,10 +392,11 @@ export default function GtaMenu({
       },
       {
         id: "mp-play",
-        label: "▶ DRIVE ON TRACK",
+        label: "▶ DRIVE ON TRACK (SOLO)",
         badge: "SPACE",
         action: () => {
           GtaAudio.playSelect();
+          onClearRoomUrl?.();
           onStartRace();
         },
       },
@@ -397,10 +404,11 @@ export default function GtaMenu({
         ? [
             {
               id: "mp-leave",
-              label: "DISCONNECT ROOM",
+              label: "LEAVE MULTIPLAYER ROOM",
               badge: "EXIT",
               action: () => {
                 GtaAudio.playBack();
+                onClearRoomUrl?.();
                 onLeaveRoom();
               },
             },
@@ -501,9 +509,10 @@ export default function GtaMenu({
     previewBestNum !== null && previewBestNum <= previewTrackInfo.targetLapSec;
 
   const handleCopyInviteLink = () => {
-    if (!meshState.roomCode) return;
+    const code = meshState.roomCode || roomInput.trim();
+    if (!code) return;
     const base = window.location.href.split("?")[0];
-    const url = `${base}?room=${meshState.roomCode}`;
+    const url = `${base}?room=${code.toUpperCase()}`;
     navigator.clipboard?.writeText(url).catch(() => {});
     setCopiedLink(true);
     GtaAudio.playSelect();
@@ -794,6 +803,13 @@ export default function GtaMenu({
                       onChange={(e) =>
                         setRoomInput(e.target.value.toUpperCase())
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && roomInput.trim()) {
+                          e.preventDefault();
+                          GtaAudio.playSelect();
+                          onJoinRoom(roomInput);
+                        }
+                      }}
                       placeholder="E.G. K7P2"
                     />
                     <button
@@ -808,6 +824,39 @@ export default function GtaMenu({
                 </div>
               </div>
 
+              {initialRoomCode &&
+                meshState.status === "offline" &&
+                !meshState.error && (
+                  <div className="mesh-invite-card">
+                    <div className="mesh-invite-title">
+                      INVITED TO ROOM: <strong>[{initialRoomCode}]</strong>
+                    </div>
+                    <p className="mesh-invite-desc">
+                      Join this session with friends, or host it yourself if you arrived first!
+                    </p>
+                    <div className="mesh-invite-actions">
+                      <button
+                        className="mesh-action-btn-gold"
+                        onClick={() => {
+                          GtaAudio.playSelect();
+                          onJoinRoom(initialRoomCode);
+                        }}
+                      >
+                        ▶ JOIN ROOM [{initialRoomCode}]
+                      </button>
+                      <button
+                        className="mesh-action-btn-subtle"
+                        onClick={() => {
+                          GtaAudio.playSelect();
+                          onHostRoom(initialRoomCode);
+                        }}
+                      >
+                        ⚡ HOST ROOM [{initialRoomCode}]
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               {meshState.roomCode && (
                 <div className="mesh-room-banner">
                   <div>
@@ -820,7 +869,13 @@ export default function GtaMenu({
                     <button onClick={handleCopyInviteLink}>
                       {copiedLink ? "✓ COPIED" : "COPY LINK"}
                     </button>
-                    <button className="danger" onClick={onLeaveRoom}>
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        onClearRoomUrl?.();
+                        onLeaveRoom();
+                      }}
+                    >
                       LEAVE
                     </button>
                   </div>
@@ -828,7 +883,60 @@ export default function GtaMenu({
               )}
 
               {meshState.error && (
-                <div className="mesh-error-banner">{meshState.error}</div>
+                <div className="mesh-error-card">
+                  <div className="mesh-error-title">
+                    <span>⚠️</span>
+                    <span>{meshState.error}</span>
+                  </div>
+                  <p className="mesh-error-desc">
+                    {meshState.failedRoomCode
+                      ? `Host for [${meshState.failedRoomCode}] is offline or not created yet. You can host this room code directly so your friends can join you, retry connecting, or drive solo!`
+                      : "Check your Wi-Fi or internet connection, or try hosting a fresh room."}
+                  </p>
+                  <div className="mesh-error-actions">
+                    {meshState.failedRoomCode && (
+                      <button
+                        className="mesh-action-btn-gold"
+                        onClick={() => {
+                          GtaAudio.playSelect();
+                          onHostRoom(meshState.failedRoomCode || roomInput);
+                        }}
+                      >
+                        ⚡ HOST ROOM [{meshState.failedRoomCode}]
+                      </button>
+                    )}
+                    <button
+                      className="mesh-action-btn-subtle"
+                      onClick={() => {
+                        GtaAudio.playSelect();
+                        if (roomInput.trim()) onJoinRoom(roomInput);
+                      }}
+                    >
+                      ↺ RETRY JOIN
+                    </button>
+                    <button
+                      className="mesh-action-btn-subtle"
+                      onClick={() => {
+                        GtaAudio.playSelect();
+                        onClearRoomUrl?.();
+                        onStartRace();
+                      }}
+                    >
+                      ▶ DRIVE SOLO
+                    </button>
+                    <button
+                      className="mesh-action-btn-subtle"
+                      onClick={() => {
+                        GtaAudio.playBack();
+                        setRoomInput("");
+                        onClearRoomUrl?.();
+                        onLeaveRoom();
+                      }}
+                    >
+                      ✕ CLEAR CODE
+                    </button>
+                  </div>
+                </div>
               )}
 
               <div className="mesh-roster">

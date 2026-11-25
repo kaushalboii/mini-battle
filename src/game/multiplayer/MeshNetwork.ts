@@ -34,6 +34,7 @@ export interface MeshStateSnapshot {
   players: MeshPlayerState[];
   logs: ConsoleEntry[];
   error: string | null;
+  failedRoomCode: string | null;
 }
 
 type Packet =
@@ -45,6 +46,20 @@ type Packet =
 
 const ROOM_PREFIX = 'minibattle-wifi-';
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+const PEER_CONFIG = {
+  debug: 0,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+    ],
+    iceCandidatePoolSize: 6,
+  },
+};
 
 export function generateRoomCode(): string {
   let code = '';
@@ -74,6 +89,7 @@ export class MeshNetworkManager {
   private driverName = 'RACER-1';
   private trackId = 'level-1';
   private error: string | null = null;
+  private failedRoomCode: string | null = null;
 
   private onStateChange?: (snap: MeshStateSnapshot) => void;
   private onTrackSync?: (trackId: string) => void;
@@ -193,7 +209,17 @@ export class MeshNetworkManager {
       players: Array.from(this.players.values()),
       logs: this.logs,
       error: this.error,
+      failedRoomCode: this.failedRoomCode,
     };
+  }
+
+  clearError() {
+    this.error = null;
+    this.failedRoomCode = null;
+    if (this.status === 'error') {
+      this.status = 'offline';
+    }
+    this.emitState();
   }
 
   private emitState() {
@@ -210,11 +236,10 @@ export class MeshNetworkManager {
     this.roomCode = code;
     this.trackId = trackId;
     this.error = null;
+    this.failedRoomCode = null;
     this.addLog('info', `Opening Wi-Fi Mesh Room [${code}]...`);
 
-    const peer = new Peer(peerId, {
-      debug: 0,
-    });
+    const peer = new Peer(peerId, PEER_CONFIG);
     this.peer = peer;
 
     peer.on('open', (id) => {
@@ -230,7 +255,7 @@ export class MeshNetworkManager {
         isSelf: true,
         lastSeen: Date.now(),
       });
-      this.addLog('success', `Room [${code}] LIVE! Ready for friends on Wi-Fi.`);
+      this.addLog('success', `Room [${code}] LIVE! Share code or link with friends.`);
       this.startTimers();
       this.emitState();
     });
@@ -240,10 +265,12 @@ export class MeshNetworkManager {
     });
 
     peer.on('error', (err: any) => {
-      const msg = err?.type === 'unavailable-id'
-        ? `Room code ${code} is already taken. Try generating a fresh room.`
+      const isTaken = err?.type === 'unavailable-id';
+      const msg = isTaken
+        ? `Room code [${code}] is already active with another host. Join it or pick a new code.`
         : err?.message || 'Host network error';
       this.status = 'error';
+      this.failedRoomCode = isTaken ? code : null;
       this.error = msg;
       this.addLog('error', `Host error: ${msg}`);
       this.emitState();
@@ -251,9 +278,10 @@ export class MeshNetworkManager {
   }
 
   joinRoom(codeInput: string) {
-    const code = codeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const code = codeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (code.length < 3) {
       this.error = 'Enter a valid 4-character Room Code.';
+      this.failedRoomCode = null;
       this.addLog('warn', this.error);
       this.emitState();
       return;
@@ -264,10 +292,13 @@ export class MeshNetworkManager {
     this.isHost = false;
     this.roomCode = code;
     this.error = null;
+    this.failedRoomCode = null;
     this.addLog('info', `Connecting to Room [${code}]...`);
 
-    const peer = new Peer({ debug: 0 });
+    const peer = new Peer(PEER_CONFIG);
     this.peer = peer;
+
+    let timeout: number | null = null;
 
     peer.on('open', (id) => {
       this.localId = id;
@@ -275,19 +306,21 @@ export class MeshNetworkManager {
       const conn = peer.connect(targetId, { reliable: false });
       this.hostConn = conn;
 
-      const timeout = window.setTimeout(() => {
+      timeout = window.setTimeout(() => {
         if (this.status === 'connecting') {
           this.status = 'error';
-          this.error = `Could not reach Room [${code}]. Check Room Code & Wi-Fi.`;
+          this.failedRoomCode = code;
+          this.error = `Could not reach Room [${code}]. Host is offline.`;
           this.addLog('error', this.error);
           this.emitState();
         }
-      }, 9000);
+      }, 7000);
 
       conn.on('open', () => {
-        window.clearTimeout(timeout);
+        if (timeout) window.clearTimeout(timeout);
         this.status = 'connected';
         this.error = null;
+        this.failedRoomCode = null;
         this.addLog('success', `Connected to Host Room [${code}]!`);
 
         conn.send({
@@ -307,14 +340,15 @@ export class MeshNetworkManager {
       });
 
       conn.on('close', () => {
-        window.clearTimeout(timeout);
+        if (timeout) window.clearTimeout(timeout);
         this.addLog('warn', `Disconnected from Room [${code}].`);
         this.disconnect(true);
       });
 
       conn.on('error', (err: any) => {
-        window.clearTimeout(timeout);
+        if (timeout) window.clearTimeout(timeout);
         this.status = 'error';
+        this.failedRoomCode = code;
         this.error = err?.message || 'Connection failed';
         this.addLog('error', `Link error: ${this.error}`);
         this.emitState();
@@ -322,10 +356,13 @@ export class MeshNetworkManager {
     });
 
     peer.on('error', (err: any) => {
-      const msg = err?.type === 'peer-unavailable'
-        ? `Room [${code}] not found.`
+      if (timeout) window.clearTimeout(timeout);
+      const isUnavailable = err?.type === 'peer-unavailable';
+      const msg = isUnavailable
+        ? `Room [${code}] host is offline or not found.`
         : err?.message || 'Peer network error';
       this.status = 'error';
+      this.failedRoomCode = code;
       this.error = msg;
       this.addLog('error', msg);
       this.emitState();
@@ -494,6 +531,7 @@ export class MeshNetworkManager {
     this.roomCode = '';
     this.localId = '';
     this.error = null;
+    this.failedRoomCode = null;
     if (!silent) {
       this.addLog('info', 'Left multiplayer mesh room.');
     } else {
