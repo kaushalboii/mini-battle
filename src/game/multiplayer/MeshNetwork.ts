@@ -48,16 +48,12 @@ const ROOM_PREFIX = 'minibattle-wifi-';
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const PEER_CONFIG = {
-  debug: 0,
+  debug: 1,
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' },
     ],
-    iceCandidatePoolSize: 6,
   },
 };
 
@@ -222,8 +218,17 @@ export class MeshNetworkManager {
     this.emitState();
   }
 
-  private emitState() {
-    this.onStateChange?.(this.getSnapshot());
+  private lastEmitTime = 0;
+  private lastEmitKey = '';
+
+  private emitState(force = false) {
+    const now = Date.now();
+    const key = `${this.status}-${this.trackId}-${this.error}-${this.players.size}`;
+    if (force || key !== this.lastEmitKey || now - this.lastEmitTime >= 350) {
+      this.lastEmitTime = now;
+      this.lastEmitKey = key;
+      this.onStateChange?.(this.getSnapshot());
+    }
   }
 
   hostRoom(trackId: string, customCode?: string) {
@@ -303,7 +308,7 @@ export class MeshNetworkManager {
     peer.on('open', (id) => {
       this.localId = id;
       const targetId = `${ROOM_PREFIX}${code}`;
-      const conn = peer.connect(targetId, { reliable: false });
+      const conn = peer.connect(targetId);
       this.hostConn = conn;
 
       timeout = window.setTimeout(() => {
@@ -443,11 +448,22 @@ export class MeshNetworkManager {
       const nextMap = new Map<string, MeshPlayerState>();
       for (const p of pkt.players) {
         const isSelf = p.id === this.localId;
-        nextMap.set(p.id, {
-          ...p,
-          isSelf,
-          lastSeen: Date.now(),
-        });
+        if (isSelf) {
+          nextMap.set(p.id, {
+            ...p,
+            ...this.selfPose,
+            id: this.localId,
+            name: this.driverName,
+            isSelf: true,
+            lastSeen: Date.now(),
+          });
+        } else {
+          nextMap.set(p.id, {
+            ...p,
+            isSelf: false,
+            lastSeen: Date.now(),
+          });
+        }
       }
       this.players = nextMap;
       this.emitState();
