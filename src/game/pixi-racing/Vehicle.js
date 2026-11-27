@@ -377,11 +377,11 @@ export class Vehicle {
     }
 
     const dist = Math.sqrt(minDistSq);
-    // Road half-width is 3.75m. Wall at 3.56m. Vehicle radius 0.5m. Safe limit 3.12m.
-    const MAX_ROAD_DIST = 3.12;
+    // Road half-width is 3.75m. Safe limit for sphere center is 3.25m.
+    const MAX_ROAD_DIST = 3.25;
     const body = this.physics.sphereBody;
 
-    // Hard boundary containment
+    // Smooth boundary containment (keeps car on the road)
     if (dist > MAX_ROAD_DIST && dist > 1e-4) {
       const nx = (px - closestX) / dist;
       const nz = (pz - closestZ) / dist;
@@ -396,33 +396,24 @@ export class Vehicle {
       const linvel = body.motionProperties.linearVelocity;
       const normalVel = linvel[0] * nx + linvel[2] * nz;
       if (normalVel > 0) {
-        const bounce = 1.25;
+        const bounce = 1.05;
         const newVx = linvel[0] - normalVel * nx * bounce;
         const newVz = linvel[2] - normalVel * nz * bounce;
         rigidBody.setLinearVelocity(this.physics.world, body, [newVx, linvel[1], newVz]);
         this.sphereVel.set(newVx, linvel[1], newVz);
       }
 
-      this.linearSpeed *= 0.88;
-    }
-
-    // Impact slowdown against obstacles and barriers
-    const linvel = body.motionProperties.linearVelocity;
-    const fwdX = Math.sin(this.yaw);
-    const fwdZ = Math.cos(this.yaw);
-    const forwardPhysicalSpeed = linvel[0] * fwdX + linvel[2] * fwdZ;
-    if (this.linearSpeed > 0.25 && forwardPhysicalSpeed < this.linearSpeed * 0.4) {
-      this.linearSpeed = lerp(this.linearSpeed, Math.max(0, forwardPhysicalSpeed), dt * 5.0);
+      this.linearSpeed *= 0.985;
     }
 
     // Failsafe auto-recovery: if car is ever knocked far away or flying wildly
-    if (dist > 5.5 || this.spherePos.y < -0.3 || this.spherePos.y > 5.0) {
+    if (dist > 5.8 || this.spherePos.y < -0.4 || this.spherePos.y > 6.0) {
       const segMag = Math.hypot(segDirX, segDirZ) || 1;
       const targetYaw = Math.atan2(segDirX / segMag, segDirZ / segMag);
 
       this.spherePos.set(closestX, 0.5, closestZ);
       this.yaw = targetYaw;
-      this.linearSpeed = Math.min(this.linearSpeed, 0.4);
+      this.linearSpeed = Math.min(this.linearSpeed, 0.5);
 
       rigidBody.setPosition(this.physics.world, body, [closestX, 0.5, closestZ], false);
       rigidBody.setLinearVelocity(this.physics.world, body, [0, 0, 0]);
