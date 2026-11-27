@@ -76,6 +76,12 @@ function TrackMinimapSvg({ trackId }: { trackId: string }) {
   const points = cells.map(([gx, gz]) => `${gx + 0.5},${gz + 0.5}`).join(" ");
   const finish = cells.find(([, , key]) => key === "track-finish") || cells[0];
   const bumps = cells.filter(([, , key]) => key === "track-bump");
+  const obstacles = cells.filter(
+    ([, , key]) =>
+      key.startsWith("track-chicane") ||
+      key === "track-barrier-gate" ||
+      key === "track-hazard-center"
+  );
 
   return (
     <svg
@@ -99,11 +105,20 @@ function TrackMinimapSvg({ trackId }: { trackId: string }) {
       />
       {bumps.map(([gx, gz], idx) => (
         <circle
-          key={idx}
+          key={`bump-${idx}`}
           cx={gx + 0.5}
           cy={gz + 0.5}
           r="0.24"
           fill="#00e5ff"
+        />
+      ))}
+      {obstacles.map(([gx, gz], idx) => (
+        <circle
+          key={`obs-${idx}`}
+          cx={gx + 0.5}
+          cy={gz + 0.5}
+          r="0.22"
+          fill="#ff6b00"
         />
       ))}
       <rect
@@ -628,6 +643,18 @@ export default function GtaMenu({
                     <>
                       <span className="legend-dot bump" />{" "}
                       {previewTrackInfo.bumps} JUMP BUMPS
+                    </>
+                  )}
+                  {((previewTrackInfo as any).obstacles || 0) > 0 && (
+                    <>
+                      <span
+                        className="legend-dot"
+                        style={{
+                          backgroundColor: "#ff6b00",
+                          boxShadow: "0 0 6px rgba(255,107,0,0.6)",
+                        }}
+                      />{" "}
+                      {(previewTrackInfo as any).obstacles} OBSTACLES
                     </>
                   )}
                 </div>

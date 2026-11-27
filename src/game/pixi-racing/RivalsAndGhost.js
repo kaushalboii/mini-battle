@@ -312,8 +312,27 @@ export class RivalsAndGhostManager {
         const rightX = segDz / segLen;
         const rightZ = -segDx / segLen;
 
-        const tx = targetWp.x + rightX * ai.laneOffset;
-        const tz = targetWp.z + rightZ * ai.laneOffset;
+        // Smart obstacle avoidance along the track
+        let effectiveLaneOffset = ai.laneOffset;
+        const cellSize = this._track.cellSize || 7.5;
+        const gx = Math.floor(targetWp.x / cellSize);
+        const gz = Math.floor(targetWp.z / cellSize);
+        const cell = this._track.cells?.find(([cgx, cgz]) => cgx === gx && cgz === gz);
+        if (cell) {
+          const tileKey = cell[2];
+          if (tileKey === 'track-chicane-left') {
+            effectiveLaneOffset = Math.max(0.75, ai.laneOffset);
+          } else if (tileKey === 'track-chicane-right') {
+            effectiveLaneOffset = Math.min(-0.75, ai.laneOffset);
+          } else if (tileKey === 'track-barrier-gate') {
+            effectiveLaneOffset = 0;
+          } else if (tileKey === 'track-hazard-center') {
+            effectiveLaneOffset = ai.laneOffset >= 0 ? 1.35 : -1.35;
+          }
+        }
+
+        const tx = targetWp.x + rightX * effectiveLaneOffset;
+        const tz = targetWp.z + rightZ * effectiveLaneOffset;
 
         const dx = tx - ai.x;
         const dz = tz - ai.z;

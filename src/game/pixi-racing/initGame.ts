@@ -179,6 +179,7 @@ export async function initRacingGame(
   // Vehicle
   let currentColorKey = 'vehicle-truck-yellow';
   const vehicle = new Vehicle(sources[currentColorKey], physics, track.spawn, track.spawnYaw);
+  vehicle.setTrack(track);
   view3d.root.addChild(vehicle.container);
 
   (physics as any).listener = {
@@ -297,6 +298,7 @@ export async function initRacingGame(
       currentTrackId = trackId;
       track = buildTrack(view3d.root, sources, trackId);
       physics.rebuildWalls(track.walls);
+      vehicle.setTrack(track);
       vehicle.setSpawn(track.spawn, track.spawnYaw);
       audio.resetGearbox();
       driftMarks.clear();

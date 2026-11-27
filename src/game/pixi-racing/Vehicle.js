@@ -63,6 +63,7 @@ export class Vehicle {
   driftIntensity = 0;
 
   physics;
+  trackWaypoints = null;
 
   constructor(source, physics, spawn = DEFAULT_SPAWN, spawnYaw = 0) {
     this.physics = physics;
@@ -120,6 +121,10 @@ export class Vehicle {
     if (wheelFR) this.wheels.push(wheelFR);
     if (wheelBL) this.wheels.push(wheelBL);
     if (wheelBR) this.wheels.push(wheelBR);
+  }
+
+  setTrack(track) {
+    this.trackWaypoints = track?.waypoints || null;
   }
 
   setSpawn(spawnPos, yaw = 0) {
@@ -217,6 +222,8 @@ export class Vehicle {
       this.linearSpeed + 0.25 * this.linearSpeed * Math.abs(this.linearSpeed),
       dt,
     );
+
+    this._enforceTrackContainment(dt);
 
     if (this.spherePos.y < -10) {
       this.reset();
@@ -319,5 +326,107 @@ export class Vehicle {
     _qSpin.setFromAxisAngle(_xAxis, spin);
     _qSteer.multiply(_qSpin);
     wheel.quaternion.copyFrom(_qSteer);
+  }
+
+  /**
+   * 3-Layer Track Containment:
+   * Keeps the car strictly within the asphalt boundaries.
+   * If the car grazes the outer wall, it is mathematically clamped and deflected back.
+   * If collision velocity abruptly halts against a barrier/obstacle, linearSpeed decelerates.
+   * If any extreme physics anomaly occurs, the vehicle instantly snaps to the centerline.
+   */
+  _enforceTrackContainment(dt) {
+    if (!this.trackWaypoints || this.trackWaypoints.length < 3) return;
+
+    const px = this.spherePos.x;
+    const pz = this.spherePos.z;
+    const wps = this.trackWaypoints;
+    const len = wps.length;
+
+    let minDistSq = Infinity;
+    let closestX = px;
+    let closestZ = pz;
+    let segDirX = 0;
+    let segDirZ = 1;
+
+    for (let i = 0; i < len; i++) {
+      const p1 = wps[i];
+      const p2 = wps[(i + 1) % len];
+      const dx = p2.x - p1.x;
+      const dz = p2.z - p1.z;
+      const segLenSq = dx * dx + dz * dz;
+
+      let qx, qz;
+      if (segLenSq < 1e-6) {
+        qx = p1.x;
+        qz = p1.z;
+      } else {
+        const t = Math.max(0, Math.min(1, ((px - p1.x) * dx + (pz - p1.z) * dz) / segLenSq));
+        qx = p1.x + t * dx;
+        qz = p1.z + t * dz;
+      }
+
+      const distSq = (px - qx) * (px - qx) + (pz - qz) * (pz - qz);
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
+        closestX = qx;
+        closestZ = qz;
+        segDirX = dx;
+        segDirZ = dz;
+      }
+    }
+
+    const dist = Math.sqrt(minDistSq);
+    // Road half-width is 3.75m. Wall at 3.56m. Vehicle radius 0.5m. Safe limit 3.12m.
+    const MAX_ROAD_DIST = 3.12;
+    const body = this.physics.sphereBody;
+
+    // Hard boundary containment
+    if (dist > MAX_ROAD_DIST && dist > 1e-4) {
+      const nx = (px - closestX) / dist;
+      const nz = (pz - closestZ) / dist;
+
+      const clampedX = closestX + nx * MAX_ROAD_DIST;
+      const clampedZ = closestZ + nz * MAX_ROAD_DIST;
+
+      this.spherePos.x = clampedX;
+      this.spherePos.z = clampedZ;
+      rigidBody.setPosition(this.physics.world, body, [clampedX, this.spherePos.y, clampedZ], false);
+
+      const linvel = body.motionProperties.linearVelocity;
+      const normalVel = linvel[0] * nx + linvel[2] * nz;
+      if (normalVel > 0) {
+        const bounce = 1.25;
+        const newVx = linvel[0] - normalVel * nx * bounce;
+        const newVz = linvel[2] - normalVel * nz * bounce;
+        rigidBody.setLinearVelocity(this.physics.world, body, [newVx, linvel[1], newVz]);
+        this.sphereVel.set(newVx, linvel[1], newVz);
+      }
+
+      this.linearSpeed *= 0.88;
+    }
+
+    // Impact slowdown against obstacles and barriers
+    const linvel = body.motionProperties.linearVelocity;
+    const fwdX = Math.sin(this.yaw);
+    const fwdZ = Math.cos(this.yaw);
+    const forwardPhysicalSpeed = linvel[0] * fwdX + linvel[2] * fwdZ;
+    if (this.linearSpeed > 0.25 && forwardPhysicalSpeed < this.linearSpeed * 0.4) {
+      this.linearSpeed = lerp(this.linearSpeed, Math.max(0, forwardPhysicalSpeed), dt * 5.0);
+    }
+
+    // Failsafe auto-recovery: if car is ever knocked far away or flying wildly
+    if (dist > 5.5 || this.spherePos.y < -0.3 || this.spherePos.y > 5.0) {
+      const segMag = Math.hypot(segDirX, segDirZ) || 1;
+      const targetYaw = Math.atan2(segDirX / segMag, segDirZ / segMag);
+
+      this.spherePos.set(closestX, 0.5, closestZ);
+      this.yaw = targetYaw;
+      this.linearSpeed = Math.min(this.linearSpeed, 0.4);
+
+      rigidBody.setPosition(this.physics.world, body, [closestX, 0.5, closestZ], false);
+      rigidBody.setLinearVelocity(this.physics.world, body, [0, 0, 0]);
+      rigidBody.setAngularVelocity(this.physics.world, body, [0, 0, 0]);
+    }
   }
 }
