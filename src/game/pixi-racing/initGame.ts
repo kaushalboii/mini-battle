@@ -21,6 +21,13 @@ export interface RaceTelemetry {
   kmh: number;
   gear: number;
   rpm: number;
+  nitro: number;
+  isBoosting: boolean;
+  airTime: number;
+  driftScore: number;
+  currentDriftPoints: number;
+  position: number;
+  totalRacers: number;
   lap: number;
   currentLapTime: number;
   lastLapFormatted: string;
@@ -34,6 +41,56 @@ export interface RaceTelemetry {
   waypoints: Array<{ x: number; z: number }>;
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
+
+const TRACK_ATMOSPHERES: Record<string, {
+  sunColor: number;
+  sunIntensity: number;
+  skyColor: number;
+  groundColor: number;
+  fogColor: number;
+  groundBaseColor: number;
+}> = {
+  'level-1': {
+    sunColor: 0xfff4e0,
+    sunIntensity: 2.0,
+    skyColor: 0xc8d8e8,
+    groundColor: 0x7a8a5a,
+    fogColor: 0xadb2ba,
+    groundBaseColor: 0x6b7268,
+  },
+  'level-2': {
+    sunColor: 0xfb923c,
+    sunIntensity: 2.2,
+    skyColor: 0xfcd34d,
+    groundColor: 0x92400e,
+    fogColor: 0xf59e0b,
+    groundBaseColor: 0x78350f,
+  },
+  'level-3': {
+    sunColor: 0xe2e8f0,
+    sunIntensity: 1.8,
+    skyColor: 0x94a3b8,
+    groundColor: 0x475569,
+    fogColor: 0x64748b,
+    groundBaseColor: 0x334155,
+  },
+  'level-4': {
+    sunColor: 0xa5b4fc,
+    sunIntensity: 1.5,
+    skyColor: 0x4338ca,
+    groundColor: 0x1e1b4b,
+    fogColor: 0x312e81,
+    groundBaseColor: 0x1e1b4b,
+  },
+  'level-5': {
+    sunColor: 0x38bdf8,
+    sunIntensity: 1.3,
+    skyColor: 0x0f172a,
+    groundColor: 0x020617,
+    fogColor: 0x0b1120,
+    groundBaseColor: 0x090d16,
+  },
+};
 
 export interface GameInstance {
   app: Application;
@@ -154,9 +211,29 @@ export async function initRacingGame(
   ground.position.set(-30, -0.13, 0);
   view3d.root.addChild(ground);
 
+  const applyAtmosphere = (trackId: string) => {
+    const atmo = TRACK_ATMOSPHERES[trackId] || TRACK_ATMOSPHERES['level-1'];
+    sun.color = atmo.sunColor;
+    sun.intensity = atmo.sunIntensity;
+    view3d.background = atmo.skyColor;
+    (view3d as any).environment = {
+      skyColor: atmo.skyColor,
+      groundColor: atmo.groundColor,
+      intensity: 1.0,
+    };
+    (view3d as any).fog = {
+      type: 'linear',
+      color: atmo.fogColor,
+      near: trackId === 'level-3' ? 18 : 26,
+      far: trackId === 'level-3' ? 44 : 52,
+    };
+    ground.material.baseColor = atmo.groundBaseColor;
+  };
+
   // Track (defaults to Level 1)
   let currentTrackId = 'level-1';
   let track = buildTrack(view3d.root, sources, currentTrackId);
+  applyAtmosphere(currentTrackId);
 
   // Physics covering huge multi-level terrain
   const physics = new PhysicsWorld(new Vector3(track.spawn[0], track.spawn[1], track.spawn[2]));
@@ -253,6 +330,8 @@ export async function initRacingGame(
       vehicle.modelVelocity,
       vehicle.yaw,
       vehicle.linearSpeed,
+      vehicle.isBoosting,
+      vehicle.justLanded,
     );
 
     driftMarks.update(dt, vehicle);
@@ -262,7 +341,12 @@ export async function initRacingGame(
       vehicle.linearSpeed / MAX_SPEED,
       input.z,
       vehicle.driftIntensity,
+      vehicle.isBoosting,
     );
+
+    if (vehicle.justLanded) {
+      audio.playImpact(1.4);
+    }
 
     const hasInput =
       input.touchActive || Math.abs(input.x) > 0.05 || Math.abs(input.z) > 0.05;
@@ -297,6 +381,7 @@ export async function initRacingGame(
       track.destroy();
       currentTrackId = trackId;
       track = buildTrack(view3d.root, sources, trackId);
+      applyAtmosphere(trackId);
       physics.rebuildWalls(track.walls);
       vehicle.setTrack(track);
       vehicle.setSpawn(track.spawn, track.spawnYaw);
@@ -343,17 +428,63 @@ export async function initRacingGame(
       }
     },
     getTelemetry(): RaceTelemetry {
-      const speedRatio = Math.min(1.06, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
+      const maxSpd = vehicle.isBoosting ? MAX_SPEED * 1.30 : MAX_SPEED;
+      const speedRatio = Math.min(1.28, Math.abs(vehicle.linearSpeed || 0) / MAX_SPEED);
       const mph = Math.round(speedRatio * 138);
       const kmh = Math.round(speedRatio * 222);
       const lapStats = lapTimer.getStats();
 
+      // Live race position calculation
+      const playerProgress = (lapStats.lap || 1) * 1000 + (lapStats.progressRatio * 1000);
+      let rank = 1;
+      let total = 1;
+
+      // Compare against AI rivals
+      const aiRanks = rivalsManager.getAiRanks?.() || [];
+      if (rivalsManager._mode === 'ai') {
+        total += aiRanks.length;
+        const totalWps = track.waypoints.length || 1;
+        for (const ai of aiRanks) {
+          const aiProg = 1000 + (ai.wpIndex / totalWps) * 1000;
+          if (aiProg > playerProgress) rank++;
+        }
+      }
+
+      // Compare against multiplayer peers
+      if (pendingRemotePlayers.length > 0) {
+        total += pendingRemotePlayers.length;
+        const totalWps = track.waypoints.length || 1;
+        for (const p of pendingRemotePlayers) {
+          let bestIdx = 0;
+          let bestDistSq = Infinity;
+          for (let i = 0; i < totalWps; i++) {
+            const wp = track.waypoints[i];
+            const dx = p.x - wp.x;
+            const dz = p.z - wp.z;
+            const dSq = dx * dx + dz * dz;
+            if (dSq < bestDistSq) {
+              bestDistSq = dSq;
+              bestIdx = i;
+            }
+          }
+          const pProg = (p.lap || 1) * 1000 + (bestIdx / totalWps) * 1000;
+          if (pProg > playerProgress) rank++;
+        }
+      }
+
       return {
-        speedNormalized: Math.min(1, speedRatio),
+        speedNormalized: Math.min(1, Math.abs(vehicle.linearSpeed || 0) / maxSpd),
         mph,
         kmh,
         gear: mph <= 1 ? 0 : audio.getGear(),
         rpm: audio.getRpm(),
+        nitro: vehicle.nitro,
+        isBoosting: vehicle.isBoosting,
+        airTime: vehicle.airTime,
+        driftScore: vehicle.driftScore,
+        currentDriftPoints: Math.round(vehicle.currentDriftPoints),
+        position: rank,
+        totalRacers: total,
         lap: lapStats.lap,
         currentLapTime: lapStats.currentLapTime,
         lastLapFormatted: lapStats.lastLapFormatted,

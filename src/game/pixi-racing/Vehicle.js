@@ -62,6 +62,19 @@ export class Vehicle {
   inputZ = 0;
   driftIntensity = 0;
 
+  // Nitro Boost & Drift-to-charge
+  nitro = 1.0;
+  isBoosting = false;
+
+  // Jump airtime & landing feedback
+  airTime = 0;
+  isAirborne = false;
+  justLanded = false;
+
+  // Drift Score
+  driftScore = 0;
+  currentDriftPoints = 0;
+
   physics;
   trackWaypoints = null;
 
@@ -146,6 +159,12 @@ export class Vehicle {
     this.acceleration = 0;
     this.driftIntensity = 0;
     this.yaw = this.spawnYaw;
+    this.nitro = 1.0;
+    this.isBoosting = false;
+    this.airTime = 0;
+    this.isAirborne = false;
+    this.justLanded = false;
+    this.currentDriftPoints = 0;
     this.container.position.set(this.spawn[0], this.spawn[1] - 0.5, this.spawn[2]);
     this._prevModelPos.set(this.spawn[0], 0, this.spawn[2]);
     _q.setFromAxisAngle(_up, this.yaw);
@@ -155,6 +174,24 @@ export class Vehicle {
   update(dt, input) {
     this.inputX = input.x;
     this.inputZ = input.z;
+
+    // Nitro Boost & Drift-to-Charge
+    const wantsBoost = Boolean(input.boost) && this.nitro > 0.04 && this.linearSpeed > 0.15;
+    if (wantsBoost) {
+      this.isBoosting = true;
+      this.nitro = Math.max(0, this.nitro - dt * 0.32);
+    } else {
+      this.isBoosting = false;
+      if (this.driftIntensity > 0.35) {
+        // Drifting fills nitro tank fast!
+        this.nitro = Math.min(1.0, this.nitro + dt * 0.24);
+      } else {
+        // Slow trickle passive recharge
+        this.nitro = Math.min(1.0, this.nitro + dt * 0.035);
+      }
+    }
+
+    const currentMaxSpeed = this.isBoosting ? MAX_SPEED * 1.30 : MAX_SPEED;
 
     if (input.touchActive && (this.inputX !== 0 || this.inputZ !== 0)) {
       const targetAngle = Math.atan2(this.inputX, this.inputZ);
@@ -166,7 +203,7 @@ export class Vehicle {
       const cross = _forward.x * this.inputZ - _forward.z * this.inputX;
 
       this.inputX = clamp(-cross * 2, -1, 1);
-      this.linearSpeed = lerp(this.linearSpeed, MAX_SPEED, dt * 1.35);
+      this.linearSpeed = lerp(this.linearSpeed, currentMaxSpeed, dt * (this.isBoosting ? 3.5 : 1.35));
     } else {
       let direction = Math.sign(this.linearSpeed);
 
@@ -187,11 +224,11 @@ export class Vehicle {
         this.linearSpeed = lerp(this.linearSpeed, targetSpeed * 0.55, dt * 2.2);
       } else {
         // Snappy launch & progressive pull up through all 6 gears
-        const speedNorm = clamp(this.linearSpeed / MAX_SPEED, 0, 1);
-        const accelRate = lerp(2.25, 1.35, speedNorm);
+        const speedNorm = clamp(this.linearSpeed / currentMaxSpeed, 0, 1);
+        const accelRate = this.isBoosting ? 4.0 : lerp(2.25, 1.35, speedNorm);
         this.linearSpeed = lerp(
           this.linearSpeed,
-          targetSpeed * MAX_SPEED,
+          targetSpeed * currentMaxSpeed,
           dt * accelRate,
         );
       }
@@ -257,6 +294,26 @@ export class Vehicle {
     this.driftIntensity =
       Math.abs(this.linearSpeed - this.acceleration) +
       Math.abs(this._bodyRoll) * 2;
+
+    // Airtime detection on track bump jumps
+    this.justLanded = false;
+    if (this.spherePos.y > 0.62) {
+      this.isAirborne = true;
+      this.airTime += dt;
+    } else if (this.isAirborne) {
+      this.isAirborne = false;
+      this.justLanded = true;
+      this._bodyPitch += 0.07;
+      this.airTime = 0;
+    }
+
+    // Dynamic Drift Scoring
+    if (this.driftIntensity > 0.42 && Math.abs(this.linearSpeed) > 0.4) {
+      this.currentDriftPoints += dt * 600 * Math.min(2.5, this.driftIntensity);
+    } else if (this.currentDriftPoints > 30) {
+      this.driftScore += Math.round(this.currentDriftPoints);
+      this.currentDriftPoints = 0;
+    }
   }
 
   _updateBody(dt) {

@@ -250,6 +250,14 @@ export class RivalsAndGhostManager {
     this.resetRecording();
   }
 
+  getAiRanks() {
+    return this._aiAgents.map((a) => ({
+      wpIndex: a.wpIndex,
+      x: a.x,
+      z: a.z,
+    }));
+  }
+
   update(dt, playerVehicle, playerIsDriving, elapsedTime) {
     // 1. Record current lap poses for Time Trial Ghost
     if (playerIsDriving) {

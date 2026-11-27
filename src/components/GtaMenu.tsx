@@ -366,6 +366,18 @@ export default function GtaMenu({
   } else if (activeTab === "MULTIPLAYER") {
     menuItems = [
       {
+        id: "mp-drive",
+        label:
+          meshState.status === "hosting" || meshState.status === "connected"
+            ? `▶ DRIVE ON TRACK (ROOM [${meshState.roomCode}])`
+            : "▶ DRIVE ON TRACK (SOLO)",
+        badge: "SPACE",
+        action: () => {
+          GtaAudio.playSelect();
+          onStartRace();
+        },
+      },
+      {
         id: "mp-host",
         label:
           meshState.status === "hosting"
@@ -391,13 +403,18 @@ export default function GtaMenu({
         },
       },
       {
-        id: "mp-play",
-        label: "▶ DRIVE ON TRACK (SOLO)",
-        badge: "SPACE",
+        id: "mp-split",
+        label: "👥 TEST MULTIPLAYER (OPEN 2ND PLAYER TAB)",
+        badge: "TEST",
         action: () => {
           GtaAudio.playSelect();
-          onClearRoomUrl?.();
-          onStartRace();
+          let code = meshState.roomCode || roomInput.trim();
+          if (!code || meshState.status === "offline") {
+            code = "RACE";
+            onHostRoom(code);
+          }
+          const base = window.location.href.split("?")[0];
+          window.open(`${base}?room=${code.toUpperCase()}`, "_blank");
         },
       },
       ...(meshState.status === "hosting" || meshState.status === "connected"
@@ -729,16 +746,16 @@ export default function GtaMenu({
                   <span>DRIVE & DRIFT</span>
                 </div>
                 <div className="gta-key-card">
+                  <kbd>SHIFT / SPACE / N</kbd>
+                  <span>⚡ NITRO BOOST</span>
+                </div>
+                <div className="gta-key-card">
                   <kbd>C</kbd>
                   <span>CAMERA ANGLE</span>
                 </div>
                 <div className="gta-key-card">
                   <kbd>R</kbd>
                   <span>RESPAWN GRID</span>
-                </div>
-                <div className="gta-key-card">
-                  <kbd>M / F / ESC</kbd>
-                  <span>MUTE / FULLSCREEN / MENU</span>
                 </div>
               </div>
 

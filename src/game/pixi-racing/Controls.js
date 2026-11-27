@@ -26,6 +26,12 @@ export class Controls {
 
     let x = 0;
     let z = 0;
+    let boost = Boolean(
+      this._keys.ShiftLeft ||
+      this._keys.ShiftRight ||
+      this._keys.KeyN ||
+      this._keys.Space
+    );
 
     if (this._keys.KeyA || this._keys.ArrowLeft) x -= 1;
     if (this._keys.KeyD || this._keys.ArrowRight) x += 1;
@@ -46,12 +52,16 @@ export class Controls {
 
       if (rt > 0.1 || lt > 0.1) z = rt - lt;
 
+      if (gp.buttons[0]?.pressed || gp.buttons[5]?.pressed) boost = true;
+
       break;
     }
 
     let touchActive = false;
 
     if (this._joystick) {
+      if (this._joystick.boostActive) boost = true;
+
       if (this._joystick.pedalMode && this._joystick.pedalActive) {
         x = this._joystick.pedalX;
         z = this._joystick.pedalZ;
@@ -70,7 +80,7 @@ export class Controls {
       }
     }
 
-    return { x, z, touchActive };
+    return { x, z, boost, touchActive };
   }
 
   _onKeyDown = (e) => {

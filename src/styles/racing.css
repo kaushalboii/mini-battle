@@ -1338,6 +1338,111 @@ body,
   transition: width 0.08s ease-out;
 }
 
+/* Nitro Boost Bar */
+.gta-nitro-bar-card {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gta-nitro-bar-card.boosting .gta-nitro-fill {
+  background: linear-gradient(90deg, #ffffff, #00e5ff);
+  box-shadow: 0 0 12px #00e5ff, 0 0 20px #00e5ff;
+}
+
+.gta-nitro-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--gta-font-tech);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.gta-nitro-title {
+  color: #00e5ff;
+  font-weight: 800;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+}
+
+.gta-nitro-key {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+}
+
+.gta-nitro-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.gta-nitro-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00b0ff, #00e5ff);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.7);
+  transition: width 0.05s linear;
+}
+
+/* Floating Arcade Drift & Airtime Banners */
+.hud-drift-banner {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: var(--gta-font-heading);
+  font-size: 26px;
+  font-style: italic;
+  font-weight: 900;
+  color: #facc15;
+  text-shadow: 0 0 14px rgba(250, 204, 21, 0.8), 2px 2px 0 #000;
+  letter-spacing: 2px;
+  pointer-events: none;
+  animation: driftPulse 0.4s infinite alternate;
+}
+
+.hud-airtime-banner {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: var(--gta-font-heading);
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 900;
+  color: #00e5ff;
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.8), 2px 2px 0 #000;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
+@keyframes driftPulse {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.06); }
+}
+
+/* Live Position Pill */
+.hud-race-pos-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-family: var(--gta-font-heading);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #facc15;
+  background: rgba(10, 12, 16, 0.85);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+}
+
 /* Camera Mode Toast */
 .gta-camera-toast {
   position: absolute;

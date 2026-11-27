@@ -13,6 +13,7 @@ export class TouchJoystick extends Container {
   pedalX = 0;
   pedalZ = 0;
   pedalActive = false;
+  boostActive = false;
 
   _pointerId = null;
   _startX = 0;
@@ -28,6 +29,7 @@ export class TouchJoystick extends Container {
   _btnRight;
   _btnBrake;
   _btnGas;
+  _btnBoost;
   _width = 800;
   _height = 600;
 
@@ -73,12 +75,14 @@ export class TouchJoystick extends Container {
     this._btnRight = this._makePedalButton('▶', 'right', 62, 56);
     this._btnBrake = this._makePedalButton('BRAKE', 'brake', 64, 52);
     this._btnGas = this._makePedalButton('GAS', 'gas', 72, 82);
+    this._btnBoost = this._makePedalButton('⚡ NITRO', 'boost', 76, 52);
 
     this._pedalsContainer.addChild(
       this._btnLeft,
       this._btnRight,
       this._btnBrake,
       this._btnGas,
+      this._btnBoost,
     );
     this._layoutPedals();
   }
@@ -130,14 +134,17 @@ export class TouchJoystick extends Container {
   _recomputePedals() {
     let x = 0;
     let z = 0;
+    let boost = false;
     for (const act of this._pedalPointers.values()) {
       if (act === 'left') x -= 1;
       if (act === 'right') x += 1;
       if (act === 'gas') z += 1;
       if (act === 'brake') z -= 1;
+      if (act === 'boost') boost = true;
     }
     this.pedalX = Math.max(-1, Math.min(1, x));
     this.pedalZ = Math.max(-1, Math.min(1, z));
+    this.boostActive = boost;
     this.pedalActive = this._pedalPointers.size > 0;
   }
 
@@ -153,6 +160,7 @@ export class TouchJoystick extends Container {
     this._knob.visible = false;
     this._pointerId = null;
     this.touchActive = false;
+    this.boostActive = false;
     this._pedalPointers.clear();
     this._recomputePedals();
   }
@@ -165,6 +173,7 @@ export class TouchJoystick extends Container {
     this._btnRight.position.set(pad + 62 + 12, h - 56 - pad);
     this._btnBrake.position.set(w - pad - 72 - 12 - 64, h - 52 - pad);
     this._btnGas.position.set(w - pad - 72, h - 82 - pad);
+    this._btnBoost.position.set(w - pad - 76, h - 82 - pad - 60);
   }
 
   resize(width, height) {

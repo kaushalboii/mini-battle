@@ -45,6 +45,11 @@ export default function RacingGame() {
   const gearBadgeRef = useRef<HTMLDivElement>(null);
   const rpmFillRef = useRef<HTMLDivElement>(null);
   const minimapPlayerRef = useRef<SVGCircleElement>(null);
+  const nitroFillRef = useRef<HTMLDivElement>(null);
+  const nitroCardRef = useRef<HTMLDivElement>(null);
+  const driftBannerRef = useRef<HTMLDivElement>(null);
+  const airtimeBannerRef = useRef<HTMLDivElement>(null);
+  const racePosRef = useRef<HTMLDivElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -146,6 +151,10 @@ export default function RacingGame() {
     meshRef.current = mesh;
     setMeshState(mesh.getSnapshot());
 
+    if (urlRoomCode) {
+      mesh.autoConnect(urlRoomCode);
+    }
+
     return () => {
       mesh.disconnect(true);
       meshRef.current = null;
@@ -246,6 +255,49 @@ export default function RacingGame() {
           rpmFillRef.current.style.width = `${rpmPct}%`;
         }
 
+        // Nitro Boost Bar
+        if (nitroFillRef.current) {
+          const nitroPct = Math.round(snap.nitro * 100);
+          nitroFillRef.current.style.width = `${nitroPct}%`;
+        }
+        if (nitroCardRef.current) {
+          if (snap.isBoosting) {
+            nitroCardRef.current.classList.add("boosting");
+          } else {
+            nitroCardRef.current.classList.remove("boosting");
+          }
+        }
+
+        // Live Race Standings Pill
+        if (racePosRef.current) {
+          if (snap.totalRacers > 1) {
+            racePosRef.current.style.display = "inline-flex";
+            racePosRef.current.textContent = `P${snap.position} / ${snap.totalRacers}`;
+          } else {
+            racePosRef.current.style.display = "none";
+          }
+        }
+
+        // Drift Score Popup
+        if (driftBannerRef.current) {
+          if (snap.currentDriftPoints > 15) {
+            driftBannerRef.current.style.display = "block";
+            driftBannerRef.current.textContent = `🔥 DRIFT +${snap.currentDriftPoints} PTS`;
+          } else {
+            driftBannerRef.current.style.display = "none";
+          }
+        }
+
+        // Airtime Banner
+        if (airtimeBannerRef.current) {
+          if (snap.airTime > 0.12) {
+            airtimeBannerRef.current.style.display = "block";
+            airtimeBannerRef.current.textContent = `⚡ AIRTIME ${snap.airTime.toFixed(1)}s`;
+          } else {
+            airtimeBannerRef.current.style.display = "none";
+          }
+        }
+
         if (minimapPlayerRef.current) {
           minimapPlayerRef.current.setAttribute("cx", snap.x.toFixed(1));
           minimapPlayerRef.current.setAttribute("cy", snap.z.toFixed(1));
@@ -264,6 +316,7 @@ export default function RacingGame() {
                 z: snap.z,
                 yaw: snap.yaw,
                 speed: snap.speedNormalized * 1.75,
+                isBoosting: snap.isBoosting,
                 color: selectedColor,
                 lap: snap.lap,
                 bestLap: snap.bestLap,
@@ -469,6 +522,13 @@ export default function RacingGame() {
               <span className="gta-btn-key">ESC</span>
               <span className="gta-btn-label">MENU</span>
             </button>
+            <div
+              ref={racePosRef}
+              className="hud-race-pos-pill"
+              style={{ display: "none" }}
+            >
+              P1 / 4
+            </div>
             {isMeshOnline && (
               <div className="hud-mesh-live-pill">
                 <span className="live-dot" />
@@ -478,6 +538,17 @@ export default function RacingGame() {
               </div>
             )}
           </div>
+
+          <div
+            ref={driftBannerRef}
+            className="hud-drift-banner"
+            style={{ display: "none" }}
+          />
+          <div
+            ref={airtimeBannerRef}
+            className="hud-airtime-banner"
+            style={{ display: "none" }}
+          />
 
           <div className="gta-hud-top-right">
             <div className="gta-hud-action-row">
@@ -582,6 +653,19 @@ export default function RacingGame() {
                 className="gta-speed-fill"
                 style={{ width: "0%" }}
               />
+            </div>
+            <div ref={nitroCardRef} className="gta-nitro-bar-card">
+              <div className="gta-nitro-label-row">
+                <span className="gta-nitro-title">⚡ NITRO</span>
+                <span className="gta-nitro-key">HOLD SHIFT</span>
+              </div>
+              <div className="gta-nitro-track">
+                <div
+                  ref={nitroFillRef}
+                  className="gta-nitro-fill"
+                  style={{ width: "100%" }}
+                />
+              </div>
             </div>
           </div>
         </>

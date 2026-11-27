@@ -177,17 +177,17 @@ export class GameAudio {
     this._shiftCooldown = 0;
   }
 
-  update(dt, speed, throttle, driftIntensity) {
-    const absSpeed = clamp(Math.abs(speed), 0, 1.05);
-    const load = clamp(Math.max(0, throttle), 0, 1);
+  update(dt, speed, throttle, driftIntensity, isBoosting = false) {
+    const absSpeed = clamp(Math.abs(speed), 0, isBoosting ? 1.35 : 1.05);
+    const load = clamp(Math.max(0, throttle), 0, 1) + (isBoosting ? 0.35 : 0);
 
     // Always compute 6-gear transmission state even before audio unlock so HUD gears work 100%
     const gMin = GEAR_MIN[this._gear];
     const gMax = GEAR_MAX[this._gear];
     const inGear = clamp((absSpeed - gMin) / Math.max(0.05, gMax - gMin), 0, 1);
 
-    let targetRpm = inGear * 0.86 + load * 0.18;
-    targetRpm = clamp(targetRpm, 0.08, 1.05);
+    let targetRpm = inGear * 0.86 + load * 0.18 + (isBoosting ? 0.15 : 0);
+    targetRpm = clamp(targetRpm, 0.08, 1.15);
 
     const riseRate = 4.8;
     const fallRate = 4.2;
@@ -230,11 +230,13 @@ export class GameAudio {
     this._engineLayer.currentVolume = this._engine.currentVolume * 0.4;
     this._engineLayer.gain.gain.value = this._engineLayer.currentVolume;
 
-    const pitch = lerp(
-      PITCH_LOW[this._gear],
-      PITCH_HIGH[this._gear],
-      clamp(this._rpm, 0, 1),
-    );
+    const pitchBoost = isBoosting ? 0.22 : 0;
+    const pitch =
+      lerp(
+        PITCH_LOW[this._gear],
+        PITCH_HIGH[this._gear],
+        clamp(this._rpm, 0, 1),
+      ) + pitchBoost;
 
     if (this._engine.source) this._engine.source.playbackRate.value = pitch;
     if (this._engineLayer.source)

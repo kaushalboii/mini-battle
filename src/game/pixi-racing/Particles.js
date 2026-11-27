@@ -24,34 +24,51 @@ const _wheelPos = new Vector3();
  */
 export class SmokeTrails {
   _system;
+  _nitroSystem;
 
   constructor(parent, smokeTexture) {
     this._system = new ParticleSystem3D({
       texture: smokeTexture,
       capacity: 1280,
-      // Driven from the game's own loop, alongside the physics step.
       autoUpdate: false,
       emitRate: 0,
       shape: new ConeShape({ angle: 25, radius: 0.09 }),
-      life: 2.5,
+      life: 2.2,
       speed: [0.5, 1],
       size: [BASE_SIZE * 0.25, BASE_SIZE * 0.5],
       sizeEnd: [BASE_SIZE * 1.5, BASE_SIZE * 3],
       alpha: 0.25,
       alphaEnd: 0,
-      // Light, slightly cool grey — reads as smog dust against the racing
-      // scene's warm-grey background.
       color: 0xb8bcc4,
       drag: 1,
     });
 
+    // Electric Cyan Nitro Flame Particle System
+    this._nitroSystem = new ParticleSystem3D({
+      texture: smokeTexture,
+      capacity: 640,
+      autoUpdate: false,
+      emitRate: 0,
+      shape: new ConeShape({ angle: 12, radius: 0.05 }),
+      life: 0.35,
+      speed: [1.8, 3.2],
+      size: [BASE_SIZE * 0.3, BASE_SIZE * 0.6],
+      sizeEnd: [BASE_SIZE * 0.9, BASE_SIZE * 1.5],
+      alpha: 0.75,
+      alphaEnd: 0,
+      color: 0x00e5ff,
+      drag: 0.5,
+    });
+
     parent.addChild(this._system);
+    parent.addChild(this._nitroSystem);
   }
 
   update(ticker, vehicle) {
-    if (vehicle.driftIntensity > EMIT_THRESHOLD) {
-      const groundY = vehicle.container.position.y + Y_OFFSET;
+    const groundY = vehicle.container.position.y + Y_OFFSET;
 
+    // 1. Drift smoke trails
+    if (vehicle.driftIntensity > EMIT_THRESHOLD) {
       for (const wheel of [vehicle.wheelBL, vehicle.wheelBR]) {
         if (!wheel) continue;
 
@@ -62,6 +79,27 @@ export class SmokeTrails {
       }
     }
 
+    // 2. Jump landing dust puff
+    if (vehicle.justLanded) {
+      for (const wheel of [vehicle.wheelBL, vehicle.wheelBR]) {
+        if (!wheel) continue;
+        wheel.worldTransform.extractPosition(_wheelPos);
+        _wheelPos.y = groundY;
+        this._system.spawn(8, { position: _wheelPos });
+      }
+    }
+
+    // 3. Nitro boost dual exhaust flames
+    if (vehicle.isBoosting) {
+      for (const wheel of [vehicle.wheelBL, vehicle.wheelBR]) {
+        if (!wheel) continue;
+        wheel.worldTransform.extractPosition(_wheelPos);
+        _wheelPos.y = groundY + 0.12;
+        this._nitroSystem.spawn(4, { position: _wheelPos });
+      }
+    }
+
     this._system.update(ticker);
+    this._nitroSystem.update(ticker);
   }
 }

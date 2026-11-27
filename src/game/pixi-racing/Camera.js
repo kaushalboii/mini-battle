@@ -114,7 +114,11 @@ export class FollowCamera {
     this.camera.lookAt(this._smoothedLookPos);
   }
 
-  update(dt, target, velocity, yaw = 0, speed = 0) {
+  update(dt, target, velocity, yaw = 0, speed = 0, isBoosting = false, justLanded = false) {
+    if (justLanded) {
+      this._smoothedCamPos.y -= 0.16;
+    }
+
     if (this.mode === 'isometric') {
       this._updateIsometric(dt, target, velocity);
     } else if (this.mode === 'aerial') {
@@ -122,10 +126,10 @@ export class FollowCamera {
     } else if (this.mode === 'hood') {
       this._updateHood(dt, target, yaw, speed);
     } else if (this.mode === 'chase-close') {
-      this._updateChase(dt, target, velocity, yaw, speed, 3.0, 1.4, 52, 2.5, 0.4);
+      this._updateChase(dt, target, velocity, yaw, speed, 3.0, 1.4, isBoosting ? 60 : 52, 2.5, 0.4);
     } else {
       // Default: chase
-      this._updateChase(dt, target, velocity, yaw, speed, 4.4, 2.1, 48, 2.0, 0.5);
+      this._updateChase(dt, target, velocity, yaw, speed, 4.4, 2.1, isBoosting ? 58 : 48, 2.0, 0.5);
     }
   }
 
